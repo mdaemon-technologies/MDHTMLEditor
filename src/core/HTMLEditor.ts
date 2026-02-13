@@ -488,11 +488,14 @@ export class HTMLEditor implements IMDHTMLEditor {
     }
     
     this.toolbar?.destroy();
+    this.toolbar = null;
     this.tiptap?.destroy();
+    this.tiptap = null;
     
     if (this.editorWrapper) {
       this.editorWrapper.remove();
     }
+    this.editorWrapper = null;
     
     this.eventListeners.clear();
     this.customButtons.clear();

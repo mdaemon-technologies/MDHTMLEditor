@@ -12,6 +12,8 @@ export default {
   },
   moduleNameMapper: {
     '\\.(css|scss)$': '<rootDir>/__tests__/__mocks__/styleMock.js',
+    '^@tiptap/extension-code-block-lowlight$': '<rootDir>/__tests__/__mocks__/@tiptap/extension-code-block-lowlight.ts',
+    '^lowlight$': '<rootDir>/__tests__/__mocks__/lowlight.js',
   },
   setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
   collectCoverageFrom: [
