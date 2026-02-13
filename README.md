@@ -135,4 +135,4 @@ The following TinyMCE-compatible commands are supported:
 
 ## License
 
-UNLICENSED - MDaemon Technologies
+LGPL 3.0 or later - MDaemon Technologies
