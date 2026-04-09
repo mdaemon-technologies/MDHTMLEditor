@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { copyFileSync } from 'fs';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig({
@@ -7,6 +8,12 @@ export default defineConfig({
     dts({
       insertTypesEntry: true,
       rollupTypes: true,
+      afterBuild: () => {
+        copyFileSync(
+          resolve(__dirname, 'src/styles.d.ts'),
+          resolve(__dirname, 'dist/styles.d.ts'),
+        );
+      },
     }),
   ],
   build: {
@@ -15,6 +22,7 @@ export default defineConfig({
       name: 'MDHTMLEditor',
       formats: ['es', 'cjs'],
       fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`,
+      cssFileName: 'styles',
     },
     rollupOptions: {
       external: [],

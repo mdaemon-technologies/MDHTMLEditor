@@ -61,6 +61,8 @@ export interface EditorConfig {
   images_upload_url?: string;
   images_upload_credentials?: boolean;
   images_upload_base_path?: string;
+  images_upload_max_size?: number;
+  images_upload_headers?: Record<string, string>;
   
   // Font configuration
   font_family_formats?: string;
@@ -119,6 +121,8 @@ export type DirtyCallback = (dirty: boolean) => void;
 export type ChangeCallback = (content: string) => void;
 export type FocusCallback = () => void;
 export type BlurCallback = () => void;
+export type LanguageChangeCallback = (code: string) => void;
+export type TemplateChangeCallback = (template: Template) => void;
 
 export interface EditorEvents {
   init?: InitCallback;
@@ -169,6 +173,9 @@ export interface MDHTMLEditor {
   // Lifecycle
   destroy(): void;
   
+  // Language
+  setLanguage(code: string): void;
+  
   // Internal TipTap editor access
   getTipTap(): TipTapEditor | null;
 }
@@ -179,6 +186,8 @@ export interface EditorEventMap {
   change: ChangeCallback;
   focus: FocusCallback;
   blur: BlurCallback;
+  languagechange: LanguageChangeCallback;
+  templatechange: TemplateChangeCallback;
 }
 
 /**

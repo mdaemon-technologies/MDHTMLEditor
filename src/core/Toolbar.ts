@@ -13,6 +13,7 @@ import type {
 import { HTMLEditor, fontNames as defaultFontNames, getTranslate } from './HTMLEditor';
 import { CharacterMap } from '../extensions/CharacterMap';
 import { EmojiPicker } from '../extensions/Emoji';
+import { ImageUpload } from '../extensions/ImageUpload';
 import { SearchReplace } from '../extensions/SearchReplace';
 
 interface ToolbarOptions {
@@ -87,8 +88,13 @@ export class Toolbar {
   private dropdowns: Map<string, HTMLElement> = new Map();
   private charMap: CharacterMap | null = null;
   private emojiPicker: EmojiPicker | null = null;
+  private imageUpload: ImageUpload | null = null;
   private searchReplace: SearchReplace | null = null;
   private updateInterval: ReturnType<typeof setInterval> | null = null;
+  private boundClickHandler: ((e: MouseEvent) => void) | null = null;
+  private boundKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private overflowEl: HTMLElement | null = null;
+  private toggleBtn: HTMLElement | null = null;
   
   constructor(container: HTMLElement, options: ToolbarOptions) {
     this.container = container;
@@ -115,8 +121,43 @@ export class Toolbar {
     this.container.innerHTML = '';
     this.container.className = `md-toolbar md-toolbar-${this.options.mode}${this.options.sticky ? ' md-toolbar-sticky' : ''}`;
     
-    // Parse toolbar string into groups
-    const groups = this.options.buttons.split('|').map(g => g.trim());
+    // Split on || to separate primary row from overflow rows
+    const rows = this.options.buttons.split('||');
+    const hasOverflow = rows.length > 1;
+    
+    if (hasOverflow) {
+      // Render primary row
+      const primaryEl = document.createElement('div');
+      primaryEl.className = 'md-toolbar-primary';
+      this.renderGroups(rows[0].trim(), primaryEl);
+      
+      // Add toggle button at far right of primary row
+      this.toggleBtn = this.createToggleButton();
+      primaryEl.appendChild(this.toggleBtn);
+      
+      this.container.appendChild(primaryEl);
+      
+      // Render overflow rows
+      this.overflowEl = document.createElement('div');
+      this.overflowEl.className = 'md-toolbar-overflow';
+      const overflowStr = rows.slice(1).join('||').trim();
+      this.renderGroups(overflowStr, this.overflowEl);
+      
+      this.container.appendChild(this.overflowEl);
+      
+      // Apply initial state
+      if (this.state.showMoreButtons) {
+        this.overflowEl.classList.add('md-toolbar-overflow-visible');
+        this.toggleBtn.classList.add('md-toolbar-btn-active');
+      }
+    } else {
+      // No overflow separator — render flat (backwards compatible)
+      this.renderGroups(this.options.buttons, this.container);
+    }
+  }
+  
+  private renderGroups(buttonsStr: string, parent: HTMLElement): void {
+    const groups = buttonsStr.split('|').map(g => g.trim()).filter(Boolean);
     
     groups.forEach((group, index) => {
       const groupEl = document.createElement('div');
@@ -131,15 +172,42 @@ export class Toolbar {
         }
       });
       
-      this.container.appendChild(groupEl);
+      parent.appendChild(groupEl);
       
       // Add separator except after last group
       if (index < groups.length - 1) {
         const separator = document.createElement('div');
         separator.className = 'md-toolbar-separator';
-        this.container.appendChild(separator);
+        parent.appendChild(separator);
       }
     });
+  }
+  
+  private createToggleButton(): HTMLElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'md-toolbar-btn md-toolbar-toggle-btn';
+    button.setAttribute('data-button', 'togglemore');
+    button.title = this.trans('More');
+    button.innerHTML = '<span class="md-toolbar-btn-icon">\u2026</span>';
+    
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.toggleOverflow();
+    });
+    
+    return button;
+  }
+  
+  private toggleOverflow(): void {
+    this.state.showMoreButtons = !this.state.showMoreButtons;
+    
+    if (this.overflowEl) {
+      this.overflowEl.classList.toggle('md-toolbar-overflow-visible', this.state.showMoreButtons);
+    }
+    if (this.toggleBtn) {
+      this.toggleBtn.classList.toggle('md-toolbar-btn-active', this.state.showMoreButtons);
+    }
   }
   
   private createButton(name: string): HTMLElement | null {
@@ -210,22 +278,22 @@ export class Toolbar {
         return this.createLineHeightDropdown();
         
       case 'alignleft':
-        return this.createActionButton('alignleft', '⬛', this.trans('Align left'), () => {
+        return this.createActionButton('alignleft', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', this.trans('Align left'), () => {
           this.tiptap?.chain().focus().setTextAlign('left').run();
         }, () => this.tiptap?.isActive({ textAlign: 'left' }) ?? false);
         
       case 'aligncenter':
-        return this.createActionButton('aligncenter', '⬛', this.trans('Align center'), () => {
+        return this.createActionButton('aligncenter', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', this.trans('Align center'), () => {
           this.tiptap?.chain().focus().setTextAlign('center').run();
         }, () => this.tiptap?.isActive({ textAlign: 'center' }) ?? false);
         
       case 'alignright':
-        return this.createActionButton('alignright', '⬛', this.trans('Align right'), () => {
+        return this.createActionButton('alignright', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', this.trans('Align right'), () => {
           this.tiptap?.chain().focus().setTextAlign('right').run();
         }, () => this.tiptap?.isActive({ textAlign: 'right' }) ?? false);
         
       case 'alignjustify':
-        return this.createActionButton('alignjustify', '⬛', this.trans('Justify'), () => {
+        return this.createActionButton('alignjustify', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', this.trans('Justify'), () => {
           this.tiptap?.chain().focus().setTextAlign('justify').run();
         }, () => this.tiptap?.isActive({ textAlign: 'justify' }) ?? false);
         
@@ -270,7 +338,7 @@ export class Toolbar {
         });
         
       case 'image':
-        return this.createActionButton('image', '🖼', this.trans('Insert image'), () => {
+        return this.createActionButton('image', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>', this.trans('Insert image'), () => {
           this.openImageDialog();
         });
         
@@ -295,7 +363,7 @@ export class Toolbar {
         });
         
       case 'code':
-        return this.createActionButton('code', '</>', this.trans('Source code'), () => {
+        return this.createActionButton('code', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>', this.trans('Source code'), () => {
           this.openSourceCode();
         });
         
@@ -441,8 +509,12 @@ export class Toolbar {
       description: t.description,
     }));
     
-    return this.createDropdown('template', this.trans('Templates'), options, (template) => {
-      this.tiptap?.chain().focus().insertContent(template.value).run();
+    return this.createDropdown('template', this.trans('Templates'), options, (selected) => {
+      this.tiptap?.chain().focus().insertContent(selected.value).run();
+      const matched = templates.find(t => t.content === selected.value);
+      if (matched) {
+        this.options.editor.fire('templatechange', matched);
+      }
     });
   }
   
@@ -631,16 +703,20 @@ export class Toolbar {
   }
   
   private bindEvents(): void {
+    // Remove any previously bound handlers
+    this.unbindEvents();
+
     // Close dropdowns when clicking outside
-    document.addEventListener('click', (e) => {
+    this.boundClickHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.md-toolbar-dropdown, .md-toolbar-colorpicker')) {
         this.closeAllDropdowns();
       }
-    });
+    };
+    document.addEventListener('click', this.boundClickHandler);
     
     // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
+    this.boundKeydownHandler = (e: KeyboardEvent) => {
       if (!this.tiptap?.isFocused) return;
       
       const isMod = e.ctrlKey || e.metaKey;
@@ -665,7 +741,19 @@ export class Toolbar {
         e.preventDefault();
         this.openSearchReplace();
       }
-    });
+    };
+    document.addEventListener('keydown', this.boundKeydownHandler);
+  }
+
+  private unbindEvents(): void {
+    if (this.boundClickHandler) {
+      document.removeEventListener('click', this.boundClickHandler);
+      this.boundClickHandler = null;
+    }
+    if (this.boundKeydownHandler) {
+      document.removeEventListener('keydown', this.boundKeydownHandler);
+      this.boundKeydownHandler = null;
+    }
   }
   
   private closeAllDropdowns(): void {
@@ -743,10 +831,20 @@ export class Toolbar {
   // Dialog methods
   
   private openImageDialog(): void {
-    const url = prompt(this.trans('Enter image URL:'));
-    if (url) {
-      this.tiptap?.chain().focus().setImage({ src: url }).run();
+    if (!this.imageUpload) {
+      this.imageUpload = new ImageUpload({
+        onInsert: (src, alt) => {
+          this.tiptap?.chain().focus().setImage({ src, alt: alt ?? '' }).run();
+        },
+        uploadUrl: this.options.config.images_upload_url,
+        uploadCredentials: this.options.config.images_upload_credentials,
+        uploadBasePath: this.options.config.images_upload_base_path,
+        uploadMaxSize: this.options.config.images_upload_max_size,
+        uploadHeaders: this.options.config.images_upload_headers,
+        trans: this.trans,
+      });
     }
+    this.imageUpload.open();
   }
   
   private openLinkDialog(): void {
@@ -839,13 +937,32 @@ export class Toolbar {
     this.updateButtonStates();
   }
   
+  rebuild(): void {
+    this.charMap?.destroy();
+    this.charMap = null;
+    this.emojiPicker?.destroy();
+    this.emojiPicker = null;
+    this.imageUpload?.destroy();
+    this.imageUpload = null;
+    this.searchReplace?.destroy();
+    this.searchReplace = null;
+    this.buttonElements.clear();
+    this.dropdowns.clear();
+    this.overflowEl = null;
+    this.toggleBtn = null;
+    this.render();
+    this.bindEvents();
+  }
+
   destroy(): void {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
     }
     
+    this.unbindEvents();
     this.charMap?.destroy();
     this.emojiPicker?.destroy();
+    this.imageUpload?.destroy();
     this.searchReplace?.destroy();
     
     this.buttonElements.clear();

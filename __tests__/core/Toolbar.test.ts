@@ -401,4 +401,184 @@ describe('Toolbar', () => {
       expect(customBtn.classList.contains('md-toolbar-btn-active')).toBe(false);
     });
   });
+
+  describe('Toolbar Mode', () => {
+    it('should default to wrap mode', () => {
+      const toolbar = container.querySelector('.md-toolbar');
+      expect(toolbar?.classList.contains('md-toolbar-wrap')).toBe(true);
+    });
+
+    it('should apply wrap mode class', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar_mode: 'wrap' });
+
+      const toolbar = container.querySelector('.md-toolbar');
+      expect(toolbar?.classList.contains('md-toolbar-wrap')).toBe(true);
+    });
+
+    it('should apply sliding mode class', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar_mode: 'sliding' });
+
+      const toolbar = container.querySelector('.md-toolbar');
+      expect(toolbar?.classList.contains('md-toolbar-sliding')).toBe(true);
+    });
+
+    it('should apply floating mode class', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar_mode: 'floating' });
+
+      const toolbar = container.querySelector('.md-toolbar');
+      expect(toolbar?.classList.contains('md-toolbar-floating')).toBe(true);
+    });
+
+    it('should apply sticky class when toolbar_sticky is true', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar_sticky: true });
+
+      const toolbar = container.querySelector('.md-toolbar');
+      expect(toolbar?.classList.contains('md-toolbar-sticky')).toBe(true);
+    });
+
+    it('should not apply sticky class when toolbar_sticky is false', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar_sticky: false });
+
+      const toolbar = container.querySelector('.md-toolbar');
+      expect(toolbar?.classList.contains('md-toolbar-sticky')).toBe(false);
+    });
+
+    it('should default toolbar_sticky to true', () => {
+      const toolbar = container.querySelector('.md-toolbar');
+      expect(toolbar?.classList.contains('md-toolbar-sticky')).toBe(true);
+    });
+  });
+
+  describe('Toolbar Toggle (Overflow)', () => {
+    it('should render toggle button when || separator is used', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const toggleBtn = container.querySelector('[data-button="togglemore"]');
+      expect(toggleBtn).not.toBeNull();
+    });
+
+    it('should NOT render toggle button when no || separator is used', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic | undo redo',
+      });
+
+      const toggleBtn = container.querySelector('[data-button="togglemore"]');
+      expect(toggleBtn).toBeNull();
+    });
+
+    it('should render primary and overflow wrappers with || separator', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const primary = container.querySelector('.md-toolbar-primary');
+      const overflow = container.querySelector('.md-toolbar-overflow');
+      expect(primary).not.toBeNull();
+      expect(overflow).not.toBeNull();
+    });
+
+    it('should hide overflow rows by default', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const overflow = container.querySelector('.md-toolbar-overflow');
+      expect(overflow?.classList.contains('md-toolbar-overflow-visible')).toBe(false);
+    });
+
+    it('should show overflow rows when toggle button is clicked', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const toggleBtn = container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
+      toggleBtn?.click();
+
+      const overflow = container.querySelector('.md-toolbar-overflow');
+      expect(overflow?.classList.contains('md-toolbar-overflow-visible')).toBe(true);
+    });
+
+    it('should hide overflow rows when toggle button is clicked twice', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const toggleBtn = container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
+      toggleBtn?.click();
+      toggleBtn?.click();
+
+      const overflow = container.querySelector('.md-toolbar-overflow');
+      expect(overflow?.classList.contains('md-toolbar-overflow-visible')).toBe(false);
+    });
+
+    it('should apply active class to toggle button when overflow is visible', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const toggleBtn = container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
+      toggleBtn?.click();
+
+      expect(toggleBtn?.classList.contains('md-toolbar-btn-active')).toBe(true);
+    });
+
+    it('should remove active class from toggle button when overflow is hidden', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const toggleBtn = container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
+      toggleBtn?.click();
+      toggleBtn?.click();
+
+      expect(toggleBtn?.classList.contains('md-toolbar-btn-active')).toBe(false);
+    });
+
+    it('should place primary buttons before toggle button', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const primary = container.querySelector('.md-toolbar-primary');
+      const boldBtn = primary?.querySelector('[data-button="bold"]');
+      const italicBtn = primary?.querySelector('[data-button="italic"]');
+      expect(boldBtn).not.toBeNull();
+      expect(italicBtn).not.toBeNull();
+    });
+
+    it('should place overflow buttons in overflow container', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const overflow = container.querySelector('.md-toolbar-overflow');
+      const undoBtn = overflow?.querySelector('[data-button="undo"]');
+      const redoBtn = overflow?.querySelector('[data-button="redo"]');
+      expect(undoBtn).not.toBeNull();
+      expect(redoBtn).not.toBeNull();
+    });
+
+    it('should render toggle button with the default toolbar (has || separator)', () => {
+      // Default toolbar now includes || separator
+      const toggleBtn = container.querySelector('[data-button="togglemore"]');
+      expect(toggleBtn).not.toBeNull();
+    });
+  });
 });

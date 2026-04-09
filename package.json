@@ -1,17 +1,26 @@
 {
   "name": "@mdaemon/html-editor",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "A TinyMCE-compatible HTML editor built on TipTap",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "style": "dist/styles.css",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
-    "./styles": "./dist/styles.css"
+    "./styles": {
+      "types": "./dist/styles.d.ts",
+      "default": "./dist/styles.css"
+    },
+    "./styles.css": {
+      "types": "./dist/styles.d.ts",
+      "default": "./dist/styles.css"
+    },
+    "./dist/styles.css": "./dist/styles.css"
   },
   "publishConfig": {
     "access": "public"
@@ -25,7 +34,9 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "demo": "vite test",
+    "update:tiptap": "npm install @tiptap/core@latest @tiptap/extension-character-count@latest @tiptap/extension-code-block-lowlight@latest @tiptap/extension-color@latest @tiptap/extension-font-family@latest @tiptap/extension-highlight@latest @tiptap/extension-image@latest @tiptap/extension-link@latest @tiptap/extension-placeholder@latest @tiptap/extension-table@latest @tiptap/extension-table-cell@latest @tiptap/extension-table-header@latest @tiptap/extension-table-row@latest @tiptap/extension-text-align@latest @tiptap/extension-text-style@latest @tiptap/extension-underline@latest @tiptap/pm@latest @tiptap/starter-kit@latest"
   },
   "keywords": [
     "html-editor",
@@ -40,24 +51,24 @@
   },
   "license": "LGPL-3.0-or-later",
   "dependencies": {
-    "@tiptap/core": "^3.19.0",
-    "@tiptap/extension-character-count": "^3.19.0",
-    "@tiptap/extension-code-block-lowlight": "^3.19.0",
-    "@tiptap/extension-color": "^3.19.0",
-    "@tiptap/extension-font-family": "^3.19.0",
-    "@tiptap/extension-highlight": "^3.19.0",
-    "@tiptap/extension-image": "^3.19.0",
-    "@tiptap/extension-link": "^3.19.0",
-    "@tiptap/extension-placeholder": "^3.19.0",
-    "@tiptap/extension-table": "^3.19.0",
-    "@tiptap/extension-table-cell": "^3.19.0",
-    "@tiptap/extension-table-header": "^3.19.0",
-    "@tiptap/extension-table-row": "^3.19.0",
-    "@tiptap/extension-text-align": "^3.19.0",
-    "@tiptap/extension-text-style": "^3.19.0",
-    "@tiptap/extension-underline": "^3.19.0",
-    "@tiptap/pm": "^3.19.0",
-    "@tiptap/starter-kit": "^3.19.0",
+    "@tiptap/core": "^3.22.3",
+    "@tiptap/extension-character-count": "^3.22.3",
+    "@tiptap/extension-code-block-lowlight": "^3.22.3",
+    "@tiptap/extension-color": "^3.22.3",
+    "@tiptap/extension-font-family": "^3.22.3",
+    "@tiptap/extension-highlight": "^3.22.3",
+    "@tiptap/extension-image": "^3.22.3",
+    "@tiptap/extension-link": "^3.22.3",
+    "@tiptap/extension-placeholder": "^3.22.3",
+    "@tiptap/extension-table": "^3.22.3",
+    "@tiptap/extension-table-cell": "^3.22.3",
+    "@tiptap/extension-table-header": "^3.22.3",
+    "@tiptap/extension-table-row": "^3.22.3",
+    "@tiptap/extension-text-align": "^3.22.3",
+    "@tiptap/extension-text-style": "^3.22.3",
+    "@tiptap/extension-underline": "^3.22.3",
+    "@tiptap/pm": "^3.22.3",
+    "@tiptap/starter-kit": "^3.22.3",
     "lowlight": "^3.3.0"
   },
   "devDependencies": {

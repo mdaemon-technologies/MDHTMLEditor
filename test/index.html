@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MDHTMLEditor – Test Page</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+    header {
+      background: #207ab7;
+      color: #fff;
+      padding: 16px 24px;
+    }
+    header h1 { margin: 0; font-size: 22px; }
+    header p { margin: 4px 0 0; opacity: .8; font-size: 14px; }
+
+    .layout {
+      display: flex;
+      gap: 16px;
+      padding: 16px 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .main { flex: 1; min-width: 0; }
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    .card-body { padding: 14px; }
+
+    /* Controls */
+    .control-group { margin-bottom: 12px; }
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .control-group select,
+    .control-group input[type="text"],
+    .control-group input[type="number"] {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+    .control-group textarea {
+      width: 100%;
+      height: 80px;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 13px;
+      font-family: monospace;
+      resize: vertical;
+    }
+
+    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn {
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn:hover { background: #f0f0f0; }
+    .btn-primary { background: #207ab7; color: #fff; border-color: #207ab7; }
+    .btn-primary:hover { background: #1a6399; }
+
+    #event-log {
+      font-family: monospace;
+      font-size: 11px;
+      height: 160px;
+      overflow-y: auto;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 8px;
+      border-radius: 3px;
+      margin-top: 6px;
+    }
+    #event-log div { padding: 1px 0; }
+    #event-log .log-init { color: #4ec9b0; }
+    #event-log .log-change { color: #9cdcfe; }
+    #event-log .log-focus { color: #ce9178; }
+    #event-log .log-dirty { color: #dcdcaa; }
+    #event-log .log-info { color: #6a9955; }
+    #event-log .log-cmd { color: #c586c0; }
+
+    #html-output {
+      font-family: monospace;
+      font-size: 11px;
+      width: 100%;
+      height: 120px;
+      resize: vertical;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      padding: 6px;
+      background: #fafafa;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .toggle-row label { margin: 0; font-size: 13px; font-weight: normal; }
+
+    @media (max-width: 900px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MDHTMLEditor – Test Page</h1>
+    <p>Interactive testbed for features, styling, and API</p>
+  </header>
+
+  <div class="layout">
+    <!-- Main editor area -->
+    <div class="main">
+      <div class="card">
+        <div class="card-header">Editor</div>
+        <div class="card-body" style="padding:0;">
+          <div id="editor-container"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">HTML Output</div>
+        <div class="card-body">
+          <textarea id="html-output" readonly></textarea>
+          <div class="btn-row" style="margin-top:8px;">
+            <button class="btn" id="btn-copy-html">Copy HTML</button>
+            <button class="btn" id="btn-refresh-html">Refresh</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar controls -->
+    <div class="sidebar">
+      <!-- Programmatic content -->
+      <div class="card">
+        <div class="card-header">Content</div>
+        <div class="card-body">
+          <div class="control-group">
+            <label>Set Content (HTML)</label>
+            <textarea id="set-content-input"><h2>Hello World</h2><p>This is a <strong>test</strong> paragraph.</p></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-set-content">Set Content</button>
+            <button class="btn" id="btn-insert-content">Insert at Cursor</button>
+            <button class="btn" id="btn-clear">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commands -->
+      <div class="card">
+        <div class="card-header">Commands (execCommand)</div>
+        <div class="card-body">
+          <div class="btn-row">
+            <button class="btn" data-cmd="bold">Bold</button>
+            <button class="btn" data-cmd="italic">Italic</button>
+            <button class="btn" data-cmd="underline">Underline</button>
+            <button class="btn" data-cmd="strikethrough">Strike</button>
+          </div>
+          <div class="btn-row" style="margin-top:6px;">
+            <button class="btn" data-cmd="justifyleft">Left</button>
+            <button class="btn" data-cmd="justifycenter">Center</button>
+            <button class="btn" data-cmd="justifyright">Right</button>
+            <button class="btn" data-cmd="justifyfull">Justify</button>
+          </div>
+          <div class="btn-row" style="margin-top:6px;">
+            <button class="btn" data-cmd="insertunorderedlist">UL</button>
+            <button class="btn" data-cmd="insertorderedlist">OL</button>
+            <button class="btn" data-cmd="undo">Undo</button>
+            <button class="btn" data-cmd="redo">Redo</button>
+          </div>
+          <div class="control-group" style="margin-top:10px;">
+            <label>Font Name</label>
+            <select id="cmd-fontname">
+              <option value="">— pick —</option>
+              <option value="arial,helvetica,sans-serif">Arial</option>
+              <option value="courier new,courier">Courier New</option>
+              <option value="georgia,palatino">Georgia</option>
+              <option value="times new roman,times">Times New Roman</option>
+              <option value="verdana,geneva">Verdana</option>
+              <option value="comic sans ms,sans-serif">Comic Sans MS</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Font Size</label>
+            <select id="cmd-fontsize">
+              <option value="">— pick —</option>
+              <option value="8pt">8pt</option>
+              <option value="10pt">10pt</option>
+              <option value="12pt">12pt</option>
+              <option value="14pt">14pt</option>
+              <option value="18pt">18pt</option>
+              <option value="24pt">24pt</option>
+              <option value="36pt">36pt</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Line Height</label>
+            <select id="cmd-lineheight">
+              <option value="">— pick —</option>
+              <option value="1">1</option>
+              <option value="1.15">1.15</option>
+              <option value="1.5">1.5</option>
+              <option value="2">2</option>
+              <option value="2.5">2.5</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Text Color</label>
+            <input type="color" id="cmd-forecolor" value="#000000" />
+          </div>
+          <div class="control-group">
+            <label>Highlight Color</label>
+            <input type="color" id="cmd-backcolor" value="#ffff00" />
+          </div>
+        </div>
+      </div>
+
+      <!-- State / info -->
+      <div class="card">
+        <div class="card-header">Language</div>
+        <div class="card-body">
+          <div class="control-group">
+            <label>UI Language</label>
+            <select id="cmd-language">
+              <option value="en" selected>English</option>
+              <option value="ar">العربية</option>
+              <option value="ca">Català</option>
+              <option value="zh">中文</option>
+              <option value="cs">Česky</option>
+              <option value="da">Dansk</option>
+              <option value="en-gb">English (UK)</option>
+              <option value="fi">Suomi</option>
+              <option value="fr">Français</option>
+              <option value="fr-ca">Canadien français</option>
+              <option value="de">Deutsch</option>
+              <option value="el">Ελληνικά</option>
+              <option value="hu">Magyar</option>
+              <option value="id">Bahasa Indonesia</option>
+              <option value="it">Italiano</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한글</option>
+              <option value="nl">Nederlands</option>
+              <option value="nb">Norsk bokmål</option>
+              <option value="pl">Polski</option>
+              <option value="pt">Português</option>
+              <option value="ro">Româna</option>
+              <option value="ru">Русский</option>
+              <option value="sr">Srpski</option>
+              <option value="sl">Slovenščina</option>
+              <option value="es">Español</option>
+              <option value="sv">Svenska</option>
+              <option value="zh-tw">繁體中文 (Taiwan)</option>
+              <option value="th">ไทย</option>
+              <option value="tr">Türkçe</option>
+              <option value="vi">Tiếng Việt</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- State / info -->
+      <div class="card">
+        <div class="card-header">State</div>
+        <div class="card-body">
+          <div class="toggle-row">
+            <strong>Dirty:</strong> <span id="state-dirty">false</span>
+            <button class="btn" id="btn-reset-dirty" style="margin-left:auto;">Reset</button>
+          </div>
+          <div class="toggle-row">
+            <strong>Focus:</strong> <span id="state-focus">false</span>
+            <button class="btn" id="btn-focus" style="margin-left:auto;">Focus</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Buttons -->
+      <div class="card">
+        <div class="card-header">Custom Toolbar Buttons</div>
+        <div class="card-body">
+          <p style="font-size:12px;margin:0 0 10px;color:#666;">
+            These buttons were added via <code>editor.ui.registry.addButton()</code> in the
+            <code>setup</code> callback and included in the <code>toolbar</code> string.
+          </p>
+          <div style="font-size:11px;font-family:monospace;background:#1e1e1e;color:#d4d4d4;padding:10px;border-radius:3px;overflow-x:auto;white-space:pre;margin-bottom:10px;max-height:220px;overflow-y:auto;">setup: (ed) =&gt; {
+  // Text-label button
+  ed.ui.registry.addButton('wordcount', {
+    text: '&#x1f4ac; Words',
+    tooltip: 'Show word count',
+    onAction: () =&gt; { /* ... */ },
+  });
+
+  // Icon (SVG data-URI) button
+  ed.ui.registry.addButton('timestamp', {
+    icon: 'data:image/svg+xml,...',
+    tooltip: 'Insert timestamp',
+    onAction: () =&gt; { /* ... */ },
+  });
+
+  // Toggle button with active state
+  ed.ui.registry.addButton('markpen', {
+    text: '&#x1f58d;&#xfe0f;',
+    tooltip: 'Toggle mark pen',
+    onSetup: (api) =&gt; {
+      api.setActive(false);
+    },
+    onAction: (api) =&gt; {
+      api.setActive(!api.isActive());
+    },
+  });
+}
+
+// toolbar must list the names:
+toolbar: '... wordcount timestamp markpen'</div>
+          <div class="control-group">
+            <label>Disable / Enable custom buttons</label>
+            <div class="btn-row">
+              <button class="btn" id="btn-disable-custom">Disable All</button>
+              <button class="btn" id="btn-enable-custom">Enable All</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event log -->
+      <div class="card">
+        <div class="card-header">
+          Event Log
+          <button class="btn" id="btn-clear-log" style="float:right;margin-top:-3px;">Clear</button>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="event-log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./test-main.ts"></script>
+</body>
+</html>

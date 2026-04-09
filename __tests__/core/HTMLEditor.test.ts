@@ -2,7 +2,8 @@
  * HTMLEditor Core Tests
  */
 
-import { HTMLEditor, fontNames, setTranslate, getTranslate, setGetFileSrc, getGetFileSrc } from '../../src/core/HTMLEditor';
+import { HTMLEditor, fontNames, setTranslate, getTranslate, resetTranslate, setGetFileSrc, getGetFileSrc } from '../../src/core/HTMLEditor';
+import { getLocale } from '../../src/i18n';
 
 describe('HTMLEditor', () => {
   let container: HTMLElement;
@@ -416,7 +417,7 @@ describe('Global Functions', () => {
   describe('setTranslate / getTranslate', () => {
     afterEach(() => {
       // Reset to default
-      setTranslate((key) => key);
+      resetTranslate();
     });
 
     it('should set and get translate function', () => {
@@ -460,6 +461,62 @@ describe('Global Functions', () => {
       expect(fontNames).toContain('Arial');
       expect(fontNames).toContain('Verdana');
       expect(fontNames).toContain('Times New Roman');
+    });
+  });
+
+  describe('setLanguage', () => {
+    let container: HTMLElement;
+    let editor: HTMLEditor;
+
+    beforeEach(() => {
+      // Reset translate so auto-apply works
+      resetTranslate();
+      container = document.createElement('div');
+      document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+      editor?.destroy();
+      container?.remove();
+      resetTranslate();
+    });
+
+    it('should auto-apply built-in locale from config.language', () => {
+      editor = new HTMLEditor(container, { language: 'de' });
+      const t = getTranslate();
+      expect(t('Bold')).toBe('Fett');
+      expect(t('Italic')).toBe('Kursiv');
+    });
+
+    it('should default to English when no language specified', () => {
+      editor = new HTMLEditor(container);
+      const t = getTranslate();
+      expect(t('Bold')).toBe('Bold');
+    });
+
+    it('should update translations when setLanguage is called', () => {
+      editor = new HTMLEditor(container, { language: 'en' });
+      editor.setLanguage('fr');
+      const t = getTranslate();
+      expect(t('Bold')).toBe('Gras');
+      expect(t('Copy')).toBe('Copier');
+    });
+
+    it('should fire languagechange event', () => {
+      editor = new HTMLEditor(container);
+      const callback = jest.fn();
+      editor.on('languagechange', callback);
+      editor.setLanguage('es');
+      expect(callback).toHaveBeenCalledWith('es');
+    });
+
+    it('should respect setTranslate override at construction', () => {
+      const custom = (key: string) => `custom:${key}`;
+      setTranslate(custom);
+      editor = new HTMLEditor(container, { language: 'de' });
+      const t = getTranslate();
+      // setTranslate was called, so auto-apply should NOT override it
+      expect(t('Bold')).toBe('custom:Bold');
     });
   });
 });

@@ -26,6 +26,7 @@ import { Toolbar } from './Toolbar';
 import { FontSize } from '../extensions/FontSize';
 import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
+import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
   EditorConfig,
@@ -36,6 +37,8 @@ import type {
   TranslateFunction,
 } from '../types';
 
+import { createTranslateFunction } from '../i18n';
+
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
 
@@ -43,8 +46,8 @@ const lowlight = createLowlight(common);
 export const fontNames = 'Andale Mono=andale mono,times; Arial=arial,helvetica,sans-serif; Arial Black=arial black,avant garde; Book Antiqua=book antiqua,palatino; Comic Sans MS=comic sans ms,sans-serif; Courier New=courier new,courier; Georgia=georgia,palatino; Helvetica=helvetica; Impact=impact,chicago; Tahoma=tahoma,arial,helvetica,sans-serif; Terminal=terminal,monaco; Times New Roman=times new roman,times; Trebuchet MS=trebuchet ms,geneva; Verdana=verdana,geneva';
 
 // Default toolbar configurations
-const FULL_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent blockquote | fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image charmap emoticons | fullscreen preview | code link codesample | ltr rtl | searchreplace';
-const BASIC_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent | fontfamily fontsize blockquote | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link | ltr rtl | searchreplace';
+const FULL_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent blockquote | fontfamily fontsize || lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image charmap emoticons | fullscreen preview | code link codesample | ltr rtl | searchreplace';
+const BASIC_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent | fontfamily fontsize blockquote || lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link | ltr rtl | searchreplace';
 
 // Default font sizes
 const DEFAULT_FONT_SIZES = '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt';
@@ -53,6 +56,7 @@ let editorIdCounter = 0;
 
 // Global translate function
 let globalTranslate: TranslateFunction = (key: string) => key;
+let globalTranslateCustomized = false;
 let globalGetFileSrc: (path: string) => string = (path: string) => path;
 
 /**
@@ -60,6 +64,7 @@ let globalGetFileSrc: (path: string) => string = (path: string) => path;
  */
 export function setTranslate(fn: TranslateFunction): void {
   globalTranslate = fn;
+  globalTranslateCustomized = true;
 }
 
 /**
@@ -67,6 +72,16 @@ export function setTranslate(fn: TranslateFunction): void {
  */
 export function getTranslate(): TranslateFunction {
   return globalTranslate;
+}
+
+/**
+ * Reset the global translation function to the default identity function.
+ * This also clears the customized flag so that the next editor created
+ * will auto-apply the built-in locale based on its language config.
+ */
+export function resetTranslate(): void {
+  globalTranslate = (key: string) => key;
+  globalTranslateCustomized = false;
 }
 
 /**
@@ -99,6 +114,7 @@ export class HTMLEditor implements IMDHTMLEditor {
   private customButtons: Map<string, ToolbarButtonSpec> = new Map();
   private eventListeners: Map<keyof EditorEventMap, Set<EditorEventMap[keyof EditorEventMap]>> = new Map();
   private changeTimeout: ReturnType<typeof setTimeout> | null = null;
+  private imageUploadHelper: ImageUpload | null = null;
   
   constructor(container: HTMLElement, config: EditorConfig = {}) {
     this.id = `md-editor-${++editorIdCounter}`;
@@ -132,6 +148,8 @@ export class HTMLEditor implements IMDHTMLEditor {
       images_upload_url: config.images_upload_url,
       images_upload_credentials: config.images_upload_credentials ?? true,
       images_upload_base_path: config.images_upload_base_path ?? '/',
+      images_upload_max_size: config.images_upload_max_size,
+      images_upload_headers: config.images_upload_headers,
       font_family_formats: config.font_family_formats ?? fontNames,
       font_size_formats: config.font_size_formats ?? DEFAULT_FONT_SIZES,
       fontName: config.fontName,
@@ -145,7 +163,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       content_css: config.content_css ?? 'default',
       content_style: config.content_style,
       toolbar: config.toolbar ?? (config.basicEditor ? BASIC_TOOLBAR : FULL_TOOLBAR),
-      toolbar_mode: config.toolbar_mode ?? 'sliding',
+      toolbar_mode: config.toolbar_mode ?? 'wrap',
       toolbar_sticky: config.toolbar_sticky ?? true,
       menubar: config.menubar ?? false,
       contextmenu: config.contextmenu ?? '',
@@ -162,6 +180,11 @@ export class HTMLEditor implements IMDHTMLEditor {
   }
   
   private createEditor(): void {
+    // Auto-apply built-in locale if no custom translate was set
+    if (!globalTranslateCustomized) {
+      globalTranslate = createTranslateFunction(this.config.language ?? 'en');
+    }
+
     // Create wrapper structure
     this.editorWrapper = document.createElement('div');
     this.editorWrapper.className = `md-editor md-editor-${this.config.skin}`;
@@ -250,8 +273,89 @@ export class HTMLEditor implements IMDHTMLEditor {
         }
       }, 10);
     }
+
+    // Setup image drag-drop and paste handling for full editor
+    if (!this.config.basicEditor) {
+      this.setupImageHandlers(editorContent);
+    }
   }
   
+  private getImageUploadHelper(): ImageUpload {
+    if (!this.imageUploadHelper) {
+      this.imageUploadHelper = new ImageUpload({
+        onInsert: () => { /* not used for inline uploads */ },
+        uploadUrl: this.config.images_upload_url,
+        uploadCredentials: this.config.images_upload_credentials,
+        uploadBasePath: this.config.images_upload_base_path,
+        uploadMaxSize: this.config.images_upload_max_size,
+        uploadHeaders: this.config.images_upload_headers,
+        trans: globalTranslate,
+      });
+    }
+    return this.imageUploadHelper;
+  }
+
+  private setupImageHandlers(editorContent: HTMLElement): void {
+    // Drag-over visual feedback
+    editorContent.addEventListener('dragover', (e) => {
+      if (e.dataTransfer?.types.includes('Files')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        this.editorWrapper?.classList.add('md-editor-dragover');
+      }
+    });
+
+    editorContent.addEventListener('dragleave', (e) => {
+      // Only remove if actually leaving the content area
+      const related = e.relatedTarget as Node | null;
+      if (!related || !editorContent.contains(related)) {
+        this.editorWrapper?.classList.remove('md-editor-dragover');
+      }
+    });
+
+    // Drop handler
+    editorContent.addEventListener('drop', (e) => {
+      this.editorWrapper?.classList.remove('md-editor-dragover');
+
+      const files = e.dataTransfer?.files;
+      if (!files || files.length === 0) return;
+
+      const imageFile = Array.from(files).find(f => f.type.startsWith('image/'));
+      if (!imageFile) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      this.handleImageFileUpload(imageFile);
+    });
+
+    // Paste handler
+    editorContent.addEventListener('paste', (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            this.handleImageFileUpload(file);
+            return;
+          }
+        }
+      }
+    });
+  }
+
+  private handleImageFileUpload(file: File): void {
+    const helper = this.getImageUploadHelper();
+    helper.uploadFile(file).then((src) => {
+      this.tiptap?.chain().focus().setImage({ src }).run();
+    }).catch(() => {
+      // Upload failed — silently fail for inline operations
+    });
+  }
+
   private buildExtensions(): AnyExtension[] {
     const extensions: AnyExtension[] = [
       StarterKit.configure({
@@ -491,6 +595,8 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.toolbar = null;
     this.tiptap?.destroy();
     this.tiptap = null;
+    this.imageUploadHelper?.destroy();
+    this.imageUploadHelper = null;
     
     if (this.editorWrapper) {
       this.editorWrapper.remove();
@@ -505,6 +611,16 @@ export class HTMLEditor implements IMDHTMLEditor {
     return this.tiptap;
   }
   
+  /**
+   * Set the UI language, updating all toolbar and dialog translations.
+   */
+  setLanguage(code: string): void {
+    this.config.language = code;
+    globalTranslate = createTranslateFunction(code);
+    this.toolbar?.rebuild();
+    this.fire('languagechange', code);
+  }
+
   /**
    * Get the editor config
    */
