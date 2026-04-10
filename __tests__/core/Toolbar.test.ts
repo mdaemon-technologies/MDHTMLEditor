@@ -93,6 +93,56 @@ describe('Toolbar', () => {
     });
   });
 
+  describe('Confab Skin Icons', () => {
+    let confabContainer: HTMLElement;
+    let confabEditor: HTMLEditor;
+
+    beforeEach(() => {
+      confabContainer = document.createElement('div');
+      document.body.appendChild(confabContainer);
+      confabEditor = new HTMLEditor(confabContainer, {
+        skin: 'confab',
+        toolbar: 'bold italic undo redo',
+      });
+    });
+
+    afterEach(() => {
+      confabEditor?.destroy();
+      confabContainer?.remove();
+    });
+
+    it('should render SVG icons for bold in confab skin', () => {
+      const boldBtn = confabContainer.querySelector('[data-button="bold"]');
+      const svg = boldBtn?.querySelector('svg');
+      expect(svg).not.toBeNull();
+    });
+
+    it('should render SVG icons for italic in confab skin', () => {
+      const italicBtn = confabContainer.querySelector('[data-button="italic"]');
+      const svg = italicBtn?.querySelector('svg');
+      expect(svg).not.toBeNull();
+    });
+
+    it('should render SVG icons for undo in confab skin', () => {
+      const undoBtn = confabContainer.querySelector('[data-button="undo"]');
+      const svg = undoBtn?.querySelector('svg');
+      expect(svg).not.toBeNull();
+    });
+
+    it('should render SVG icons for redo in confab skin', () => {
+      const redoBtn = confabContainer.querySelector('[data-button="redo"]');
+      const svg = redoBtn?.querySelector('svg');
+      expect(svg).not.toBeNull();
+    });
+
+    it('should render text icons for bold in oxide skin', () => {
+      const boldBtn = container.querySelector('[data-button="bold"]');
+      const svg = boldBtn?.querySelector('svg');
+      expect(svg).toBeNull();
+      expect(boldBtn?.textContent?.trim()).toBe('B');
+    });
+  });
+
   describe('Button Click Actions', () => {
     it('should toggle bold on button click', () => {
       const boldBtn = container.querySelector('[data-button="bold"]') as HTMLButtonElement;

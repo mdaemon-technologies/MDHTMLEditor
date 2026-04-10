@@ -30,6 +30,7 @@ $md-dark-hover: #2d3e50;
   flex-direction: column;
   background: #fff;
   position: relative;
+  overflow: hidden;
   
   &.md-editor-fullscreen {
     position: fixed;
@@ -328,6 +329,7 @@ $md-dark-hover: #2d3e50;
 // Editor content
 .md-editor-content {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   background: #fff;
 }
@@ -988,5 +990,419 @@ $md-dark-hover: #2d3e50;
 
   .md-image-upload-progress-bar {
     background: $md-dark-border;
+  }
+}
+
+// ============================================================================
+// Confab skin (light) — uses CSS custom properties from the Confab/WorldClient app
+// ============================================================================
+.md-editor-confab {
+  background: #fff;
+  border-color: var(--color-confab-gray-200, #e5e7eb);
+  border-radius: 6px;
+
+  .md-toolbar {
+    background: var(--color-confab-gray-50, #f9fafb);
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+  }
+
+  .md-toolbar-btn {
+    color: var(--color-confab-gray-600, #4b5563);
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--color-confab-gray-100, #f3f4f6);
+      color: var(--color-confab-gray-900, #111827);
+    }
+
+    &:active {
+      background: var(--color-confab-gray-200, #e5e7eb);
+    }
+
+    &.md-toolbar-btn-active {
+      background: var(--theme-primary, #0066cc);
+      color: #fff;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-confab-500, #0ea5e9);
+    }
+  }
+
+  .md-toolbar-dropdown-btn {
+    color: var(--color-confab-gray-600, #4b5563);
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--color-confab-gray-100, #f3f4f6);
+    }
+  }
+
+  .md-toolbar-dropdown-menu {
+    background: #fff;
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .md-toolbar-dropdown-item {
+    color: var(--color-confab-gray-900, #111827);
+
+    &:hover {
+      background: var(--color-confab-gray-50, #f9fafb);
+    }
+
+    &.md-toolbar-dropdown-item-selected {
+      background: var(--theme-primary, #0066cc);
+      color: #fff;
+    }
+  }
+
+  .md-toolbar-separator {
+    background: var(--color-confab-gray-200, #e5e7eb);
+  }
+
+  .md-toolbar-colorpicker-menu {
+    background: #fff;
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+    border-radius: 6px;
+  }
+
+  .md-toolbar-colorpicker-custom {
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+  }
+
+  .md-editor-content {
+    background: #fff;
+  }
+
+  .md-editor-body {
+    color: var(--color-confab-gray-900, #111827);
+
+    blockquote {
+      border-color: var(--color-confab-gray-200, #e5e7eb);
+      color: var(--color-confab-gray-500, #6b7280);
+    }
+
+    pre {
+      background: var(--color-confab-gray-50, #f9fafb);
+      border-radius: 6px;
+    }
+
+    code {
+      background: var(--color-confab-gray-100, #f3f4f6);
+      border-radius: 4px;
+    }
+
+    table {
+      td, th {
+        border-color: var(--color-confab-gray-200, #e5e7eb);
+      }
+
+      th {
+        background: var(--color-confab-gray-50, #f9fafb);
+      }
+    }
+  }
+
+  // Dialogs
+  .md-dialog {
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+
+  .md-dialog-header {
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+  }
+
+  .md-btn {
+    border-color: var(--color-confab-gray-300, #d1d5db);
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--color-confab-gray-100, #f3f4f6);
+    }
+
+    &.md-btn-primary {
+      background: var(--theme-primary, #0066cc);
+      border-color: var(--theme-primary, #0066cc);
+      color: #fff;
+
+      &:hover {
+        background: var(--theme-primary-hover, #0055b3);
+      }
+    }
+  }
+
+  .md-searchreplace-input,
+  .md-image-upload-row input {
+    border-color: var(--color-confab-gray-300, #d1d5db);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: var(--theme-primary, #0066cc);
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
+    }
+  }
+
+  .md-image-upload-tab {
+    border-color: var(--color-confab-gray-300, #d1d5db);
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--color-confab-gray-100, #f3f4f6);
+    }
+
+    &.md-image-upload-tab-active {
+      background: var(--theme-primary, #0066cc);
+      border-color: var(--theme-primary, #0066cc);
+      color: #fff;
+    }
+  }
+
+  .md-image-upload-dropzone {
+    border-color: var(--color-confab-gray-300, #d1d5db);
+    border-radius: 6px;
+
+    &:hover, &.md-image-upload-dropzone-active {
+      border-color: var(--theme-primary, #0066cc);
+      background: rgba(0, 102, 204, 0.03);
+    }
+  }
+
+  .md-image-upload-preview {
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+    border-radius: 6px;
+    background: var(--color-confab-gray-50, #f9fafb);
+  }
+}
+
+// ============================================================================
+// Confab skin (dark) — uses CSS custom properties from the Confab dark mode
+// ============================================================================
+.md-editor-confab-dark {
+  background: var(--color-dark-bg-primary, #1a1a2e);
+  border-color: var(--color-dark-border, #333);
+  border-radius: 6px;
+
+  .md-toolbar {
+    background: var(--color-dark-bg-secondary, #1e1e1e);
+    border-color: var(--color-dark-border, #333);
+  }
+
+  .md-toolbar-btn {
+    color: var(--color-dark-text-secondary, #aaa);
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+      color: var(--color-dark-text-primary, #fff);
+    }
+
+    &:active {
+      background: var(--color-dark-bg-tertiary, #2a2a2a);
+    }
+
+    &.md-toolbar-btn-active {
+      background: var(--theme-primary, #0066cc);
+      color: #fff;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-confab-500, #0ea5e9);
+    }
+  }
+
+  .md-toolbar-dropdown-btn {
+    color: var(--color-dark-text-secondary, #aaa);
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+    }
+  }
+
+  .md-toolbar-dropdown-menu {
+    background: var(--color-dark-bg-secondary, #1e1e1e);
+    border-color: var(--color-dark-border, #333);
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  }
+
+  .md-toolbar-dropdown-item {
+    color: var(--color-dark-text-primary, #fff);
+
+    &:hover {
+      background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+    }
+
+    &.md-toolbar-dropdown-item-selected {
+      background: var(--theme-primary, #0066cc);
+      color: #fff;
+    }
+  }
+
+  .md-toolbar-separator {
+    background: var(--color-dark-border, #333);
+  }
+
+  .md-toolbar-colorpicker-menu {
+    background: var(--color-dark-bg-secondary, #1e1e1e);
+    border-color: var(--color-dark-border, #333);
+    border-radius: 6px;
+  }
+
+  .md-toolbar-colorpicker-custom {
+    border-color: var(--color-dark-border, #333);
+  }
+
+  .md-editor-content {
+    background: var(--color-dark-bg-primary, #1a1a2e);
+  }
+
+  .md-editor-body {
+    color: var(--color-dark-text-primary, #fff);
+
+    blockquote {
+      border-color: var(--color-dark-border, #333);
+      color: var(--color-dark-text-muted, #888);
+    }
+
+    pre {
+      background: var(--color-dark-bg-tertiary, #2a2a2a);
+      border-radius: 6px;
+    }
+
+    code {
+      background: var(--color-dark-bg-tertiary, #2a2a2a);
+      border-radius: 4px;
+    }
+
+    table {
+      td, th {
+        border-color: var(--color-dark-border, #333);
+      }
+
+      th {
+        background: var(--color-dark-bg-secondary, #1e1e1e);
+      }
+    }
+  }
+
+  // Dialogs
+  .md-dialog {
+    background: var(--color-dark-bg-secondary, #1e1e1e);
+    border-color: var(--color-dark-border, #333);
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+    color: var(--color-dark-text-primary, #fff);
+  }
+
+  .md-dialog-header {
+    border-color: var(--color-dark-border, #333);
+    color: var(--color-dark-text-primary, #fff);
+  }
+
+  .md-btn {
+    border-color: var(--color-dark-border, #333);
+    background: var(--color-dark-bg-tertiary, #2a2a2a);
+    color: var(--color-dark-text-secondary, #aaa);
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+      color: var(--color-dark-text-primary, #fff);
+    }
+
+    &.md-btn-primary {
+      background: var(--theme-primary, #0066cc);
+      border-color: var(--theme-primary, #0066cc);
+      color: #fff;
+
+      &:hover {
+        background: var(--theme-primary-hover, #0055b3);
+      }
+    }
+  }
+
+  .md-searchreplace-input,
+  .md-image-upload-row input {
+    border-color: var(--color-dark-border, #333);
+    background: var(--color-dark-bg-tertiary, #2a2a2a);
+    color: var(--color-dark-text-primary, #fff);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: var(--theme-primary, #0066cc);
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+    }
+  }
+
+  .md-searchreplace-row label,
+  .md-searchreplace-count,
+  .md-image-upload-dropzone-text,
+  .md-image-upload-row label,
+  .md-image-upload-progress-text {
+    color: var(--color-dark-text-muted, #888);
+  }
+
+  .md-image-upload-tab {
+    border-color: var(--color-dark-border, #333);
+    color: var(--color-dark-text-secondary, #aaa);
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+    }
+
+    &.md-image-upload-tab-active {
+      background: var(--theme-primary, #0066cc);
+      border-color: var(--theme-primary, #0066cc);
+      color: #fff;
+    }
+  }
+
+  .md-image-upload-dropzone {
+    border-color: var(--color-dark-border, #333);
+    border-radius: 6px;
+
+    &:hover, &.md-image-upload-dropzone-active {
+      border-color: var(--theme-primary, #0066cc);
+      background: rgba(0, 102, 204, 0.1);
+    }
+  }
+
+  .md-image-upload-dropzone-icon {
+    color: var(--color-dark-text-muted, #888);
+  }
+
+  .md-image-upload-preview {
+    background: var(--color-dark-bg-tertiary, #2a2a2a);
+    border-color: var(--color-dark-border, #333);
+    border-radius: 6px;
+  }
+
+  .md-image-upload-error {
+    background: #3a1c1c;
+    border-color: #6b2c2c;
+    color: #ff8888;
+  }
+
+  .md-image-upload-progress-bar {
+    background: var(--color-dark-border, #333);
+  }
+
+  // Emoji & character map
+  .md-emoji-btn:hover,
+  .md-charmap-btn:hover {
+    background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+  }
+
+  .md-charmap-preview {
+    background: var(--color-dark-bg-tertiary, #2a2a2a);
+    color: var(--color-dark-text-primary, #fff);
   }
 }

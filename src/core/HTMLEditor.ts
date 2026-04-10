@@ -23,9 +23,12 @@ import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { common, createLowlight } from 'lowlight';
 
 import { Toolbar } from './Toolbar';
+import { DEFAULT_ICONS, CONFAB_ICONS } from '../icons';
+import type { IconSet } from '../icons';
 import { FontSize } from '../extensions/FontSize';
 import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
+import { SignatureBlock } from '../extensions/SignatureBlock';
 import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
@@ -157,6 +160,8 @@ export class HTMLEditor implements IMDHTMLEditor {
       directionality: config.directionality ?? 'ltr',
       language: config.language ?? 'en',
       height: config.height ?? 300,
+      min_height: config.min_height,
+      max_height: config.max_height,
       auto_focus: config.auto_focus,
       setFocus: config.setFocus,
       skin: config.skin ?? 'oxide',
@@ -197,6 +202,24 @@ export class HTMLEditor implements IMDHTMLEditor {
         this.editorWrapper.style.height = `${this.config.height}px`;
       } else {
         this.editorWrapper.style.height = this.config.height;
+      }
+    }
+    
+    // Apply min-height
+    if (this.config.min_height) {
+      if (typeof this.config.min_height === 'number') {
+        this.editorWrapper.style.minHeight = `${this.config.min_height}px`;
+      } else {
+        this.editorWrapper.style.minHeight = this.config.min_height;
+      }
+    }
+    
+    // Apply max-height
+    if (this.config.max_height) {
+      if (typeof this.config.max_height === 'number') {
+        this.editorWrapper.style.maxHeight = `${this.config.max_height}px`;
+      } else {
+        this.editorWrapper.style.maxHeight = this.config.max_height;
       }
     }
     
@@ -253,6 +276,7 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.tiptap = new TipTapEditor(editorOptions);
     
     // Create toolbar
+    const iconSet: IconSet = this.config.skin?.startsWith('confab') ? CONFAB_ICONS : DEFAULT_ICONS;
     this.toolbar = new Toolbar(toolbarContainer, {
       editor: this,
       buttons: this.config.toolbar ?? BASIC_TOOLBAR,
@@ -260,6 +284,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       sticky: this.config.toolbar_sticky ?? true,
       customButtons: this.customButtons,
       config: this.config,
+      iconSet,
     });
     
     // Handle auto focus
@@ -361,6 +386,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       StarterKit.configure({
         codeBlock: false, // We use CodeBlockLowlight instead
       }),
+      SignatureBlock,
       Underline,
       TextStyle,
       FontFamily,

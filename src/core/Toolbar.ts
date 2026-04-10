@@ -10,6 +10,7 @@ import type {
   ToolbarButtonSpec,
   ColorOption,
 } from '../types';
+import type { IconSet } from '../icons';
 import { HTMLEditor, fontNames as defaultFontNames, getTranslate } from './HTMLEditor';
 import { CharacterMap } from '../extensions/CharacterMap';
 import { EmojiPicker } from '../extensions/Emoji';
@@ -23,6 +24,7 @@ interface ToolbarOptions {
   sticky: boolean;
   customButtons: Map<string, ToolbarButtonSpec>;
   config: EditorConfig;
+  iconSet: IconSet;
 }
 
 interface ToolbarState {
@@ -117,6 +119,10 @@ export class Toolbar {
     return getTranslate();
   }
   
+  private icon(name: string): string {
+    return this.options.iconSet[name] ?? name;
+  }
+  
   private render(): void {
     this.container.innerHTML = '';
     this.container.className = `md-toolbar md-toolbar-${this.options.mode}${this.options.sticky ? ' md-toolbar-sticky' : ''}`;
@@ -189,7 +195,7 @@ export class Toolbar {
     button.className = 'md-toolbar-btn md-toolbar-toggle-btn';
     button.setAttribute('data-button', 'togglemore');
     button.title = this.trans('More');
-    button.innerHTML = '<span class="md-toolbar-btn-icon">\u2026</span>';
+    button.innerHTML = `<span class="md-toolbar-btn-icon">${this.icon('togglemore')}</span>`;
     
     button.addEventListener('click', (e) => {
       e.preventDefault();
@@ -220,51 +226,51 @@ export class Toolbar {
     // Built-in buttons
     switch (name.toLowerCase()) {
       case 'bold':
-        return this.createActionButton('bold', 'B', this.trans('Bold'), () => {
+        return this.createActionButton('bold', this.icon('bold'), this.trans('Bold'), () => {
           this.tiptap?.chain().focus().toggleBold().run();
         }, () => this.tiptap?.isActive('bold') ?? false);
         
       case 'italic':
-        return this.createActionButton('italic', 'I', this.trans('Italic'), () => {
+        return this.createActionButton('italic', this.icon('italic'), this.trans('Italic'), () => {
           this.tiptap?.chain().focus().toggleItalic().run();
         }, () => this.tiptap?.isActive('italic') ?? false);
         
       case 'underline':
-        return this.createActionButton('underline', 'U', this.trans('Underline'), () => {
+        return this.createActionButton('underline', this.icon('underline'), this.trans('Underline'), () => {
           this.tiptap?.chain().focus().toggleUnderline().run();
         }, () => this.tiptap?.isActive('underline') ?? false);
         
       case 'strikethrough':
-        return this.createActionButton('strikethrough', 'S', this.trans('Strikethrough'), () => {
+        return this.createActionButton('strikethrough', this.icon('strikethrough'), this.trans('Strikethrough'), () => {
           this.tiptap?.chain().focus().toggleStrike().run();
         }, () => this.tiptap?.isActive('strike') ?? false);
         
       case 'bullist':
-        return this.createActionButton('bullist', '•', this.trans('Bullet list'), () => {
+        return this.createActionButton('bullist', this.icon('bullist'), this.trans('Bullet list'), () => {
           this.tiptap?.chain().focus().toggleBulletList().run();
         }, () => this.tiptap?.isActive('bulletList') ?? false);
         
       case 'numlist':
-        return this.createActionButton('numlist', '1.', this.trans('Numbered list'), () => {
+        return this.createActionButton('numlist', this.icon('numlist'), this.trans('Numbered list'), () => {
           this.tiptap?.chain().focus().toggleOrderedList().run();
         }, () => this.tiptap?.isActive('orderedList') ?? false);
         
       case 'outdent':
-        return this.createActionButton('outdent', '←', this.trans('Decrease indent'), () => {
+        return this.createActionButton('outdent', this.icon('outdent'), this.trans('Decrease indent'), () => {
           if (this.tiptap?.isActive('listItem')) {
             this.tiptap?.chain().focus().liftListItem('listItem').run();
           }
         });
         
       case 'indent':
-        return this.createActionButton('indent', '→', this.trans('Increase indent'), () => {
+        return this.createActionButton('indent', this.icon('indent'), this.trans('Increase indent'), () => {
           if (this.tiptap?.isActive('listItem')) {
             this.tiptap?.chain().focus().sinkListItem('listItem').run();
           }
         });
         
       case 'blockquote':
-        return this.createActionButton('blockquote', '"', this.trans('Blockquote'), () => {
+        return this.createActionButton('blockquote', this.icon('blockquote'), this.trans('Blockquote'), () => {
           this.tiptap?.chain().focus().toggleBlockquote().run();
         }, () => this.tiptap?.isActive('blockquote') ?? false);
         
@@ -278,22 +284,22 @@ export class Toolbar {
         return this.createLineHeightDropdown();
         
       case 'alignleft':
-        return this.createActionButton('alignleft', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', this.trans('Align left'), () => {
+        return this.createActionButton('alignleft', this.icon('alignleft'), this.trans('Align left'), () => {
           this.tiptap?.chain().focus().setTextAlign('left').run();
         }, () => this.tiptap?.isActive({ textAlign: 'left' }) ?? false);
         
       case 'aligncenter':
-        return this.createActionButton('aligncenter', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', this.trans('Align center'), () => {
+        return this.createActionButton('aligncenter', this.icon('aligncenter'), this.trans('Align center'), () => {
           this.tiptap?.chain().focus().setTextAlign('center').run();
         }, () => this.tiptap?.isActive({ textAlign: 'center' }) ?? false);
         
       case 'alignright':
-        return this.createActionButton('alignright', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', this.trans('Align right'), () => {
+        return this.createActionButton('alignright', this.icon('alignright'), this.trans('Align right'), () => {
           this.tiptap?.chain().focus().setTextAlign('right').run();
         }, () => this.tiptap?.isActive({ textAlign: 'right' }) ?? false);
         
       case 'alignjustify':
-        return this.createActionButton('alignjustify', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', this.trans('Justify'), () => {
+        return this.createActionButton('alignjustify', this.icon('alignjustify'), this.trans('Justify'), () => {
           this.tiptap?.chain().focus().setTextAlign('justify').run();
         }, () => this.tiptap?.isActive({ textAlign: 'justify' }) ?? false);
         
@@ -308,87 +314,87 @@ export class Toolbar {
         });
         
       case 'removeformat':
-        return this.createActionButton('removeformat', '✕', this.trans('Remove formatting'), () => {
+        return this.createActionButton('removeformat', this.icon('removeformat'), this.trans('Remove formatting'), () => {
           this.tiptap?.chain().focus().unsetAllMarks().clearNodes().run();
         });
         
       case 'copy':
-        return this.createActionButton('copy', '📋', this.trans('Copy'), () => {
+        return this.createActionButton('copy', this.icon('copy'), this.trans('Copy'), () => {
           document.execCommand('copy');
         });
         
       case 'cut':
-        return this.createActionButton('cut', '✂', this.trans('Cut'), () => {
+        return this.createActionButton('cut', this.icon('cut'), this.trans('Cut'), () => {
           document.execCommand('cut');
         });
         
       case 'paste':
-        return this.createActionButton('paste', '📄', this.trans('Paste'), () => {
+        return this.createActionButton('paste', this.icon('paste'), this.trans('Paste'), () => {
           document.execCommand('paste');
         });
         
       case 'undo':
-        return this.createActionButton('undo', '↩', this.trans('Undo'), () => {
+        return this.createActionButton('undo', this.icon('undo'), this.trans('Undo'), () => {
           this.tiptap?.chain().focus().undo().run();
         });
         
       case 'redo':
-        return this.createActionButton('redo', '↪', this.trans('Redo'), () => {
+        return this.createActionButton('redo', this.icon('redo'), this.trans('Redo'), () => {
           this.tiptap?.chain().focus().redo().run();
         });
         
       case 'image':
-        return this.createActionButton('image', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>', this.trans('Insert image'), () => {
+        return this.createActionButton('image', this.icon('image'), this.trans('Insert image'), () => {
           this.openImageDialog();
         });
         
       case 'charmap':
-        return this.createActionButton('charmap', 'Ω', this.trans('Special character'), () => {
+        return this.createActionButton('charmap', this.icon('charmap'), this.trans('Special character'), () => {
           this.openCharMap();
         });
         
       case 'emoticons':
-        return this.createActionButton('emoticons', '😀', this.trans('Emoticons'), () => {
+        return this.createActionButton('emoticons', this.icon('emoticons'), this.trans('Emoticons'), () => {
           this.openEmojiPicker();
         });
         
       case 'fullscreen':
-        return this.createActionButton('fullscreen', '⛶', this.trans('Fullscreen'), () => {
+        return this.createActionButton('fullscreen', this.icon('fullscreen'), this.trans('Fullscreen'), () => {
           this.toggleFullscreen();
         }, () => this.state.isFullscreen);
         
       case 'preview':
-        return this.createActionButton('preview', '👁', this.trans('Preview'), () => {
+        return this.createActionButton('preview', this.icon('preview'), this.trans('Preview'), () => {
           this.openPreview();
         });
         
       case 'code':
-        return this.createActionButton('code', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>', this.trans('Source code'), () => {
+        return this.createActionButton('code', this.icon('code'), this.trans('Source code'), () => {
           this.openSourceCode();
         });
         
       case 'link':
-        return this.createActionButton('link', '🔗', this.trans('Insert link'), () => {
+        return this.createActionButton('link', this.icon('link'), this.trans('Insert link'), () => {
           this.openLinkDialog();
         }, () => this.tiptap?.isActive('link') ?? false);
         
       case 'codesample':
-        return this.createActionButton('codesample', '{}', this.trans('Code sample'), () => {
+        return this.createActionButton('codesample', this.icon('codesample'), this.trans('Code sample'), () => {
           this.tiptap?.chain().focus().toggleCodeBlock().run();
         }, () => this.tiptap?.isActive('codeBlock') ?? false);
         
       case 'ltr':
-        return this.createActionButton('ltr', '⇐', this.trans('Left to right'), () => {
+        return this.createActionButton('ltr', this.icon('ltr'), this.trans('Left to right'), () => {
           this.tiptap?.chain().focus().setTextDirection('ltr').run();
         });
         
       case 'rtl':
-        return this.createActionButton('rtl', '⇒', this.trans('Right to left'), () => {
+        return this.createActionButton('rtl', this.icon('rtl'), this.trans('Right to left'), () => {
           this.tiptap?.chain().focus().setTextDirection('rtl').run();
         });
         
       case 'searchreplace':
-        return this.createActionButton('searchreplace', '🔍', this.trans('Find and replace'), () => {
+        return this.createActionButton('searchreplace', this.icon('searchreplace'), this.trans('Find and replace'), () => {
           this.openSearchReplace();
         });
         

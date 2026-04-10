@@ -78,10 +78,12 @@ export interface EditorConfig {
   
   // Appearance
   height?: string | number;
+  min_height?: string | number;
+  max_height?: string | number;
   auto_focus?: string;
   setFocus?: string;
-  skin?: 'oxide' | 'oxide-dark';
-  content_css?: 'default' | 'dark';
+  skin?: 'oxide' | 'oxide-dark' | 'confab' | 'confab-dark';
+  content_css?: 'default' | 'dark' | 'confab' | 'confab-dark';
   content_style?: string;
   
   // Toolbar

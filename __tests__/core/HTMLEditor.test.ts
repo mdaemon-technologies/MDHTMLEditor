@@ -86,10 +86,54 @@ describe('HTMLEditor', () => {
       expect(wrapper.style.height).toBe('50vh');
     });
 
+    it('should apply numeric min_height from config', () => {
+      editor = new HTMLEditor(container, { min_height: 200 });
+      const wrapper = container.querySelector('.md-editor') as HTMLElement;
+      expect(wrapper.style.minHeight).toBe('200px');
+    });
+
+    it('should apply string min_height from config', () => {
+      editor = new HTMLEditor(container, { min_height: '30vh' });
+      const wrapper = container.querySelector('.md-editor') as HTMLElement;
+      expect(wrapper.style.minHeight).toBe('30vh');
+    });
+
+    it('should apply numeric max_height from config', () => {
+      editor = new HTMLEditor(container, { max_height: 600 });
+      const wrapper = container.querySelector('.md-editor') as HTMLElement;
+      expect(wrapper.style.maxHeight).toBe('600px');
+    });
+
+    it('should apply string max_height from config', () => {
+      editor = new HTMLEditor(container, { max_height: '80vh' });
+      const wrapper = container.querySelector('.md-editor') as HTMLElement;
+      expect(wrapper.style.maxHeight).toBe('80vh');
+    });
+
+    it('should apply height, min_height, and max_height together', () => {
+      editor = new HTMLEditor(container, { height: 400, min_height: 200, max_height: 600 });
+      const wrapper = container.querySelector('.md-editor') as HTMLElement;
+      expect(wrapper.style.height).toBe('400px');
+      expect(wrapper.style.minHeight).toBe('200px');
+      expect(wrapper.style.maxHeight).toBe('600px');
+    });
+
     it('should set directionality attribute', () => {
       editor = new HTMLEditor(container, { directionality: 'rtl' });
       const wrapper = container.querySelector('.md-editor') as HTMLElement;
       expect(wrapper.getAttribute('dir')).toBe('rtl');
+    });
+
+    it('should apply confab skin class', () => {
+      editor = new HTMLEditor(container, { skin: 'confab' });
+      const wrapper = container.querySelector('.md-editor') as HTMLElement;
+      expect(wrapper.classList.contains('md-editor-confab')).toBe(true);
+    });
+
+    it('should apply confab-dark skin class', () => {
+      editor = new HTMLEditor(container, { skin: 'confab-dark' });
+      const wrapper = container.querySelector('.md-editor') as HTMLElement;
+      expect(wrapper.classList.contains('md-editor-confab-dark')).toBe(true);
     });
 
     it('should call setup callback during initialization', () => {

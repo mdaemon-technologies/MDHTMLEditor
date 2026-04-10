@@ -26,10 +26,21 @@ const clockSvg =
     '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
   );
 
-const editor = new HTMLEditor(container, {
+// ── Shared editor config & factory ──────────────────
+let currentSkin: 'oxide' | 'oxide-dark' | 'confab' | 'confab-dark' = 'oxide';
+
+function getContentCss(skin: string): 'default' | 'dark' | 'confab' | 'confab-dark' {
+  if (skin === 'oxide-dark') return 'dark';
+  if (skin === 'confab') return 'confab';
+  if (skin === 'confab-dark') return 'confab-dark';
+  return 'default';
+}
+
+function createEditorInstance(skin: typeof currentSkin) {
+  return new HTMLEditor(container, {
   height: 400,
-  skin: 'oxide',
-  content_css: 'default',
+  skin: skin,
+  content_css: getContentCss(skin),
   directionality: 'ltr',
   browser_spellcheck: true,
 
@@ -158,6 +169,9 @@ const editor = new HTMLEditor(container, {
     });
   },
 });
+}
+
+let editor = createEditorInstance(currentSkin);
 
 // ── HTML output ──────────────────────────────────────
 const htmlOutput = $<HTMLTextAreaElement>('#html-output');
@@ -274,4 +288,19 @@ $('#btn-enable-custom').addEventListener('click', () => {
     btn.disabled = false;
   });
   log('info', 'all custom buttons enabled');
+});
+
+// ── Skin selector ────────────────────────────────────
+$<HTMLSelectElement>('#cmd-skin').addEventListener('change', (e) => {
+  const val = (e.target as HTMLSelectElement).value as typeof currentSkin;
+  const content = editor.getContent();
+  editor.destroy();
+  currentSkin = val;
+  editor = createEditorInstance(currentSkin);
+  // Restore content after re-init (slight delay for TipTap to mount)
+  setTimeout(() => {
+    editor.setContent(content);
+    refreshHtml();
+    log('info', `skin → ${val}`);
+  }, 50);
 });

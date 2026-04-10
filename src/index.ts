@@ -7,6 +7,10 @@
 export { HTMLEditor, fontNames, setTranslate, getTranslate, resetTranslate, setGetFileSrc, getGetFileSrc } from './core/HTMLEditor';
 export { Toolbar } from './core/Toolbar';
 
+// Icons
+export { DEFAULT_ICONS, CONFAB_ICONS } from './icons';
+export type { IconSet } from './icons';
+
 // Extensions
 export { FontSize } from './extensions/FontSize';
 export { LineHeight } from './extensions/LineHeight';
@@ -14,6 +18,7 @@ export { TextDirection } from './extensions/TextDirection';
 export { CharacterMap, CHAR_MAP } from './extensions/CharacterMap';
 export { EmojiPicker, EMOJI_CATEGORIES } from './extensions/Emoji';
 export { SearchReplace } from './extensions/SearchReplace';
+export { SignatureBlock } from './extensions/SignatureBlock';
 
 // i18n
 export { getLocale, createTranslateFunction, availableLocales, TRANSLATION_KEYS } from './i18n';

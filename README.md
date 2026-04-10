@@ -89,10 +89,12 @@ const editor = new HTMLEditor(container, {
 | `fontSize` | string | - | Default font size |
 | `directionality` | 'ltr' \| 'rtl' | 'ltr' | Text direction |
 | `language` | string | 'en' | UI language code (built-in translations for 31 languages) |
-| `height` | string \| number | 300 | Editor height |
+| `height` | string \| number | 300 | Editor height (fixed) |
+| `min_height` | string \| number | - | Minimum editor height |
+| `max_height` | string \| number | - | Maximum editor height |
 | `auto_focus` | string | - | Auto-focus the editor on init |
-| `skin` | 'oxide' \| 'oxide-dark' | 'oxide' | Theme |
-| `content_css` | 'default' \| 'dark' | 'default' | Content area styling |
+| `skin` | 'oxide' \| 'oxide-dark' \| 'confab' \| 'confab-dark' | 'oxide' | Theme (see Theming section) |
+| `content_css` | 'default' \| 'dark' \| 'confab' \| 'confab-dark' | 'default' | Content area styling |
 | `content_style` | string | - | Custom CSS injected into the content area |
 | `toolbar` | string | *(see Toolbar section)* | Custom toolbar button layout |
 | `toolbar_mode` | 'sliding' \| 'floating' \| 'wrap' | 'wrap' | Toolbar overflow behavior |
@@ -482,6 +484,45 @@ const editor = new HTMLEditor(container, {
 });
 ```
 
+### Confab skin
+
+The `confab` and `confab-dark` skins integrate with the WorldClient theming system. They use CSS custom properties from the host application so the editor automatically adapts when the app theme changes.
+
+The confab skins also replace the default text/emoji toolbar icons with clean SVG line icons for a more polished look.
+
+```typescript
+// Light mode
+const editor = new HTMLEditor(container, {
+  skin: 'confab',
+  content_css: 'confab',
+});
+
+// Dark mode
+const editor = new HTMLEditor(container, {
+  skin: 'confab-dark',
+  content_css: 'confab-dark',
+});
+```
+
+The confab skins expect the following CSS custom properties to be defined by the host application:
+
+| Variable | Purpose |
+|----------|---------||
+| `--theme-primary` | Primary brand color (buttons, active states) |
+| `--theme-primary-hover` | Hover state for primary color |
+| `--color-confab-gray-50` to `--color-confab-gray-900` | Gray scale for backgrounds, text, borders |
+| `--color-confab-500` | Focus ring color |
+| `--color-dark-bg-primary` | Dark mode primary background |
+| `--color-dark-bg-secondary` | Dark mode toolbar/panel background |
+| `--color-dark-bg-tertiary` | Dark mode inset/recessed background |
+| `--color-dark-bg-hover` | Dark mode hover state |
+| `--color-dark-text-primary` | Dark mode primary text |
+| `--color-dark-text-secondary` | Dark mode secondary text |
+| `--color-dark-text-muted` | Dark mode muted text |
+| `--color-dark-border` | Dark mode border color |
+
+All variables include fallback values so the editor remains usable without the host CSS, though colors may not match the intended design.
+
 ### Custom content styles
 
 Inject additional CSS into the editor content area:
@@ -498,7 +539,8 @@ The editor DOM uses BEM-style classes you can target for further customization:
 
 - `.md-editor` — outer wrapper
 - `.md-editor-fullscreen` — applied in fullscreen mode
-- `.md-editor-oxide` / `.md-editor-oxide-dark` — theme variant
+- `.md-editor-oxide` / `.md-editor-oxide-dark` — oxide theme variant
+- `.md-editor-confab` / `.md-editor-confab-dark` — confab theme variant
 - `.md-toolbar` — toolbar container
 - `.md-toolbar-sticky` — sticky toolbar
 - `.md-toolbar-primary` / `.md-toolbar-overflow` — primary and collapsible toolbar rows
