@@ -62,4 +62,11 @@ export const el: Record<string, string> = {
   'File too large': 'Το αρχείο είναι πολύ μεγάλο',
   'Invalid file type': 'Μη έγκυρος τύπος αρχείου',
   'More': 'Περισσότερα',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

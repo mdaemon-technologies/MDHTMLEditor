@@ -62,4 +62,11 @@ export const th: Record<string, string> = {
   'File too large': 'ไฟล์ใหญ่เกินไป',
   'Invalid file type': 'ประเภทไฟล์ไม่ถูกต้อง',
   'More': 'เพิ่มเติม',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

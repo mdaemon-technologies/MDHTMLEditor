@@ -252,8 +252,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `image` | Insert image dialog (upload file or enter URL) |
 | `charmap` | Special character picker (currency, math, arrows, symbols, Greek, punctuation) |
 | `emoticons` | Emoji picker with search (smileys, gestures, hearts, objects, symbols, arrows) |
-| `code` | Toggle code block |
-| `link` | Insert/edit hyperlink dialog |
+| `code` | Open HTML source code editor dialog |
+| `link` | Open Insert/Edit Link dialog |
 | `codesample` | Toggle code sample block |
 | `fullscreen` | Toggle fullscreen editing mode |
 | `preview` | Open content preview in a new window |
@@ -297,6 +297,23 @@ const editor = new HTMLEditor(container, {
   },
 });
 ```
+
+## Source Code Editor
+
+The `code` toolbar button opens a modal dialog for viewing and editing the raw HTML source of the editor content. The dialog features a full-size monospace textarea with the current HTML, **Cancel** and **Save** buttons, and supports Escape to close and Tab to indent.
+
+The dialog inherits the active skin theme — oxide, oxide-dark, confab, and confab-dark are all supported automatically.
+
+## Insert/Edit Link
+
+The `link` toolbar button opens a modal dialog for inserting or editing hyperlinks with the following fields:
+
+- **URL** — the link destination
+- **Text to display** — the visible link text (pre-populated from selection)
+- **Title** — the HTML `title` attribute (shown as a tooltip on hover)
+- **Open link in…** — dropdown to choose between _Current window_ or _New window_ (`target="_blank"`)
+
+When editing an existing link, all fields are pre-populated from the current link attributes. Clearing the URL and saving removes the link. The dialog inherits the active skin theme.
 
 ## Search & Replace
 

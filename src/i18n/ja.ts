@@ -62,4 +62,11 @@ export const ja: Record<string, string> = {
   'File too large': 'ファイルが大きすぎます',
   'Invalid file type': '無効なファイル形式',
   'More': 'もっと見る',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

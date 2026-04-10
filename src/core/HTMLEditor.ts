@@ -399,7 +399,21 @@ export class HTMLEditor implements IMDHTMLEditor {
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
-      Link.configure({
+      Link.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            title: {
+              default: null,
+              parseHTML: (element: HTMLElement) => element.getAttribute('title'),
+              renderHTML: (attributes: Record<string, unknown>) => {
+                if (!attributes.title) return {};
+                return { title: attributes.title };
+              },
+            },
+          };
+        },
+      }).configure({
         openOnClick: false,
         HTMLAttributes: {
           rel: 'noopener noreferrer',

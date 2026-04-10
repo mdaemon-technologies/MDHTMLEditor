@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { copyFileSync } from 'fs';
 import dts from 'vite-plugin-dts';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     dts({
       insertTypesEntry: true,
@@ -30,7 +30,7 @@ export default defineConfig({
         globals: {},
       },
     },
-    sourcemap: true,
+    sourcemap: mode !== 'production',
     minify: false,
   },
   css: {
@@ -38,4 +38,4 @@ export default defineConfig({
       scss: {},
     },
   },
-});
+}));

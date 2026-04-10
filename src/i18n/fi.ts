@@ -62,4 +62,11 @@ export const fi: Record<string, string> = {
   'File too large': 'Tiedosto on liian suuri',
   'Invalid file type': 'Virheellinen tiedostotyyppi',
   'More': 'Lisää',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

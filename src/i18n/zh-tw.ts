@@ -62,4 +62,11 @@ export const zhTw: Record<string, string> = {
   'File too large': '檔案過大',
   'Invalid file type': '無效的檔案類型',
   'More': '更多',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

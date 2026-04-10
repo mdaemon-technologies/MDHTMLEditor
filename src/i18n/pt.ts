@@ -62,4 +62,11 @@ export const pt: Record<string, string> = {
   'File too large': 'Arquivo muito grande',
   'Invalid file type': 'Tipo de arquivo inválido',
   'More': 'Mais',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

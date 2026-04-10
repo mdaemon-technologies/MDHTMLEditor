@@ -62,4 +62,11 @@ export const en: Record<string, string> = {
   'File too large': 'File too large',
   'Invalid file type': 'Invalid file type',
   'More': 'More',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

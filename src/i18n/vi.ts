@@ -62,4 +62,11 @@ export const vi: Record<string, string> = {
   'File too large': 'Tệp quá lớn',
   'Invalid file type': 'Loại tệp không hợp lệ',
   'More': 'Thêm',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

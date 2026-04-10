@@ -62,4 +62,11 @@ export const sr: Record<string, string> = {
   'File too large': 'Датотека је превелика',
   'Invalid file type': 'Неважећи тип датотеке',
   'More': 'Још',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

@@ -62,4 +62,11 @@ export const ca: Record<string, string> = {
   'File too large': 'Fitxer massa gran',
   'Invalid file type': 'Tipus de fitxer no vàlid',
   'More': 'Més',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

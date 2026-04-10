@@ -62,4 +62,11 @@ export const ko: Record<string, string> = {
   'File too large': '파일이 너무 큽니다',
   'Invalid file type': '잘못된 파일 형식',
   'More': '더 보기',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

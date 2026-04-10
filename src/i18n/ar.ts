@@ -62,4 +62,11 @@ export const ar: Record<string, string> = {
   'File too large': 'الملف كبير جداً',
   'Invalid file type': 'نوع ملف غير صالح',
   'More': 'المزيد',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

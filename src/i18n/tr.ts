@@ -62,4 +62,11 @@ export const tr: Record<string, string> = {
   'File too large': 'Dosya çok büyük',
   'Invalid file type': 'Geçersiz dosya türü',
   'More': 'Daha fazla',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

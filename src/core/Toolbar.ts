@@ -16,6 +16,8 @@ import { CharacterMap } from '../extensions/CharacterMap';
 import { EmojiPicker } from '../extensions/Emoji';
 import { ImageUpload } from '../extensions/ImageUpload';
 import { SearchReplace } from '../extensions/SearchReplace';
+import { SourceEditor } from '../extensions/SourceEditor';
+import { LinkEditor } from '../extensions/LinkEditor';
 
 interface ToolbarOptions {
   editor: HTMLEditor;
@@ -92,6 +94,8 @@ export class Toolbar {
   private emojiPicker: EmojiPicker | null = null;
   private imageUpload: ImageUpload | null = null;
   private searchReplace: SearchReplace | null = null;
+  private sourceEditor: SourceEditor | null = null;
+  private linkEditor: LinkEditor | null = null;
   private updateInterval: ReturnType<typeof setInterval> | null = null;
   private boundClickHandler: ((e: MouseEvent) => void) | null = null;
   private boundKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -854,16 +858,13 @@ export class Toolbar {
   }
   
   private openLinkDialog(): void {
-    const previousUrl = this.tiptap?.getAttributes('link').href ?? '';
-    const url = prompt(this.trans('Enter URL:'), previousUrl);
-    
-    if (url === null) return;
-    
-    if (url === '') {
-      this.tiptap?.chain().focus().unsetLink().run();
-    } else {
-      this.tiptap?.chain().focus().setLink({ href: url }).run();
+    if (!this.linkEditor) {
+      this.linkEditor = new LinkEditor({
+        editor: this.options.editor,
+        trans: this.trans,
+      });
     }
+    this.linkEditor.open();
   }
   
   private openCharMap(): void {
@@ -901,11 +902,13 @@ export class Toolbar {
   }
   
   private openSourceCode(): void {
-    const html = this.tiptap?.getHTML() ?? '';
-    const newHtml = prompt(this.trans('Edit HTML source:'), html);
-    if (newHtml !== null) {
-      this.tiptap?.commands.setContent(newHtml);
+    if (!this.sourceEditor) {
+      this.sourceEditor = new SourceEditor({
+        editor: this.options.editor,
+        trans: this.trans,
+      });
     }
+    this.sourceEditor.open();
   }
   
   private openPreview(): void {

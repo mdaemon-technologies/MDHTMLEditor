@@ -62,4 +62,11 @@ export const sv: Record<string, string> = {
   'File too large': 'Filen är för stor',
   'Invalid file type': 'Ogiltig filtyp',
   'More': 'Mer',
+  'Save': 'Save',
+  'Insert/Edit Link': 'Insert/Edit Link',
+  'Text to display': 'Text to display',
+  'Title': 'Title',
+  'Open link in...': 'Open link in...',
+  'Current window': 'Current window',
+  'New window': 'New window',
 };

@@ -4,8 +4,8 @@
  */
 
 // Variables
-$md-primary: #207ab7;
-$md-primary-hover: #1a6399;
+$md-primary: #2271b2;
+$md-primary-hover: #2761c4;
 $md-border-color: #ccc;
 $md-border-radius: 3px;
 $md-toolbar-height: 39px;
@@ -873,6 +873,84 @@ $md-dark-hover: #2d3e50;
   margin-top: 16px;
 }
 
+// Source editor dialog
+.md-source-editor-dialog {
+  width: 700px;
+}
+
+.md-source-editor-textarea {
+  width: 100%;
+  height: 400px;
+  padding: 10px;
+  border: 1px solid $md-border-color;
+  border-radius: $md-border-radius;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  white-space: pre-wrap;
+  tab-size: 2;
+  box-sizing: border-box;
+  color: #222;
+  background: #fff;
+
+  &:focus {
+    outline: none;
+    border-color: $md-primary;
+  }
+}
+
+.md-source-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+// Link editor dialog
+.md-link-editor-dialog {
+  width: 480px;
+}
+
+.md-link-editor-row {
+  margin-bottom: 12px;
+
+  label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 4px;
+    color: #555;
+  }
+}
+
+.md-link-editor-input,
+.md-link-editor-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid $md-border-color;
+  border-radius: $md-border-radius;
+  font-size: 13px;
+  box-sizing: border-box;
+  color: #222;
+  background: #fff;
+
+  &:focus {
+    outline: none;
+    border-color: $md-primary;
+  }
+}
+
+.md-link-editor-select {
+  appearance: auto;
+}
+
+.md-link-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 // Editor drag-over state
 .md-editor-dragover .md-editor-content {
   box-shadow: 0 0 10px 1px rgba($md-primary, 0.5) inset;
@@ -990,6 +1068,72 @@ $md-dark-hover: #2d3e50;
 
   .md-image-upload-progress-bar {
     background: $md-dark-border;
+  }
+
+  // Dark theme dialogs
+  .md-dialog {
+    background: $md-dark-bg;
+    border-color: $md-dark-border;
+    color: $md-dark-text;
+  }
+
+  .md-dialog-header {
+    background: $md-dark-toolbar-bg;
+    border-color: $md-dark-border;
+    color: $md-dark-text;
+  }
+
+  .md-dialog-close {
+    color: $md-dark-text;
+
+    &:hover {
+      background: $md-dark-hover;
+    }
+  }
+
+  .md-btn {
+    background: $md-dark-toolbar-bg;
+    border-color: $md-dark-border;
+    color: $md-dark-text;
+
+    &:hover {
+      background: $md-dark-hover;
+    }
+
+    &.md-btn-primary {
+      background: $md-primary;
+      border-color: $md-primary;
+      color: #fff;
+
+      &:hover {
+        background: $md-primary-hover;
+      }
+    }
+  }
+
+  .md-source-editor-textarea {
+    background: $md-dark-toolbar-bg;
+    border-color: $md-dark-border;
+    color: $md-dark-text;
+
+    &:focus {
+      border-color: $md-primary;
+    }
+  }
+
+  .md-link-editor-input,
+  .md-link-editor-select {
+    background: $md-dark-toolbar-bg;
+    border-color: $md-dark-border;
+    color: $md-dark-text;
+
+    &:focus {
+      border-color: $md-primary;
+    }
+  }
+
+  .md-link-editor-row label {
+    color: #aaa;
   }
 }
 
@@ -1176,6 +1320,27 @@ $md-dark-hover: #2d3e50;
     border-color: var(--color-confab-gray-200, #e5e7eb);
     border-radius: 6px;
     background: var(--color-confab-gray-50, #f9fafb);
+  }
+
+  .md-source-editor-textarea {
+    border-color: var(--color-confab-gray-300, #d1d5db);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: var(--theme-primary, #0066cc);
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
+    }
+  }
+
+  .md-link-editor-input,
+  .md-link-editor-select {
+    border-color: var(--color-confab-gray-300, #d1d5db);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: var(--theme-primary, #0066cc);
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
+    }
   }
 }
 
@@ -1404,5 +1569,34 @@ $md-dark-hover: #2d3e50;
   .md-charmap-preview {
     background: var(--color-dark-bg-tertiary, #2a2a2a);
     color: var(--color-dark-text-primary, #fff);
+  }
+
+  .md-source-editor-textarea {
+    background: var(--color-dark-bg-tertiary, #2a2a2a);
+    border-color: var(--color-dark-border, #333);
+    color: var(--color-dark-text-primary, #fff);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: var(--theme-primary, #0066cc);
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+    }
+  }
+
+  .md-link-editor-input,
+  .md-link-editor-select {
+    background: var(--color-dark-bg-tertiary, #2a2a2a);
+    border-color: var(--color-dark-border, #333);
+    color: var(--color-dark-text-primary, #fff);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: var(--theme-primary, #0066cc);
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+    }
+  }
+
+  .md-link-editor-row label {
+    color: var(--color-dark-text-muted, #888);
   }
 }
