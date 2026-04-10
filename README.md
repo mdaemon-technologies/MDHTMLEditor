@@ -524,7 +524,7 @@ const editor = new HTMLEditor(container, {
 The confab skins expect the following CSS custom properties to be defined by the host application:
 
 | Variable | Purpose |
-|----------|---------||
+|----------|---------|
 | `--theme-primary` | Primary brand color (buttons, active states) |
 | `--theme-primary-hover` | Hover state for primary color |
 | `--color-confab-gray-50` to `--color-confab-gray-900` | Gray scale for backgrounds, text, borders |
