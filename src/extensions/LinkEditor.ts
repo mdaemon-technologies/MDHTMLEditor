@@ -74,7 +74,7 @@ export class LinkEditor {
       return;
     }
 
-    const linkAttrs: Record<string, string | null> = { href: url };
+    const linkAttrs: { href: string; target?: string | null; title?: string | null } = { href: url };
     if (target) {
       linkAttrs.target = target;
     } else {
