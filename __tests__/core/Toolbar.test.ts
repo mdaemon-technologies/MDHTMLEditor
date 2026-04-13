@@ -505,7 +505,17 @@ describe('Toolbar', () => {
   });
 
   describe('Toolbar Toggle (Overflow)', () => {
-    it('should render toggle button when || separator is used', () => {
+    it('should always render toggle button', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic | undo redo',
+      });
+
+      const toggleBtn = container.querySelector('[data-button="togglemore"]');
+      expect(toggleBtn).not.toBeNull();
+    });
+
+    it('should render toggle button even with || separator (backward compat)', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
         toolbar: 'bold italic || undo redo',
@@ -515,69 +525,59 @@ describe('Toolbar', () => {
       expect(toggleBtn).not.toBeNull();
     });
 
-    it('should NOT render toggle button when no || separator is used', () => {
+    it('should render all buttons in a single .md-toolbar-buttons container', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
         toolbar: 'bold italic | undo redo',
       });
 
-      const toggleBtn = container.querySelector('[data-button="togglemore"]');
-      expect(toggleBtn).toBeNull();
+      const buttonsEl = container.querySelector('.md-toolbar-buttons');
+      expect(buttonsEl).not.toBeNull();
+      expect(buttonsEl?.querySelector('[data-button="bold"]')).not.toBeNull();
+      expect(buttonsEl?.querySelector('[data-button="undo"]')).not.toBeNull();
     });
 
-    it('should render primary and overflow wrappers with || separator', () => {
+    it('should not be expanded by default', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
-        toolbar: 'bold italic || undo redo',
+        toolbar: 'bold italic | undo redo',
       });
 
-      const primary = container.querySelector('.md-toolbar-primary');
-      const overflow = container.querySelector('.md-toolbar-overflow');
-      expect(primary).not.toBeNull();
-      expect(overflow).not.toBeNull();
+      const buttonsEl = container.querySelector('.md-toolbar-buttons');
+      expect(buttonsEl?.classList.contains('md-toolbar-expanded')).toBe(false);
     });
 
-    it('should hide overflow rows by default', () => {
+    it('should expand when toggle button is clicked', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
-        toolbar: 'bold italic || undo redo',
-      });
-
-      const overflow = container.querySelector('.md-toolbar-overflow');
-      expect(overflow?.classList.contains('md-toolbar-overflow-visible')).toBe(false);
-    });
-
-    it('should show overflow rows when toggle button is clicked', () => {
-      editor.destroy();
-      editor = new HTMLEditor(container, {
-        toolbar: 'bold italic || undo redo',
+        toolbar: 'bold italic | undo redo',
       });
 
       const toggleBtn = container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
       toggleBtn?.click();
 
-      const overflow = container.querySelector('.md-toolbar-overflow');
-      expect(overflow?.classList.contains('md-toolbar-overflow-visible')).toBe(true);
+      const buttonsEl = container.querySelector('.md-toolbar-buttons');
+      expect(buttonsEl?.classList.contains('md-toolbar-expanded')).toBe(true);
     });
 
-    it('should hide overflow rows when toggle button is clicked twice', () => {
+    it('should collapse when toggle button is clicked twice', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
-        toolbar: 'bold italic || undo redo',
+        toolbar: 'bold italic | undo redo',
       });
 
       const toggleBtn = container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
       toggleBtn?.click();
       toggleBtn?.click();
 
-      const overflow = container.querySelector('.md-toolbar-overflow');
-      expect(overflow?.classList.contains('md-toolbar-overflow-visible')).toBe(false);
+      const buttonsEl = container.querySelector('.md-toolbar-buttons');
+      expect(buttonsEl?.classList.contains('md-toolbar-expanded')).toBe(false);
     });
 
-    it('should apply active class to toggle button when overflow is visible', () => {
+    it('should apply active class to toggle button when expanded', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
-        toolbar: 'bold italic || undo redo',
+        toolbar: 'bold italic | undo redo',
       });
 
       const toggleBtn = container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
@@ -586,10 +586,10 @@ describe('Toolbar', () => {
       expect(toggleBtn?.classList.contains('md-toolbar-btn-active')).toBe(true);
     });
 
-    it('should remove active class from toggle button when overflow is hidden', () => {
+    it('should remove active class from toggle button when collapsed', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
-        toolbar: 'bold italic || undo redo',
+        toolbar: 'bold italic | undo redo',
       });
 
       const toggleBtn = container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
@@ -599,34 +599,38 @@ describe('Toolbar', () => {
       expect(toggleBtn?.classList.contains('md-toolbar-btn-active')).toBe(false);
     });
 
-    it('should place primary buttons before toggle button', () => {
+    it('should place all buttons in the same container', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
-        toolbar: 'bold italic || undo redo',
+        toolbar: 'bold italic | undo redo',
       });
 
-      const primary = container.querySelector('.md-toolbar-primary');
-      const boldBtn = primary?.querySelector('[data-button="bold"]');
-      const italicBtn = primary?.querySelector('[data-button="italic"]');
+      const buttonsEl = container.querySelector('.md-toolbar-buttons');
+      const boldBtn = buttonsEl?.querySelector('[data-button="bold"]');
+      const italicBtn = buttonsEl?.querySelector('[data-button="italic"]');
+      const undoBtn = buttonsEl?.querySelector('[data-button="undo"]');
+      const redoBtn = buttonsEl?.querySelector('[data-button="redo"]');
       expect(boldBtn).not.toBeNull();
       expect(italicBtn).not.toBeNull();
-    });
-
-    it('should place overflow buttons in overflow container', () => {
-      editor.destroy();
-      editor = new HTMLEditor(container, {
-        toolbar: 'bold italic || undo redo',
-      });
-
-      const overflow = container.querySelector('.md-toolbar-overflow');
-      const undoBtn = overflow?.querySelector('[data-button="undo"]');
-      const redoBtn = overflow?.querySelector('[data-button="redo"]');
       expect(undoBtn).not.toBeNull();
       expect(redoBtn).not.toBeNull();
     });
 
-    it('should render toggle button with the default toolbar (has || separator)', () => {
-      // Default toolbar now includes || separator
+    it('should treat || as | for backward compatibility', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'bold italic || undo redo',
+      });
+
+      const buttonsEl = container.querySelector('.md-toolbar-buttons');
+      // All buttons in the same container, no separate primary/overflow
+      expect(buttonsEl?.querySelector('[data-button="bold"]')).not.toBeNull();
+      expect(buttonsEl?.querySelector('[data-button="undo"]')).not.toBeNull();
+      expect(container.querySelector('.md-toolbar-primary')).toBeNull();
+      expect(container.querySelector('.md-toolbar-overflow')).toBeNull();
+    });
+
+    it('should render toggle button with the default toolbar', () => {
       const toggleBtn = container.querySelector('[data-button="togglemore"]');
       expect(toggleBtn).not.toBeNull();
     });

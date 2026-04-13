@@ -49,8 +49,8 @@ const lowlight = createLowlight(common);
 export const fontNames = 'Andale Mono=andale mono,times; Arial=arial,helvetica,sans-serif; Arial Black=arial black,avant garde; Book Antiqua=book antiqua,palatino; Comic Sans MS=comic sans ms,sans-serif; Courier New=courier new,courier; Georgia=georgia,palatino; Helvetica=helvetica; Impact=impact,chicago; Tahoma=tahoma,arial,helvetica,sans-serif; Terminal=terminal,monaco; Times New Roman=times new roman,times; Trebuchet MS=trebuchet ms,geneva; Verdana=verdana,geneva';
 
 // Default toolbar configurations
-const FULL_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent blockquote | fontfamily fontsize || lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image charmap emoticons | fullscreen preview | code link codesample | ltr rtl | searchreplace';
-const BASIC_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent | fontfamily fontsize blockquote || lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link | ltr rtl | searchreplace';
+const FULL_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent blockquote | fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image charmap emoticons | fullscreen preview | code link codesample | ltr rtl | searchreplace';
+const BASIC_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent | fontfamily fontsize blockquote | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link | ltr rtl | searchreplace';
 
 // Default font sizes
 const DEFAULT_FONT_SIZES = '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt';

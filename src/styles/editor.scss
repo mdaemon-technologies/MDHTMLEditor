@@ -47,8 +47,7 @@ $md-dark-hover: #2d3e50;
 // Toolbar
 .md-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   padding: 4px;
   background: #f0f0f0;
   border-bottom: 1px solid $md-border-color;
@@ -59,10 +58,6 @@ $md-dark-hover: #2d3e50;
     position: sticky;
     top: 0;
     z-index: 10;
-  }
-  
-  &.md-toolbar-sliding {
-    flex-wrap: wrap;
   }
 }
 
@@ -79,30 +74,26 @@ $md-dark-hover: #2d3e50;
   margin: 0 4px;
 }
 
-// Toolbar primary row and overflow
-.md-toolbar-primary {
+// Toolbar button container (auto-wrapping)
+.md-toolbar-buttons {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 2px;
-  width: 100%;
-}
-
-.md-toolbar-overflow {
-  display: none;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  max-height: #{$md-toolbar-height - 8};
+  overflow: hidden;
+  transition: max-height 0.2s ease;
   
-  &.md-toolbar-overflow-visible {
-    display: flex;
+  &.md-toolbar-expanded {
+    max-height: none;
   }
 }
 
 .md-toolbar-toggle-btn {
-  margin-left: auto;
   flex-shrink: 0;
+  align-self: flex-start;
 }
 
 // Toolbar buttons

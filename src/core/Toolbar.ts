@@ -99,8 +99,9 @@ export class Toolbar {
   private updateInterval: ReturnType<typeof setInterval> | null = null;
   private boundClickHandler: ((e: MouseEvent) => void) | null = null;
   private boundKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
-  private overflowEl: HTMLElement | null = null;
+  private buttonsEl: HTMLElement | null = null;
   private toggleBtn: HTMLElement | null = null;
+  private resizeObserver: ResizeObserver | null = null;
   
   constructor(container: HTMLElement, options: ToolbarOptions) {
     this.container = container;
@@ -131,39 +132,42 @@ export class Toolbar {
     this.container.innerHTML = '';
     this.container.className = `md-toolbar md-toolbar-${this.options.mode}${this.options.sticky ? ' md-toolbar-sticky' : ''}`;
     
-    // Split on || to separate primary row from overflow rows
-    const rows = this.options.buttons.split('||');
-    const hasOverflow = rows.length > 1;
+    // All buttons go into a single wrapping container
+    this.buttonsEl = document.createElement('div');
+    this.buttonsEl.className = 'md-toolbar-buttons';
     
-    if (hasOverflow) {
-      // Render primary row
-      const primaryEl = document.createElement('div');
-      primaryEl.className = 'md-toolbar-primary';
-      this.renderGroups(rows[0].trim(), primaryEl);
-      
-      // Add toggle button at far right of primary row
-      this.toggleBtn = this.createToggleButton();
-      primaryEl.appendChild(this.toggleBtn);
-      
-      this.container.appendChild(primaryEl);
-      
-      // Render overflow rows
-      this.overflowEl = document.createElement('div');
-      this.overflowEl.className = 'md-toolbar-overflow';
-      const overflowStr = rows.slice(1).join('||').trim();
-      this.renderGroups(overflowStr, this.overflowEl);
-      
-      this.container.appendChild(this.overflowEl);
-      
-      // Apply initial state
-      if (this.state.showMoreButtons) {
-        this.overflowEl.classList.add('md-toolbar-overflow-visible');
-        this.toggleBtn.classList.add('md-toolbar-btn-active');
-      }
-    } else {
-      // No overflow separator — render flat (backwards compatible)
-      this.renderGroups(this.options.buttons, this.container);
+    // Normalize || to | for backward compatibility
+    const buttonsStr = this.options.buttons.replace(/\|\|/g, '|');
+    this.renderGroups(buttonsStr, this.buttonsEl);
+    
+    this.container.appendChild(this.buttonsEl);
+    
+    // Toggle button sits outside the wrapping container so it's always visible
+    this.toggleBtn = this.createToggleButton();
+    this.container.appendChild(this.toggleBtn);
+    
+    // Apply initial state
+    if (this.state.showMoreButtons) {
+      this.buttonsEl.classList.add('md-toolbar-expanded');
+      this.toggleBtn.classList.add('md-toolbar-btn-active');
     }
+    
+    // Auto-hide toggle when all buttons fit on one row
+    this.observeOverflow();
+  }
+  
+  private observeOverflow(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    
+    this.resizeObserver = new ResizeObserver(() => {
+      if (!this.buttonsEl || !this.toggleBtn) return;
+      const hasOverflow = this.buttonsEl.scrollHeight > this.buttonsEl.clientHeight;
+      this.toggleBtn.style.display = hasOverflow || this.state.showMoreButtons ? '' : 'none';
+    });
+    
+    this.resizeObserver.observe(this.buttonsEl!);
   }
   
   private renderGroups(buttonsStr: string, parent: HTMLElement): void {
@@ -212,11 +216,15 @@ export class Toolbar {
   private toggleOverflow(): void {
     this.state.showMoreButtons = !this.state.showMoreButtons;
     
-    if (this.overflowEl) {
-      this.overflowEl.classList.toggle('md-toolbar-overflow-visible', this.state.showMoreButtons);
+    if (this.buttonsEl) {
+      this.buttonsEl.classList.toggle('md-toolbar-expanded', this.state.showMoreButtons);
     }
     if (this.toggleBtn) {
       this.toggleBtn.classList.toggle('md-toolbar-btn-active', this.state.showMoreButtons);
+      // Keep toggle visible while expanded so user can collapse
+      if (this.state.showMoreButtons) {
+        this.toggleBtn.style.display = '';
+      }
     }
   }
   
@@ -957,7 +965,7 @@ export class Toolbar {
     this.searchReplace = null;
     this.buttonElements.clear();
     this.dropdowns.clear();
-    this.overflowEl = null;
+    this.buttonsEl = null;
     this.toggleBtn = null;
     this.render();
     this.bindEvents();
@@ -966,6 +974,11 @@ export class Toolbar {
   destroy(): void {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
+    }
+    
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
     
     this.unbindEvents();
