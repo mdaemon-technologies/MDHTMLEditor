@@ -90,6 +90,7 @@ export class Toolbar {
   private state: ToolbarState;
   private buttonElements: Map<string, HTMLElement> = new Map();
   private dropdowns: Map<string, HTMLElement> = new Map();
+  private bodyMenus: HTMLElement[] = [];
   private charMap: CharacterMap | null = null;
   private emojiPicker: EmojiPicker | null = null;
   private imageUpload: ImageUpload | null = null;
@@ -563,7 +564,7 @@ export class Toolbar {
     button.title = label;
     button.innerHTML = `
       <span class="md-toolbar-dropdown-label">${label}</span>
-      <span class="md-toolbar-dropdown-arrow">▼</span>
+      <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
     `;
     
     const menu = document.createElement('div');
@@ -605,10 +606,11 @@ export class Toolbar {
       // Close other dropdowns
       this.dropdowns.forEach((dropdown, key) => {
         if (key !== name) {
-          dropdown.classList.remove('md-toolbar-dropdown-open');
-          const m = dropdown.querySelector('.md-toolbar-dropdown-menu') as HTMLElement;
-          if (m) m.style.display = 'none';
+          dropdown.classList.remove('md-toolbar-dropdown-open', 'md-toolbar-colorpicker-open');
         }
+      });
+      this.bodyMenus.forEach(m => {
+        if (m !== menu) m.style.display = 'none';
       });
       
       const isOpen = menu.style.display !== 'none';
@@ -631,7 +633,8 @@ export class Toolbar {
     });
     
     wrapper.appendChild(button);
-    wrapper.appendChild(menu);
+    document.body.appendChild(menu);
+    this.bodyMenus.push(menu);
     
     this.dropdowns.set(name, wrapper);
     
@@ -654,7 +657,7 @@ export class Toolbar {
     button.innerHTML = `
       <span class="md-toolbar-colorpicker-icon md-icon-${name}">A</span>
       <span class="md-toolbar-colorpicker-preview" style="background-color: ${name === 'forecolor' ? '#000' : '#ff0'}"></span>
-      <span class="md-toolbar-dropdown-arrow">▼</span>
+      <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
     `;
     
     const menu = document.createElement('div');
@@ -722,6 +725,16 @@ export class Toolbar {
       e.preventDefault();
       e.stopPropagation();
       
+      // Close other dropdowns
+      this.dropdowns.forEach((dropdown, key) => {
+        if (key !== name) {
+          dropdown.classList.remove('md-toolbar-dropdown-open', 'md-toolbar-colorpicker-open');
+        }
+      });
+      this.bodyMenus.forEach(m => {
+        if (m !== menu) m.style.display = 'none';
+      });
+      
       const isOpen = menu.style.display !== 'none';
       menu.style.display = isOpen ? 'none' : 'block';
       wrapper.classList.toggle('md-toolbar-colorpicker-open', !isOpen);
@@ -733,7 +746,8 @@ export class Toolbar {
     });
     
     wrapper.appendChild(button);
-    wrapper.appendChild(menu);
+    document.body.appendChild(menu);
+    this.bodyMenus.push(menu);
     
     this.dropdowns.set(name, wrapper);
     
@@ -747,7 +761,9 @@ export class Toolbar {
     // Close dropdowns when clicking outside
     this.boundClickHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.md-toolbar-dropdown, .md-toolbar-colorpicker')) {
+      const inDropdown = target.closest('.md-toolbar-dropdown, .md-toolbar-colorpicker');
+      const inBodyMenu = this.bodyMenus.some(m => m.contains(target));
+      if (!inDropdown && !inBodyMenu) {
         this.closeAllDropdowns();
       }
     };
@@ -797,10 +813,9 @@ export class Toolbar {
   private closeAllDropdowns(): void {
     this.dropdowns.forEach(dropdown => {
       dropdown.classList.remove('md-toolbar-dropdown-open', 'md-toolbar-colorpicker-open');
-      const menu = dropdown.querySelector('.md-toolbar-dropdown-menu, .md-toolbar-colorpicker-menu') as HTMLElement;
-      if (menu) {
-        menu.style.display = 'none';
-      }
+    });
+    this.bodyMenus.forEach(menu => {
+      menu.style.display = 'none';
     });
   }
   
@@ -985,6 +1000,7 @@ export class Toolbar {
     this.searchReplace = null;
     this.buttonElements.clear();
     this.dropdowns.clear();
+    this.removeBodyMenus();
     this.buttonsEl = null;
     this.toggleBtn = null;
     this.render();
@@ -1009,6 +1025,14 @@ export class Toolbar {
     
     this.buttonElements.clear();
     this.dropdowns.clear();
+    this.removeBodyMenus();
     this.container.innerHTML = '';
+  }
+
+  private removeBodyMenus(): void {
+    this.bodyMenus.forEach(menu => {
+      menu.remove();
+    });
+    this.bodyMenus = [];
   }
 }

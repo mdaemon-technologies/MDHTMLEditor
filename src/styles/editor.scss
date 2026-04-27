@@ -205,8 +205,38 @@ $md-dark-hover: #2d3e50;
 }
 
 .md-toolbar-dropdown-arrow {
-  font-size: 8px;
+  display: inline-flex;
+  align-items: center;
   opacity: 0.6;
+  
+  svg {
+    display: block;
+    width: 8px;
+    height: 8px;
+  }
+}
+
+// Body-appended menus: scoped resets since they live outside .md-editor
+.md-toolbar-dropdown-menu,
+.md-toolbar-colorpicker-menu {
+  font-family: $md-font-family;
+  font-size: $md-font-size;
+  box-sizing: border-box;
+  
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  
+  button:not([class]) {
+    appearance: none;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+  }
 }
 
 .md-toolbar-dropdown-menu {
@@ -221,7 +251,7 @@ $md-dark-hover: #2d3e50;
   z-index: 1000;
 }
 
-.md-editor .md-toolbar-dropdown-item {
+.md-toolbar-dropdown-item {
   display: block;
   margin-top: 2px;
   margin-bottom: 2px;
