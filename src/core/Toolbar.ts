@@ -535,6 +535,16 @@ export class Toolbar {
       }
     });
   }
+
+  /**
+   * Position a fixed-position menu below its trigger button.
+   * Uses getBoundingClientRect so the menu escapes any overflow:hidden ancestor.
+   */
+  private positionMenu(button: HTMLElement, menu: HTMLElement): void {
+    const rect = button.getBoundingClientRect();
+    menu.style.top = `${rect.bottom}px`;
+    menu.style.left = `${rect.left}px`;
+  }
   
   private createDropdown(
     name: string,
@@ -604,6 +614,11 @@ export class Toolbar {
       const isOpen = menu.style.display !== 'none';
       menu.style.display = isOpen ? 'none' : 'block';
       wrapper.classList.toggle('md-toolbar-dropdown-open', !isOpen);
+
+      // Position the fixed menu below its trigger button
+      if (!isOpen) {
+        this.positionMenu(button, menu);
+      }
       
       // Update selected state
       if (!isOpen && getCurrentValue) {
@@ -710,6 +725,11 @@ export class Toolbar {
       const isOpen = menu.style.display !== 'none';
       menu.style.display = isOpen ? 'none' : 'block';
       wrapper.classList.toggle('md-toolbar-colorpicker-open', !isOpen);
+
+      // Position the fixed menu below its trigger button
+      if (!isOpen) {
+        this.positionMenu(button, menu);
+      }
     });
     
     wrapper.appendChild(button);

@@ -210,9 +210,7 @@ $md-dark-hover: #2d3e50;
 }
 
 .md-toolbar-dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed;
   min-width: 150px;
   max-height: 300px;
   overflow-y: auto;
@@ -223,8 +221,10 @@ $md-dark-hover: #2d3e50;
   z-index: 1000;
 }
 
-.md-toolbar-dropdown-item {
+.md-editor .md-toolbar-dropdown-item {
   display: block;
+  margin-top: 2px;
+  margin-bottom: 2px;
   width: 100%;
   padding: 8px 12px;
   border: none;
@@ -278,15 +278,14 @@ $md-dark-hover: #2d3e50;
 }
 
 .md-toolbar-colorpicker-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed;
   padding: 8px;
   background: #fff;
   border: 1px solid $md-border-color;
   border-radius: $md-border-radius;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 100;
+  z-index: 1000;
+  padding: 6px;
 }
 
 .md-toolbar-colorpicker-grid {
