@@ -29,6 +29,7 @@ import { FontSize } from '../extensions/FontSize';
 import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
 import { SignatureBlock } from '../extensions/SignatureBlock';
+import { Mention } from '../extensions/Mention';
 import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
@@ -387,6 +388,7 @@ export class HTMLEditor implements IMDHTMLEditor {
         codeBlock: false, // We use CodeBlockLowlight instead
       }),
       SignatureBlock,
+      Mention,
       Underline,
       TextStyle,
       FontFamily,

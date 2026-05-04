@@ -1,5 +1,16 @@
 # MDHTMLEditor Changelog
 
+## 1.0.13 (May 4, 2026)
+
+### New Features
+- Added Mention extension for inline @mention support (`span.composer-mention` atom nodes)
+  - Enables `insertContent()` to correctly handle mention spans instead of escaping them as text
+  - Parses and renders `<span class="composer-mention" contenteditable="false" data-jid="..." data-display="...">@Name</span>`
+  - Inline, atomic, non-editable node that round-trips through the editor without data loss
+
+### Bug Fixes
+- Fixed clicking empty space in `.md-editor-content` not focusing the editor when content doesn't fill the container
+
 ## 1.0.12 (April 27, 2026)
 
 ### New Features

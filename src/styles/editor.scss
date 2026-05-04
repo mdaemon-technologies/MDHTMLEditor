@@ -376,9 +376,12 @@ $md-dark-hover: #2d3e50;
   min-height: 0;
   overflow: auto;
   background: #fff;
+  display: flex;
+  flex-direction: column;
 }
 
 .md-editor-body {
+  flex: 1;
   padding: 16px;
   min-height: 200px;
   outline: none;

@@ -19,6 +19,7 @@ export { CharacterMap, CHAR_MAP } from './extensions/CharacterMap';
 export { EmojiPicker, EMOJI_CATEGORIES } from './extensions/Emoji';
 export { SearchReplace } from './extensions/SearchReplace';
 export { SignatureBlock } from './extensions/SignatureBlock';
+export { Mention } from './extensions/Mention';
 export { SourceEditor } from './extensions/SourceEditor';
 export type { SourceEditorOptions } from './extensions/SourceEditor';
 export { LinkEditor } from './extensions/LinkEditor';
