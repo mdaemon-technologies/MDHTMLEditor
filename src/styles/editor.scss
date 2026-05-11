@@ -74,6 +74,7 @@ $md-dark-hover: #2d3e50;
   align-items: flex-start;
   padding: 4px;
   background: #f0f0f0;
+  --md-toolbar-bg: #f0f0f0;
   border-bottom: 1px solid $md-border-color;
   gap: 2px;
   min-height: $md-toolbar-height;
@@ -1037,6 +1038,7 @@ $md-dark-hover: #2d3e50;
   
   .md-toolbar {
     background: $md-dark-toolbar-bg;
+    --md-toolbar-bg: #{$md-dark-toolbar-bg};
     border-color: $md-dark-border;
   }
   
@@ -1221,6 +1223,7 @@ $md-dark-hover: #2d3e50;
 
   .md-toolbar {
     background: var(--color-confab-gray-50, #f9fafb);
+    --md-toolbar-bg: var(--color-confab-gray-50, #f9fafb);
     border-color: var(--color-confab-gray-200, #e5e7eb);
   }
 
@@ -1428,6 +1431,7 @@ $md-dark-hover: #2d3e50;
 
   .md-toolbar {
     background: var(--color-dark-bg-secondary, #1e1e1e);
+    --md-toolbar-bg: var(--color-dark-bg-secondary, #1e1e1e);
     border-color: var(--color-dark-border, #333);
   }
 
@@ -1672,5 +1676,157 @@ $md-dark-hover: #2d3e50;
 
   .md-link-editor-row label {
     color: var(--color-dark-text-muted, #888);
+  }
+}
+
+// ============================================================================
+// Narrow container mode — horizontal scroll toolbar
+// Applied via JS (ResizeObserver) when container width ≤ breakpoint
+// ============================================================================
+.md-editor-narrow {
+  .md-toolbar-buttons {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-height: none;
+    -webkit-overflow-scrolling: touch;
+
+    // Thin scrollbar for mouse/trackpad users (pointer: fine)
+    scrollbar-width: thin; // Firefox
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 2px;
+    }
+  }
+
+  // Hide the toggle button — scrolling replaces expand/collapse
+  .md-toolbar-toggle-btn {
+    display: none !important;
+  }
+
+  // Groups should not wrap internally either
+  .md-toolbar-group {
+    flex-shrink: 0;
+  }
+
+  // Separators stay visible between scrolled groups
+  .md-toolbar-separator {
+    flex-shrink: 0;
+  }
+}
+
+// On touch devices, hide the scrollbar entirely — swipe is the interaction
+@media (pointer: coarse) {
+  .md-editor-narrow .md-toolbar-buttons {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+// Dark theme scrollbar — lighter thumb for visibility
+.md-editor-oxide-dark.md-editor-narrow,
+.md-editor-confab-dark.md-editor-narrow {
+  .md-toolbar-buttons {
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+}
+
+// Scroll fade indicators — subtle gradient at edges to hint scrollability
+.md-editor-narrow .md-toolbar {
+  position: relative;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &::before {
+    left: 0;
+    background: linear-gradient(to right, var(--md-toolbar-bg, #f0f0f0), transparent);
+  }
+
+  &::after {
+    right: 0;
+    background: linear-gradient(to left, var(--md-toolbar-bg, #f0f0f0), transparent);
+  }
+
+  // JS toggles these classes based on scroll position
+  &.md-toolbar-scroll-start::after {
+    opacity: 1;
+  }
+
+  &.md-toolbar-scroll-middle::before,
+  &.md-toolbar-scroll-middle::after {
+    opacity: 1;
+  }
+
+  &.md-toolbar-scroll-end::before {
+    opacity: 1;
+  }
+}
+
+// ============================================================================
+// Touch device target sizing — enlarges buttons for coarse pointers
+// Independent of narrow/wide mode — applies on any touch device
+// ============================================================================
+@media (pointer: coarse) {
+  .md-editor {
+    .md-toolbar {
+      min-height: 52px;
+    }
+
+    .md-toolbar-buttons {
+      // In narrow (scroll) mode, no max-height needed — single row scrolls
+      .md-editor:not(.md-editor-narrow) & {
+        max-height: #{52px - 8px};
+
+        &.md-toolbar-expanded {
+          max-height: none;
+        }
+      }
+    }
+
+    .md-toolbar-btn {
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    .md-toolbar-dropdown-btn {
+      min-height: 44px;
+    }
+
+    .md-toolbar-colorpicker-btn {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    .md-toolbar-separator {
+      height: 32px;
+    }
   }
 }

@@ -27,12 +27,26 @@ interface ToolbarOptions {
   customButtons: Map<string, ToolbarButtonSpec>;
   config: EditorConfig;
   iconSet: IconSet;
+  narrowBreakpoint: number;
+  priorityOverrides: Record<string, number>;
 }
 
 interface ToolbarState {
   isFullscreen: boolean;
   showMoreButtons: boolean;
+  isNarrow: boolean;
 }
+
+// Default button priority tiers: 1 = always visible in narrow mode, 2 = collapsed behind toggle
+const DEFAULT_BUTTON_PRIORITY: Record<string, number> = {
+  bold: 1,
+  italic: 1,
+  underline: 1,
+  undo: 1,
+  redo: 1,
+  link: 1,
+  forecolor: 1,
+};
 
 // Default colors for color picker
 const DEFAULT_COLORS: ColorOption[] = [
@@ -110,6 +124,7 @@ export class Toolbar {
     this.state = {
       isFullscreen: false,
       showMoreButtons: false,
+      isNarrow: false,
     };
     
     this.render();
@@ -162,15 +177,100 @@ export class Toolbar {
       this.resizeObserver.disconnect();
     }
     
+    const editorRoot = this.container.closest('.md-editor') as HTMLElement | null;
+    
     this.resizeObserver = new ResizeObserver(() => {
       if (!this.buttonsEl || !this.toggleBtn) return;
-      const hasOverflow = this.buttonsEl.scrollHeight > this.buttonsEl.clientHeight;
-      this.toggleBtn.style.display = hasOverflow || this.state.showMoreButtons ? '' : 'none';
+      
+      // Detect narrow container and toggle class on the editor root
+      if (editorRoot) {
+        const width = editorRoot.offsetWidth;
+        const breakpoint = this.options.narrowBreakpoint;
+        const wasNarrow = this.state.isNarrow;
+        this.state.isNarrow = width <= breakpoint;
+        editorRoot.classList.toggle('md-editor-narrow', this.state.isNarrow);
+        
+        if (this.state.isNarrow) {
+          // In narrow mode: hide toggle, collapse if expanded, enable scroll indicators
+          this.toggleBtn.style.display = 'none';
+          if (this.state.showMoreButtons) {
+            this.state.showMoreButtons = false;
+            this.buttonsEl.classList.remove('md-toolbar-expanded');
+            this.toggleBtn.classList.remove('md-toolbar-btn-active');
+          }
+          this.updateScrollIndicators();
+          if (!wasNarrow) {
+            this.bindScrollIndicators();
+          }
+        } else {
+          // Wide mode: restore toggle visibility based on overflow
+          if (wasNarrow) {
+            this.unbindScrollIndicators();
+          }
+          const hasOverflow = this.buttonsEl.scrollHeight > this.buttonsEl.clientHeight;
+          this.toggleBtn.style.display = hasOverflow || this.state.showMoreButtons ? '' : 'none';
+        }
+      } else {
+        // No editor root — just handle toggle visibility
+        const hasOverflow = this.buttonsEl.scrollHeight > this.buttonsEl.clientHeight;
+        this.toggleBtn.style.display = hasOverflow || this.state.showMoreButtons ? '' : 'none';
+      }
     });
     
+    // Observe both the buttons container and the editor root for resize
     this.resizeObserver.observe(this.buttonsEl!);
+    if (editorRoot) {
+      this.resizeObserver.observe(editorRoot);
+    }
   }
   
+  private scrollHandler: (() => void) | null = null;
+  
+  private bindScrollIndicators(): void {
+    if (!this.buttonsEl) return;
+    this.scrollHandler = () => this.updateScrollIndicators();
+    this.buttonsEl.addEventListener('scroll', this.scrollHandler, { passive: true });
+  }
+  
+  private unbindScrollIndicators(): void {
+    if (this.buttonsEl && this.scrollHandler) {
+      this.buttonsEl.removeEventListener('scroll', this.scrollHandler);
+      this.scrollHandler = null;
+    }
+    // Remove scroll indicator classes
+    this.container.classList.remove('md-toolbar-scroll-start', 'md-toolbar-scroll-middle', 'md-toolbar-scroll-end');
+  }
+  
+  private updateScrollIndicators(): void {
+    if (!this.buttonsEl) return;
+    const { scrollLeft, scrollWidth, clientWidth } = this.buttonsEl;
+    const maxScroll = scrollWidth - clientWidth;
+    
+    // Not scrollable at all — no indicators
+    if (maxScroll <= 1) {
+      this.container.classList.remove('md-toolbar-scroll-start', 'md-toolbar-scroll-middle', 'md-toolbar-scroll-end');
+      return;
+    }
+    
+    const atStart = scrollLeft <= 1;
+    const atEnd = scrollLeft >= maxScroll - 1;
+    
+    this.container.classList.remove('md-toolbar-scroll-start', 'md-toolbar-scroll-middle', 'md-toolbar-scroll-end');
+    if (atStart) {
+      this.container.classList.add('md-toolbar-scroll-start');
+    } else if (atEnd) {
+      this.container.classList.add('md-toolbar-scroll-end');
+    } else {
+      this.container.classList.add('md-toolbar-scroll-middle');
+    }
+  }
+  
+  private getButtonPriority(name: string): number {
+    const overrides = this.options.priorityOverrides;
+    if (overrides[name] !== undefined) return overrides[name];
+    return DEFAULT_BUTTON_PRIORITY[name] ?? 2;
+  }
+
   private renderGroups(buttonsStr: string, parent: HTMLElement): void {
     const groups = buttonsStr.split('|').map(g => g.trim()).filter(Boolean);
     
@@ -179,14 +279,20 @@ export class Toolbar {
       groupEl.className = 'md-toolbar-group';
       
       const buttons = group.split(' ').filter(Boolean);
+      let groupMinPriority = 2;
       buttons.forEach(buttonName => {
         const buttonEl = this.createButton(buttonName);
         if (buttonEl) {
+          const priority = this.getButtonPriority(buttonName);
+          buttonEl.setAttribute('data-priority', String(priority));
+          if (priority < groupMinPriority) groupMinPriority = priority;
           groupEl.appendChild(buttonEl);
           this.buttonElements.set(buttonName, buttonEl);
         }
       });
       
+      // Mark group with its highest priority (lowest number)
+      groupEl.setAttribute('data-priority', String(groupMinPriority));
       parent.appendChild(groupEl);
       
       // Add separator except after last group
@@ -1017,6 +1123,7 @@ export class Toolbar {
       this.resizeObserver = null;
     }
     
+    this.unbindScrollIndicators();
     this.unbindEvents();
     this.charMap?.destroy();
     this.emojiPicker?.destroy();

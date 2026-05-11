@@ -90,6 +90,8 @@ export interface EditorConfig {
   toolbar?: string;
   toolbar_mode?: 'sliding' | 'floating' | 'wrap';
   toolbar_sticky?: boolean;
+  toolbar_narrow_breakpoint?: number;
+  toolbar_priority?: Record<string, number>;
   menubar?: boolean;
   
   // Context menu

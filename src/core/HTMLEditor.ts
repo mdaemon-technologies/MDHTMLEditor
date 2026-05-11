@@ -182,6 +182,8 @@ export class HTMLEditor implements IMDHTMLEditor {
       valid_children: config.valid_children,
       convert_unsafe_embeds: config.convert_unsafe_embeds ?? true,
       format_empty_lines: config.format_empty_lines ?? true,
+      toolbar_narrow_breakpoint: config.toolbar_narrow_breakpoint,
+      toolbar_priority: config.toolbar_priority,
     };
   }
   
@@ -286,6 +288,8 @@ export class HTMLEditor implements IMDHTMLEditor {
       customButtons: this.customButtons,
       config: this.config,
       iconSet,
+      narrowBreakpoint: this.config.toolbar_narrow_breakpoint ?? 768,
+      priorityOverrides: this.config.toolbar_priority ?? {},
     });
     
     // Handle auto focus

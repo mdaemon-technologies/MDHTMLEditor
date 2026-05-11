@@ -1,5 +1,15 @@
 # MDHTMLEditor Changelog
 
+## 1.0.14 (May 11, 2026)
+
+### New Features
+- Added responsive toolbar with priority-based button visibility for narrow containers (≤768px)
+  - Tier 1 buttons (bold, italic, underline, undo, redo, link, forecolor) remain visible; all others collapse behind the existing toggle button
+  - Container-width detection via ResizeObserver — works in sidebars, modals, and narrow panels regardless of viewport size
+  - New `toolbar_narrow_breakpoint` config option to customize the width threshold (default: 768)
+  - New `toolbar_priority` config option to override default button tier assignments
+- Added touch device support via `@media (pointer: coarse)` — enlarges toolbar buttons to 44×44px on touch devices to meet WCAG 2.5.5 target size recommendations
+
 ## 1.0.13 (May 4, 2026)
 
 ### New Features

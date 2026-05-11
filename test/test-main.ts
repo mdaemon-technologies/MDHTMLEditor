@@ -28,6 +28,8 @@ const clockSvg =
 
 // ── Shared editor config & factory ──────────────────
 let currentSkin: 'oxide' | 'oxide-dark' | 'confab' | 'confab-dark' = 'oxide';
+let currentNarrowBreakpoint = 768;
+let currentPriorityOverrides: Record<string, number> = {};
 
 function getContentCss(skin: string): 'default' | 'dark' | 'confab' | 'confab-dark' {
   if (skin === 'oxide-dark') return 'dark';
@@ -43,6 +45,8 @@ function createEditorInstance(skin: typeof currentSkin) {
   content_css: getContentCss(skin),
   directionality: 'ltr',
   browser_spellcheck: true,
+  toolbar_narrow_breakpoint: currentNarrowBreakpoint,
+  toolbar_priority: currentPriorityOverrides,
 
   // Templates
   includeTemplates: true,
@@ -289,6 +293,37 @@ $('#btn-enable-custom').addEventListener('click', () => {
   });
   log('info', 'all custom buttons enabled');
 });
+
+// ── Responsive toolbar controls ──────────────────────
+$('#btn-apply-responsive').addEventListener('click', () => {
+  const bp = parseInt($<HTMLInputElement>('#cmd-narrow-breakpoint').value, 10);
+  currentNarrowBreakpoint = isNaN(bp) ? 768 : bp;
+
+  // Parse tier-1 button names into priority overrides
+  const tier1Input = $<HTMLInputElement>('#cmd-tier1-buttons').value;
+  const tier1Names = tier1Input.split(',').map(s => s.trim()).filter(Boolean);
+  currentPriorityOverrides = {};
+  tier1Names.forEach(name => { currentPriorityOverrides[name] = 1; });
+
+  // Recreate editor with new settings
+  const content = editor.getContent();
+  editor.destroy();
+  editor = createEditorInstance(currentSkin);
+  setTimeout(() => {
+    editor.setContent(content);
+    refreshHtml();
+    log('info', `responsive: breakpoint=${currentNarrowBreakpoint}, tier1=[${tier1Names.join(', ')}]`);
+  }, 50);
+});
+
+// Update container width display periodically
+setInterval(() => {
+  const editorEl = container.querySelector('.md-editor');
+  if (editorEl) {
+    $('#state-container-width').textContent = String((editorEl as HTMLElement).offsetWidth);
+    $('#state-narrow-mode').textContent = editorEl.classList.contains('md-editor-narrow') ? 'YES' : 'no';
+  }
+}, 500);
 
 // ── Skin selector ────────────────────────────────────
 $<HTMLSelectElement>('#cmd-skin').addEventListener('change', (e) => {
