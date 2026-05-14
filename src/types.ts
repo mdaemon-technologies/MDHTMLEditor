@@ -102,6 +102,9 @@ export interface EditorConfig {
   quickbars_image_toolbar?: boolean;
   quickbars_insert_toolbar?: boolean;
   
+  // Paste from Office
+  paste_from_office?: boolean;
+
   // Misc
   browser_spellcheck?: boolean;
   elementpath?: boolean;

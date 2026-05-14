@@ -24,6 +24,8 @@ export { SourceEditor } from './extensions/SourceEditor';
 export type { SourceEditorOptions } from './extensions/SourceEditor';
 export { LinkEditor } from './extensions/LinkEditor';
 export type { LinkEditorOptions } from './extensions/LinkEditor';
+export { PasteFromOffice } from './extensions/PasteFromOffice';
+export type { PasteFromOfficeOptions } from './extensions/PasteFromOffice';
 
 // i18n
 export { getLocale, createTranslateFunction, availableLocales, TRANSLATION_KEYS } from './i18n';

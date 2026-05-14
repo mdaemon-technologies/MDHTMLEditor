@@ -28,6 +28,7 @@ node_modules/
 # Documentation (keep README)
 docs/
 CHANGELOG.md
+AGENTS.md
 
 .github/
 test/

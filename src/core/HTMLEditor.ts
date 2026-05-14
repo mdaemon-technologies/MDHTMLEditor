@@ -30,6 +30,7 @@ import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
 import { SignatureBlock } from '../extensions/SignatureBlock';
 import { Mention } from '../extensions/Mention';
+import { PasteFromOffice } from '../extensions/PasteFromOffice';
 import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
@@ -184,6 +185,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       format_empty_lines: config.format_empty_lines ?? true,
       toolbar_narrow_breakpoint: config.toolbar_narrow_breakpoint,
       toolbar_priority: config.toolbar_priority,
+      paste_from_office: config.paste_from_office ?? true,
     };
   }
   
@@ -431,6 +433,11 @@ export class HTMLEditor implements IMDHTMLEditor {
       }),
       TextDirection,
     ];
+
+    // Add paste-from-office cleaning
+    if (this.config.paste_from_office !== false) {
+      extensions.push(PasteFromOffice);
+    }
     
     // Add image extension for full editor
     if (!this.config.basicEditor) {

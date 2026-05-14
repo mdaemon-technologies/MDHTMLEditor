@@ -103,6 +103,7 @@ const editor = new HTMLEditor(container, {
 | `entity_encoding` | 'raw' \| 'named' \| 'numeric' | 'raw' | HTML entity encoding mode |
 | `convert_unsafe_embeds` | boolean | true | Sanitize embedded content |
 | `format_empty_lines` | boolean | true | Format empty lines |
+| `paste_from_office` | boolean | true | Clean and preserve formatting when pasting from Microsoft Word and Excel |
 | `setup` | (editor) => void | - | Callback invoked before init — use to register custom buttons |
 
 ### Toolbar Toggle

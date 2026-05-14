@@ -1,5 +1,18 @@
 # MDHTMLEditor Changelog
 
+## 1.2.0 (May 14, 2026)
+
+### New Features
+- Added paste-from-Office support — detects and cleans HTML pasted from Microsoft Word and Excel while preserving formatting (bold, italic, underline, font family/size, colors, highlights, lists, tables, text alignment, line height, indentation)
+  - Word list conversion: transforms Word's fake list paragraphs (`MsoListParagraph`) into proper `<ul>`/`<ol>` with correct nesting
+  - Excel table normalization: preserves table structure, colspan/rowspan, and cell formatting while stripping Excel-specific attributes
+  - Security hardening: strips `<script>`, `<iframe>`, event handlers, `javascript:` URLs, and `file://` references (defense-in-depth alongside TipTap's schema enforcement)
+  - New `paste_from_office` config option (default: `true`) to enable/disable the feature
+  - No new dependencies — zero bundle size impact
+
+### Improvements
+- Updated all TipTap packages from 3.23.1 to 3.23.4
+
 ## 1.0.14 (May 11, 2026)
 
 ### New Features

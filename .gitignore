@@ -34,3 +34,6 @@ Thumbs.db
 .env.*.local
 
 .github/skills/
+.github/hooks/
+.github/agents/
+AGENTS.md
