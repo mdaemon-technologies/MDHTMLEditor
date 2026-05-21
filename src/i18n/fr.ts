@@ -1,4 +1,4 @@
-export const fr: Record<string, string> = {
+﻿export const fr: Record<string, string> = {
   'Bold': 'Gras',
   'Italic': 'Italique',
   'Underline': 'Souligné',
@@ -54,7 +54,7 @@ export const fr: Record<string, string> = {
   'Browse...': 'Parcourir...',
   'Drop image here or click to browse': 'Déposez l\'image ici ou cliquez pour parcourir',
   'Alt text': 'Texte alternatif',
-  'Insert': 'Insérer',
+  'Insert': 'Ins�rer',
   'Cancel': 'Annuler',
   'Uploading...': 'Téléchargement...',
   'Upload failed': 'Échec du téléchargement',
@@ -69,4 +69,17 @@ export const fr: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Reconnaissance vocale',
+  'Dictate': 'Dicter',
+  'Start': 'D�marrer',
+  'Stop': 'Arr�ter',
+  'Clear': 'Effacer',
+  'Language': 'Langue',
+  'Confidence': 'Confiance',
+  'Listening...': '�coute en cours...',
+  'Speech to text is not supported in this browser': 'La reconnaissance vocale n\'est pas prise en charge dans ce navigateur',
+  'No speech detected': 'Aucune parole d�tect�e',
+  'Microphone access denied': 'Acc�s au microphone refus�',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

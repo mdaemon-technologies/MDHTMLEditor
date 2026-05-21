@@ -1,4 +1,4 @@
-export const zhTw: Record<string, string> = {
+﻿export const zhTw: Record<string, string> = {
   'Bold': '粗體',
   'Italic': '斜體',
   'Underline': '底線',
@@ -54,7 +54,7 @@ export const zhTw: Record<string, string> = {
   'Browse...': '瀏覽...',
   'Drop image here or click to browse': '將圖片拖放至此處或點擊瀏覽',
   'Alt text': '替代文字',
-  'Insert': '插入',
+  'Insert': '??',
   'Cancel': '取消',
   'Uploading...': '上傳中...',
   'Upload failed': '上傳失敗',
@@ -69,4 +69,17 @@ export const zhTw: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': '?????',
+  'Dictate': '聽寫',
+  'Start': '??',
+  'Stop': '??',
+  'Clear': '??',
+  'Language': '??',
+  'Confidence': '???',
+  'Listening...': '????...',
+  'Speech to text is not supported in this browser': '????????????',
+  'No speech detected': '??????',
+  'Microphone access denied': '????????',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

@@ -1,4 +1,4 @@
-export const nb: Record<string, string> = {
+﻿export const nb: Record<string, string> = {
   'Bold': 'Fet',
   'Italic': 'Kursiv',
   'Underline': 'Understreket',
@@ -69,4 +69,17 @@ export const nb: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Tale til tekst',
+  'Dictate': 'Dikter',
+  'Start': 'Start',
+  'Stop': 'Stopp',
+  'Clear': 'T�m',
+  'Language': 'Spr�k',
+  'Confidence': 'P�litelighet',
+  'Listening...': 'Lytter...',
+  'Speech to text is not supported in this browser': 'Tale til tekst st�ttes ikke i denne nettleseren',
+  'No speech detected': 'Ingen tale oppdaget',
+  'Microphone access denied': 'Mikrofontilgang nektet',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

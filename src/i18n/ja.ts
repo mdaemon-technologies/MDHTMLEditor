@@ -1,4 +1,4 @@
-export const ja: Record<string, string> = {
+﻿export const ja: Record<string, string> = {
   'Bold': '太字',
   'Italic': '斜体',
   'Underline': '下線',
@@ -54,7 +54,7 @@ export const ja: Record<string, string> = {
   'Browse...': '参照...',
   'Drop image here or click to browse': '画像をここにドロップするかクリックして参照',
   'Alt text': '代替テキスト',
-  'Insert': '挿入',
+  'Insert': '??',
   'Cancel': 'キャンセル',
   'Uploading...': 'アップロード中...',
   'Upload failed': 'アップロードに失敗しました',
@@ -69,4 +69,17 @@ export const ja: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': '????',
+  'Dictate': '音声入力',
+  'Start': '??',
+  'Stop': '??',
+  'Clear': '???',
+  'Language': '??',
+  'Confidence': '???',
+  'Listening...': '?????...',
+  'Speech to text is not supported in this browser': '????????????????????????',
+  'No speech detected': '?????????????',
+  'Microphone access denied': '?????????????????',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

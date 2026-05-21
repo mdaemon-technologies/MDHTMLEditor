@@ -1,4 +1,4 @@
-export const fi: Record<string, string> = {
+﻿export const fi: Record<string, string> = {
   'Bold': 'Lihavoitu',
   'Italic': 'Kursivoitu',
   'Underline': 'Alleviivattu',
@@ -54,7 +54,7 @@ export const fi: Record<string, string> = {
   'Browse...': 'Selaa...',
   'Drop image here or click to browse': 'Pudota kuva tähän tai napsauta selataksesi',
   'Alt text': 'Vaihtoehtoinen teksti',
-  'Insert': 'Lisää',
+  'Insert': 'Lis��',
   'Cancel': 'Peruuta',
   'Uploading...': 'Ladataan...',
   'Upload failed': 'Lataus epäonnistui',
@@ -69,4 +69,17 @@ export const fi: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Puhe tekstiksi',
+  'Dictate': 'Sanele',
+  'Start': 'Aloita',
+  'Stop': 'Lopeta',
+  'Clear': 'Tyhjenn�',
+  'Language': 'Kieli',
+  'Confidence': 'Luotettavuus',
+  'Listening...': 'Kuuntelee...',
+  'Speech to text is not supported in this browser': 'Puhe tekstiksi ei ole tuettu t�ss� selaimessa',
+  'No speech detected': 'Puhetta ei havaittu',
+  'Microphone access denied': 'Mikrofonin k�ytt� estetty',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

@@ -104,6 +104,7 @@ const editor = new HTMLEditor(container, {
 | `convert_unsafe_embeds` | boolean | true | Sanitize embedded content |
 | `format_empty_lines` | boolean | true | Format empty lines |
 | `paste_from_office` | boolean | true | Clean and preserve formatting when pasting from Microsoft Word and Excel |
+| `speech_to_text` | boolean | true | Enable Speech to Text and Dictate toolbar buttons (requires Web Speech API: Chrome, Edge, Safari) |
 | `setup` | (editor) => void | - | Callback invoked before init — use to register custom buttons |
 
 ### Toolbar Toggle
@@ -259,6 +260,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `fullscreen` | Toggle fullscreen editing mode |
 | `preview` | Open content preview in a new window |
 | `searchreplace` | Open Find & Replace dialog |
+| `speechtotext` | Open Speech to Text dialog (browser support required) |
+| `dictate` | Toggle inline dictation — inserts speech directly at cursor (browser support required) |
 | `ltr` | Set text direction to left-to-right |
 | `rtl` | Set text direction to right-to-left |
 

@@ -186,6 +186,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       toolbar_narrow_breakpoint: config.toolbar_narrow_breakpoint,
       toolbar_priority: config.toolbar_priority,
       paste_from_office: config.paste_from_office ?? true,
+      speech_to_text: config.speech_to_text ?? true,
     };
   }
   

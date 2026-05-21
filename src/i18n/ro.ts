@@ -1,4 +1,4 @@
-export const ro: Record<string, string> = {
+﻿export const ro: Record<string, string> = {
   'Bold': 'Îngroșat',
   'Italic': 'Cursiv',
   'Underline': 'Subliniat',
@@ -54,7 +54,7 @@ export const ro: Record<string, string> = {
   'Browse...': 'Răsfoiește...',
   'Drop image here or click to browse': 'Trage imaginea aici sau dă clic pentru a răsfoi',
   'Alt text': 'Text alternativ',
-  'Insert': 'Inserează',
+  'Insert': 'Inserare',
   'Cancel': 'Anulează',
   'Uploading...': 'Se încarcă...',
   'Upload failed': 'Încarcare eșuată',
@@ -69,4 +69,17 @@ export const ro: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Voce �n text',
+  'Dictate': 'Dictare',
+  'Start': 'Pornire',
+  'Stop': 'Oprire',
+  'Clear': '?tergere',
+  'Language': 'Limba',
+  'Confidence': '�ncredere',
+  'Listening...': 'Ascultare...',
+  'Speech to text is not supported in this browser': 'Voce �n text nu este acceptata �n acest browser',
+  'No speech detected': 'Nu a fost detectata nicio voce',
+  'Microphone access denied': 'Accesul la microfon a fost refuzat',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

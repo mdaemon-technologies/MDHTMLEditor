@@ -1,4 +1,4 @@
-export const it: Record<string, string> = {
+﻿export const it: Record<string, string> = {
   'Bold': 'Grassetto',
   'Italic': 'Corsivo',
   'Underline': 'Sottolineato',
@@ -69,4 +69,17 @@ export const it: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Riconoscimento vocale',
+  'Dictate': 'Dettare',
+  'Start': 'Avvia',
+  'Stop': 'Ferma',
+  'Clear': 'Cancella',
+  'Language': 'Lingua',
+  'Confidence': 'Affidabilit�',
+  'Listening...': 'Ascolto in corso...',
+  'Speech to text is not supported in this browser': 'Il riconoscimento vocale non � supportato in questo browser',
+  'No speech detected': 'Nessun discorso rilevato',
+  'Microphone access denied': 'Accesso al microfono negato',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

@@ -2,9 +2,12 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { copyFileSync } from 'fs';
 import dts from 'vite-plugin-dts';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 
 export default defineConfig(({ mode }) => ({
   plugins: [
+    // Enable HTTPS with self-signed cert for the dev server (needed for microphone access)
+    basicSsl(),
     dts({
       insertTypesEntry: true,
       rollupTypes: true,

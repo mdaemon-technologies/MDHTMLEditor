@@ -1,4 +1,4 @@
-export const vi: Record<string, string> = {
+﻿export const vi: Record<string, string> = {
   'Bold': 'In đậm',
   'Italic': 'In nghiêng',
   'Underline': 'Gạch chân',
@@ -54,7 +54,7 @@ export const vi: Record<string, string> = {
   'Browse...': 'Duyệt...',
   'Drop image here or click to browse': 'Kéo thả hình ảnh vào đây hoặc nhấp để duyệt',
   'Alt text': 'Văn bản thay thế',
-  'Insert': 'Chèn',
+  'Insert': 'Ch�n',
   'Cancel': 'Hủy',
   'Uploading...': 'Đang tải lên...',
   'Upload failed': 'Tải lên thất bại',
@@ -69,4 +69,17 @@ export const vi: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Gi?ng n�i th�nh van b?n',
+  'Dictate': 'Đọc chính tả',
+  'Start': 'B?t d?u',
+  'Stop': 'D?ng',
+  'Clear': 'X�a',
+  'Language': 'Ng�n ng?',
+  'Confidence': '�? tin c?y',
+  'Listening...': '�ang nghe...',
+  'Speech to text is not supported in this browser': 'Gi?ng n�i th�nh van b?n kh�ng du?c h? tr? trong tr�nh duy?t n�y',
+  'No speech detected': 'Kh�ng ph�t hi?n gi?ng n�i',
+  'Microphone access denied': 'Quy?n truy c?p micr� b? t? ch?i',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

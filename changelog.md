@@ -1,5 +1,24 @@
 # MDHTMLEditor Changelog
 
+## 1.3.0 (May 21, 2026)
+
+### New Features
+- Added Speech to Text plugin — browser-native voice recognition using the Web Speech API
+  - Full dialog with live transcript display (final + interim results), language selector, confidence indicator
+  - Continuous recognition mode with auto-restart on browser timeout
+  - Supports 31 languages matching the editor's locale system
+  - Start/Stop toggle, Insert (at cursor position), and Clear controls
+  - New `speech_to_text` config option (default: `true`) to enable/disable the feature
+  - Graceful degradation: button shown disabled with tooltip in unsupported browsers (Firefox)
+  - Dark mode support for oxide-dark and confab-dark skins
+  - No external dependencies — uses built-in Web Speech API (Chrome, Edge, Safari)
+- Added Dictate button — inline speech-to-text that inserts directly at the cursor without a dialog
+  - Single-click toggle: click to start dictating, click again to stop
+  - Text is inserted at the cursor in real-time as speech is recognized
+  - Visual feedback: button turns red with pulsing indicator while active
+  - Uses the same `speech_to_text` config option and language detection as the dialog version
+  - Toolbar button name: `dictate` (place alongside or instead of `speechtotext`)
+
 ## 1.2.0 (May 14, 2026)
 
 ### New Features

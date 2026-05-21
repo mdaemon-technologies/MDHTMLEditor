@@ -76,7 +76,7 @@ function createEditorInstance(skin: typeof currentSkin) {
     'bold italic underline strikethrough | bullist numlist outdent indent blockquote | fontfamily fontsize ' +
     '|| lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste ' +
     '| undo redo | image charmap emoticons | fullscreen preview | code link codesample | ltr rtl | searchreplace ' +
-    '| template | wordcount timestamp markpen',
+    '| template | dictate speechtotext | wordcount timestamp markpen',
 
   setup: (ed) => {
     // ── Custom button 1: Word Count (text label) ──────────

@@ -1,4 +1,4 @@
-export const cs: Record<string, string> = {
+﻿export const cs: Record<string, string> = {
   'Bold': 'Tučné',
   'Italic': 'Kurzíva',
   'Underline': 'Podtržené',
@@ -54,7 +54,7 @@ export const cs: Record<string, string> = {
   'Browse...': 'Procházet...',
   'Drop image here or click to browse': 'Přetáhněte obrázek sem nebo klikněte pro výběr',
   'Alt text': 'Alternativní text',
-  'Insert': 'Vložit',
+  'Insert': 'Vlo�it',
   'Cancel': 'Zrušit',
   'Uploading...': 'Nahrávání...',
   'Upload failed': 'Nahrávání selhalo',
@@ -69,4 +69,17 @@ export const cs: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Rec na text',
+  'Dictate': 'Diktovat',
+  'Start': 'Spustit',
+  'Stop': 'Zastavit',
+  'Clear': 'Vymazat',
+  'Language': 'Jazyk',
+  'Confidence': 'Spolehlivost',
+  'Listening...': 'Poslouch�m...',
+  'Speech to text is not supported in this browser': 'Rec na text nen� v tomto prohl�eci podporov�na',
+  'No speech detected': 'Nebyla detekov�na rec',
+  'Microphone access denied': 'Pr�stup k mikrofonu zam�tnut',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

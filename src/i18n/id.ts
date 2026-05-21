@@ -1,4 +1,4 @@
-export const id: Record<string, string> = {
+﻿export const id: Record<string, string> = {
   'Bold': 'Tebal',
   'Italic': 'Miring',
   'Underline': 'Garis bawah',
@@ -69,4 +69,17 @@ export const id: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Ucapan ke teks',
+  'Dictate': 'Dikte',
+  'Start': 'Mulai',
+  'Stop': 'Berhenti',
+  'Clear': 'Hapus',
+  'Language': 'Bahasa',
+  'Confidence': 'Kepercayaan',
+  'Listening...': 'Mendengarkan...',
+  'Speech to text is not supported in this browser': 'Ucapan ke teks tidak didukung di browser ini',
+  'No speech detected': 'Tidak ada ucapan terdeteksi',
+  'Microphone access denied': 'Akses mikrofon ditolak',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

@@ -18,6 +18,8 @@ import { ImageUpload } from '../extensions/ImageUpload';
 import { SearchReplace } from '../extensions/SearchReplace';
 import { SourceEditor } from '../extensions/SourceEditor';
 import { LinkEditor } from '../extensions/LinkEditor';
+import { SpeechToText, isSpeechRecognitionSupported } from '../extensions/SpeechToText';
+import { Dictation } from '../extensions/Dictation';
 
 interface ToolbarOptions {
   editor: HTMLEditor;
@@ -111,6 +113,8 @@ export class Toolbar {
   private searchReplace: SearchReplace | null = null;
   private sourceEditor: SourceEditor | null = null;
   private linkEditor: LinkEditor | null = null;
+  private speechToText: SpeechToText | null = null;
+  private dictation: Dictation | null = null;
   private updateInterval: ReturnType<typeof setInterval> | null = null;
   private boundClickHandler: ((e: MouseEvent) => void) | null = null;
   private boundKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -516,6 +520,32 @@ export class Toolbar {
         return this.createActionButton('searchreplace', this.icon('searchreplace'), this.trans('Find and replace'), () => {
           this.openSearchReplace();
         });
+        
+      case 'speechtotext': {
+        if (this.options.config.speech_to_text === false) return null;
+        if (!isSpeechRecognitionSupported()) {
+          const btn = this.createActionButton('speechtotext', this.icon('speechtotext'), this.trans('Speech to text is not supported in this browser'), () => {});
+          btn.classList.add('md-toolbar-btn-disabled');
+          btn.setAttribute('aria-disabled', 'true');
+          return btn;
+        }
+        return this.createActionButton('speechtotext', this.icon('speechtotext'), this.trans('Speech to Text'), () => {
+          this.openSpeechToText();
+        });
+      }
+
+      case 'dictate': {
+        if (this.options.config.speech_to_text === false) return null;
+        if (!isSpeechRecognitionSupported()) {
+          const btn = this.createActionButton('dictate', this.icon('dictate'), this.trans('Speech to text is not supported in this browser'), () => {});
+          btn.classList.add('md-toolbar-btn-disabled');
+          btn.setAttribute('aria-disabled', 'true');
+          return btn;
+        }
+        return this.createActionButton('dictate', this.icon('dictate'), this.trans('Dictate'), () => {
+          this.toggleDictation();
+        });
+      }
         
       case 'template':
         return this.createTemplateDropdown();
@@ -1050,6 +1080,33 @@ export class Toolbar {
     this.searchReplace.open();
   }
   
+  private openSpeechToText(): void {
+    if (!this.speechToText) {
+      this.speechToText = new SpeechToText({
+        editor: this.options.editor,
+        trans: this.trans,
+      });
+    }
+    this.speechToText.open();
+  }
+
+  private toggleDictation(): void {
+    if (!this.dictation) {
+      this.dictation = new Dictation({
+        editor: this.options.editor,
+        trans: this.trans,
+        onStateChange: (isActive) => {
+          const btn = this.buttonElements.get('dictate');
+          if (btn) {
+            btn.classList.toggle('md-toolbar-btn-active', isActive);
+            btn.classList.toggle('md-toolbar-btn-dictating', isActive);
+          }
+        },
+      });
+    }
+    this.dictation.toggle();
+  }
+  
   private openSourceCode(): void {
     if (!this.sourceEditor) {
       this.sourceEditor = new SourceEditor({
@@ -1104,6 +1161,10 @@ export class Toolbar {
     this.imageUpload = null;
     this.searchReplace?.destroy();
     this.searchReplace = null;
+    this.speechToText?.destroy();
+    this.speechToText = null;
+    this.dictation?.destroy();
+    this.dictation = null;
     this.buttonElements.clear();
     this.dropdowns.clear();
     this.removeBodyMenus();
@@ -1129,6 +1190,8 @@ export class Toolbar {
     this.emojiPicker?.destroy();
     this.imageUpload?.destroy();
     this.searchReplace?.destroy();
+    this.speechToText?.destroy();
+    this.dictation?.destroy();
     
     this.buttonElements.clear();
     this.dropdowns.clear();

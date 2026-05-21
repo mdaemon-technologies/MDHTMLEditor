@@ -1,4 +1,4 @@
-export const sl: Record<string, string> = {
+﻿export const sl: Record<string, string> = {
   'Bold': 'Krepko',
   'Italic': 'Ležeče',
   'Underline': 'Podčrtano',
@@ -69,4 +69,17 @@ export const sl: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Govor v besedilo',
+  'Dictate': 'Narekovanje',
+  'Start': 'Zacni',
+  'Stop': 'Ustavi',
+  'Clear': 'Pocisti',
+  'Language': 'Jezik',
+  'Confidence': 'Zaupanje',
+  'Listening...': 'Poslu�am...',
+  'Speech to text is not supported in this browser': 'Govor v besedilo ni podprt v tem brskalniku',
+  'No speech detected': 'Govor ni bil zaznan',
+  'Microphone access denied': 'Dostop do mikrofona zavrnjen',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

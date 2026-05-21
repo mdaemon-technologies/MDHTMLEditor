@@ -1,4 +1,4 @@
-export const nl: Record<string, string> = {
+﻿export const nl: Record<string, string> = {
   'Bold': 'Vet',
   'Italic': 'Cursief',
   'Underline': 'Onderstreept',
@@ -69,4 +69,17 @@ export const nl: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Spraak naar tekst',
+  'Dictate': 'Dicteren',
+  'Start': 'Starten',
+  'Stop': 'Stoppen',
+  'Clear': 'Wissen',
+  'Language': 'Taal',
+  'Confidence': 'Betrouwbaarheid',
+  'Listening...': 'Luisteren...',
+  'Speech to text is not supported in this browser': 'Spraak naar tekst wordt niet ondersteund in deze browser',
+  'No speech detected': 'Geen spraak gedetecteerd',
+  'Microphone access denied': 'Toegang tot microfoon geweigerd',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

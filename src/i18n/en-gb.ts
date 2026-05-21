@@ -1,4 +1,4 @@
-export const enGb: Record<string, string> = {
+﻿export const enGb: Record<string, string> = {
   'Bold': 'Bold',
   'Italic': 'Italic',
   'Underline': 'Underline',
@@ -69,4 +69,17 @@ export const enGb: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Speech to Text',
+  'Dictate': 'Dictate',
+  'Start': 'Start',
+  'Stop': 'Stop',
+  'Clear': 'Clear',
+  'Language': 'Language',
+  'Confidence': 'Confidence',
+  'Listening...': 'Listening...',
+  'Speech to text is not supported in this browser': 'Speech to text is not supported in this browser',
+  'No speech detected': 'No speech detected',
+  'Microphone access denied': 'Microphone access denied',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

@@ -1,4 +1,4 @@
-export const ca: Record<string, string> = {
+﻿export const ca: Record<string, string> = {
   'Bold': 'Negreta',
   'Italic': 'Cursiva',
   'Underline': 'Subratllat',
@@ -69,4 +69,17 @@ export const ca: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Veu a text',
+  'Dictate': 'Dictar',
+  'Start': 'Iniciar',
+  'Stop': 'Aturar',
+  'Clear': 'Esborrar',
+  'Language': 'Idioma',
+  'Confidence': 'Confian�a',
+  'Listening...': 'Escoltant...',
+  'Speech to text is not supported in this browser': 'La veu a text no �s compatible amb aquest navegador',
+  'No speech detected': 'No s\'ha detectat veu',
+  'Microphone access denied': 'Acc�s al micr�fon denegat',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

@@ -105,6 +105,9 @@ export interface EditorConfig {
   // Paste from Office
   paste_from_office?: boolean;
 
+  // Speech to Text
+  speech_to_text?: boolean;
+
   // Misc
   browser_spellcheck?: boolean;
   elementpath?: boolean;

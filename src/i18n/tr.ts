@@ -1,4 +1,4 @@
-export const tr: Record<string, string> = {
+﻿export const tr: Record<string, string> = {
   'Bold': 'Kalın',
   'Italic': 'İtalik',
   'Underline': 'Altı çizili',
@@ -69,4 +69,17 @@ export const tr: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Konusmayi metne �evir',
+  'Dictate': 'Dikte et',
+  'Start': 'Baslat',
+  'Stop': 'Durdur',
+  'Clear': 'Temizle',
+  'Language': 'Dil',
+  'Confidence': 'G�venilirlik',
+  'Listening...': 'Dinliyor...',
+  'Speech to text is not supported in this browser': 'Bu tarayicida konusmayi metne �evirme desteklenmiyor',
+  'No speech detected': 'Konusma algilanmadi',
+  'Microphone access denied': 'Mikrofon erisimi reddedildi',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

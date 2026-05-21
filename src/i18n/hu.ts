@@ -1,4 +1,4 @@
-export const hu: Record<string, string> = {
+﻿export const hu: Record<string, string> = {
   'Bold': 'Félkövér',
   'Italic': 'Dőlt',
   'Underline': 'Aláhúzott',
@@ -54,7 +54,7 @@ export const hu: Record<string, string> = {
   'Browse...': 'Tallózás...',
   'Drop image here or click to browse': 'Húzza ide a képet, vagy kattintson a tallózáshoz',
   'Alt text': 'Alternatív szöveg',
-  'Insert': 'Beszúrás',
+  'Insert': 'Besz�r�s',
   'Cancel': 'Mégse',
   'Uploading...': 'Feltöltés...',
   'Upload failed': 'A feltöltés sikertelen',
@@ -69,4 +69,17 @@ export const hu: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Besz�d sz�vegg�',
+  'Dictate': 'Diktálás',
+  'Start': 'Ind�t�s',
+  'Stop': 'Le�ll�t�s',
+  'Clear': 'T�rl�s',
+  'Language': 'Nyelv',
+  'Confidence': 'Megb�zhat�s�g',
+  'Listening...': 'Hallgat�s...',
+  'Speech to text is not supported in this browser': 'A besz�d sz�vegg� alak�t�s nem t�mogatott ebben a b�ng�szoben',
+  'No speech detected': 'Nem �szlelheto besz�d',
+  'Microphone access denied': 'Mikrofon hozz�f�r�s megtagadva',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

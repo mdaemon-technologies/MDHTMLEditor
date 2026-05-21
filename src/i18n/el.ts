@@ -1,4 +1,4 @@
-export const el: Record<string, string> = {
+﻿export const el: Record<string, string> = {
   'Bold': 'Έντονα',
   'Italic': 'Πλάγια',
   'Underline': 'Υπογράμμιση',
@@ -54,7 +54,7 @@ export const el: Record<string, string> = {
   'Browse...': 'Αναζήτηση...',
   'Drop image here or click to browse': 'Σύρτε την εικόνα εδώ ή κάντε κλικ για αναζήτηση',
   'Alt text': 'Εναλλακτικό κείμενο',
-  'Insert': 'Εισαγωγή',
+  'Insert': '??sa????',
   'Cancel': 'Ακύρωση',
   'Uploading...': 'Μεταφόρτωση...',
   'Upload failed': 'Η μεταφόρτωση απέτυχε',
@@ -69,4 +69,17 @@ export const el: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': '?�???a se ?e?�e??',
+  'Dictate': 'Υπαγόρευση',
+  'Start': '??????s?',
+  'Stop': '??a??p?',
+  'Clear': '???a????s?',
+  'Language': 'G??ssa',
+  'Confidence': '????p?st?a',
+  'Listening...': '????e?...',
+  'Speech to text is not supported in this browser': '? ?�???a se ?e?�e?? de? ?p?st????eta? se a?t?? t?? pe?????t?',
+  'No speech detected': '?e? a????e????e ?�???a',
+  'Microphone access denied': '? p??s�as? st? �????f??? ap????f???e',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

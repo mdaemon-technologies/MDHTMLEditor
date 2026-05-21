@@ -1,4 +1,4 @@
-export const ko: Record<string, string> = {
+﻿export const ko: Record<string, string> = {
   'Bold': '굵게',
   'Italic': '기울임꼴',
   'Underline': '밑줄',
@@ -54,7 +54,7 @@ export const ko: Record<string, string> = {
   'Browse...': '찾아보기...',
   'Drop image here or click to browse': '이미지를 여기에 끌어다 놓거나 클릭하여 찾아보기',
   'Alt text': '대체 텍스트',
-  'Insert': '삽입',
+  'Insert': '??',
   'Cancel': '취소',
   'Uploading...': '업로드 중...',
   'Upload failed': '업로드 실패',
@@ -69,4 +69,17 @@ export const ko: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': '?? ??',
+  'Dictate': '받아쓰기',
+  'Start': '??',
+  'Stop': '??',
+  'Clear': '???',
+  'Language': '??',
+  'Confidence': '???',
+  'Listening...': '?? ?...',
+  'Speech to text is not supported in this browser': '? ??????? ?? ??? ???? ????',
+  'No speech detected': '??? ???? ?????',
+  'Microphone access denied': '??? ??? ???????',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

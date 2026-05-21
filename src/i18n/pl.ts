@@ -1,4 +1,4 @@
-export const pl: Record<string, string> = {
+﻿export const pl: Record<string, string> = {
   'Bold': 'Pogrubienie',
   'Italic': 'Kursywa',
   'Underline': 'Podkreślenie',
@@ -69,4 +69,17 @@ export const pl: Record<string, string> = {
   'Open link in...': 'Open link in...',
   'Current window': 'Current window',
   'New window': 'New window',
+  'Speech to Text': 'Mowa na tekst',
+  'Dictate': 'Dyktuj',
+  'Start': 'Rozpocznij',
+  'Stop': 'Zatrzymaj',
+  'Clear': 'Wyczysc',
+  'Language': 'Jezyk',
+  'Confidence': 'Pewnosc',
+  'Listening...': 'Nasluchiwanie...',
+  'Speech to text is not supported in this browser': 'Mowa na tekst nie jest obslugiwana w tej przegladarce',
+  'No speech detected': 'Nie wykryto mowy',
+  'Microphone access denied': 'Odmowa dostepu do mikrofonu',
+  'No microphone found': 'No microphone found',
+  'Network error - speech recognition requires internet': 'Network error - speech recognition requires internet',
 };

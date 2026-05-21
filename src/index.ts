@@ -26,6 +26,10 @@ export { LinkEditor } from './extensions/LinkEditor';
 export type { LinkEditorOptions } from './extensions/LinkEditor';
 export { PasteFromOffice } from './extensions/PasteFromOffice';
 export type { PasteFromOfficeOptions } from './extensions/PasteFromOffice';
+export { SpeechToText, isSpeechRecognitionSupported } from './extensions/SpeechToText';
+export type { SpeechToTextOptions } from './extensions/SpeechToText';
+export { Dictation } from './extensions/Dictation';
+export type { DictationOptions } from './extensions/Dictation';
 
 // i18n
 export { getLocale, createTranslateFunction, availableLocales, TRANSLATION_KEYS } from './i18n';
