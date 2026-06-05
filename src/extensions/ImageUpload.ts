@@ -4,7 +4,32 @@
  */
 
 const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp'];
+
+// Map of file extensions to MIME types for the configurable file-type guard.
+const EXT_TO_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  jpe: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  bmp: 'image/bmp',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+};
+
+/**
+ * Parse an images_file_types spec (e.g. 'jpg,jpeg,png,gif,bmp' or
+ * 'jpg jpeg png') into a normalized list of lowercase extensions.
+ */
+export function parseImageFileTypes(spec?: string): string[] | null {
+  if (!spec) return null;
+  const exts = spec
+    .split(/[\s,|]+/)
+    .map(s => s.trim().toLowerCase().replace(/^\./, ''))
+    .filter(Boolean);
+  return exts.length > 0 ? exts : null;
+}
 
 // Elements and attributes that are dangerous in SVG context
 const SVG_DANGEROUS_TAGS = [
@@ -64,6 +89,12 @@ export interface ImageUploadOptions {
   uploadBasePath?: string;
   uploadMaxSize?: number;
   uploadHeaders?: Record<string, string>;
+  /** Accepted file extensions spec (images_file_types). When set, restricts uploads. */
+  fileTypes?: string;
+  /** Optional pre-upload validation hook; return a non-null message to reject. */
+  validate?: (file: File) => string | null;
+  /** Caller-supplied alert for failures with no dialog context (drag-drop/paste). */
+  onError?: (message: string) => void;
   trans: (key: string) => string;
 }
 
@@ -375,20 +406,48 @@ export class ImageUpload {
     }
   }
 
-  private handleFileSelected(file: File): void {
-    this.clearError();
-    const t = this.options.trans;
-
-    // Validate type
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      this.showError(t('Invalid file type'));
-      return;
+  /** Whether the file matches the configured/default accepted image types. */
+  private isAcceptedType(file: File): boolean {
+    const exts = parseImageFileTypes(this.options.fileTypes);
+    if (!exts) {
+      return ACCEPTED_IMAGE_TYPES.includes(file.type);
     }
+    const name = (file.name ?? '').toLowerCase();
+    const dot = name.lastIndexOf('.');
+    const ext = dot >= 0 ? name.slice(dot + 1) : '';
+    if (ext && exts.includes(ext)) return true;
+    // Fall back to MIME match (clipboard files may have no/blank name)
+    const acceptedMimes = exts.map(e => EXT_TO_MIME[e]).filter(Boolean);
+    return !!file.type && acceptedMimes.includes(file.type);
+  }
 
-    // Validate size
+  /**
+   * Validate a file before upload. Returns an error message (translated) to
+   * reject, or null to allow. Runs the caller's validate hook, then the
+   * type and size guards.
+   */
+  validateFile(file: File): string | null {
+    const t = this.options.trans;
+    if (this.options.validate) {
+      const msg = this.options.validate(file);
+      if (msg) return msg;
+    }
+    if (!this.isAcceptedType(file)) {
+      return t('Invalid file type');
+    }
     const maxSize = this.options.uploadMaxSize ?? DEFAULT_MAX_FILE_SIZE;
     if (file.size > maxSize) {
-      this.showError(t('File too large'));
+      return t('File too large');
+    }
+    return null;
+  }
+
+  private handleFileSelected(file: File): void {
+    this.clearError();
+
+    const validationError = this.validateFile(file);
+    if (validationError) {
+      this.showError(validationError);
       return;
     }
 
@@ -497,20 +556,16 @@ export class ImageUpload {
       this.options.onInsert(src, alt);
       this.close();
     } catch (err) {
-      this.showError(this.options.trans('Upload failed'));
+      const message = err instanceof Error && err.message ? err.message : this.options.trans('Upload failed');
+      this.showError(message);
     }
   }
 
   uploadFile(file: File): Promise<string> {
-    // Validate type
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      return Promise.reject(new Error('Invalid file type'));
-    }
-
-    // Validate size
-    const maxSize = this.options.uploadMaxSize ?? DEFAULT_MAX_FILE_SIZE;
-    if (file.size > maxSize) {
-      return Promise.reject(new Error('File too large'));
+    // Validate (custom hook, then type + size guards)
+    const validationError = this.validateFile(file);
+    if (validationError) {
+      return Promise.reject(new Error(validationError));
     }
 
     // Sanitize SVG files before processing

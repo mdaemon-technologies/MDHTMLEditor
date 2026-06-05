@@ -18,8 +18,10 @@ import { ImageUpload } from '../extensions/ImageUpload';
 import { SearchReplace } from '../extensions/SearchReplace';
 import { SourceEditor } from '../extensions/SourceEditor';
 import { LinkEditor } from '../extensions/LinkEditor';
+import { AnchorDialog } from '../extensions/AnchorDialog';
 import { SpeechToText, isSpeechRecognitionSupported } from '../extensions/SpeechToText';
 import { Dictation } from '../extensions/Dictation';
+import type { StyleFormat } from '../types';
 
 interface ToolbarOptions {
   editor: HTMLEditor;
@@ -49,6 +51,18 @@ const DEFAULT_BUTTON_PRIORITY: Record<string, number> = {
   link: 1,
   forecolor: 1,
 };
+
+// Default block-format dropdown definitions (TinyMCE-style "Label=tag;...").
+const DEFAULT_BLOCK_FORMATS = 'Paragraph=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5;Heading 6=h6';
+
+// Default Styles dropdown definitions (subset of CKEditor's stylesSet that maps
+// cleanly onto the TipTap schema: headings with color, and highlight markers).
+const DEFAULT_STYLE_FORMATS: StyleFormat[] = [
+  { title: 'Blue Title', block: 'h3', styles: { color: 'Blue' } },
+  { title: 'Red Title', block: 'h3', styles: { color: 'Red' } },
+  { title: 'Marker: Yellow', inline: 'span', styles: { 'background-color': 'Yellow' } },
+  { title: 'Marker: Green', inline: 'span', styles: { 'background-color': 'Lime' } },
+];
 
 // Default colors for color picker
 const DEFAULT_COLORS: ColorOption[] = [
@@ -113,6 +127,7 @@ export class Toolbar {
   private searchReplace: SearchReplace | null = null;
   private sourceEditor: SourceEditor | null = null;
   private linkEditor: LinkEditor | null = null;
+  private anchorDialog: AnchorDialog | null = null;
   private speechToText: SpeechToText | null = null;
   private dictation: Dictation | null = null;
   private updateInterval: ReturnType<typeof setInterval> | null = null;
@@ -367,7 +382,42 @@ export class Toolbar {
         return this.createActionButton('strikethrough', this.icon('strikethrough'), this.trans('Strikethrough'), () => {
           this.tiptap?.chain().focus().toggleStrike().run();
         }, () => this.tiptap?.isActive('strike') ?? false);
-        
+
+      case 'subscript':
+        return this.createActionButton('subscript', this.icon('subscript'), this.trans('Subscript'), () => {
+          this.tiptap?.chain().focus().toggleSubscript().run();
+        }, () => this.tiptap?.isActive('subscript') ?? false);
+
+      case 'superscript':
+        return this.createActionButton('superscript', this.icon('superscript'), this.trans('Superscript'), () => {
+          this.tiptap?.chain().focus().toggleSuperscript().run();
+        }, () => this.tiptap?.isActive('superscript') ?? false);
+
+      case 'hr':
+        return this.createActionButton('hr', this.icon('hr'), this.trans('Horizontal rule'), () => {
+          this.tiptap?.chain().focus().setHorizontalRule().run();
+        });
+
+      case 'blocks':
+      case 'formatselect':
+        return this.createFormatDropdown();
+
+      case 'styles':
+        return this.createStylesDropdown();
+
+      case 'table':
+        return this.createTableDropdown();
+
+      case 'anchor':
+        return this.createActionButton('anchor', this.icon('anchor'), this.trans('Insert anchor'), () => {
+          this.openAnchorDialog();
+        });
+
+      case 'unlink':
+        return this.createActionButton('unlink', this.icon('unlink'), this.trans('Unlink'), () => {
+          this.tiptap?.chain().focus().unsetLink().run();
+        }, () => this.tiptap?.isActive('link') ?? false);
+
       case 'bullist':
         return this.createActionButton('bullist', this.icon('bullist'), this.trans('Bullet list'), () => {
           this.tiptap?.chain().focus().toggleBulletList().run();
@@ -669,6 +719,116 @@ export class Toolbar {
       const matched = templates.find(t => t.content === selected.value);
       if (matched) {
         this.options.editor.fire('templatechange', matched);
+      }
+    });
+  }
+
+  private createFormatDropdown(): HTMLElement {
+    const spec = this.options.config.block_formats ?? DEFAULT_BLOCK_FORMATS;
+    const options = spec.split(';').map(entry => {
+      const [label, value] = entry.split('=');
+      return { label: this.trans(label.trim()), value: (value ?? label).trim().toLowerCase() };
+    }).filter(o => o.value);
+
+    return this.createDropdown('blocks', this.trans('Format'), options, (option) => {
+      const chain = this.tiptap?.chain().focus();
+      if (!chain) return;
+      const m = /^h([1-6])$/.exec(option.value);
+      if (m) {
+        chain.toggleHeading({ level: Number(m[1]) as 1 | 2 | 3 | 4 | 5 | 6 }).run();
+      } else {
+        chain.setParagraph().run();
+      }
+    }, () => {
+      for (let level = 1; level <= 6; level++) {
+        if (this.tiptap?.isActive('heading', { level })) return `h${level}`;
+      }
+      return this.tiptap?.isActive('paragraph') ? 'p' : '';
+    });
+  }
+
+  private getStyleFormats(): StyleFormat[] {
+    return this.options.config.style_formats ?? DEFAULT_STYLE_FORMATS;
+  }
+
+  private createStylesDropdown(): HTMLElement {
+    const formats = this.getStyleFormats();
+    const options = formats.map((f, i) => ({ label: f.title, value: String(i) }));
+
+    return this.createDropdown('styles', this.trans('Styles'), options, (option) => {
+      const fmt = formats[Number(option.value)];
+      if (fmt) this.applyStyleFormat(fmt);
+    });
+  }
+
+  /**
+   * Apply a StyleFormat to the current selection. Block elements map to
+   * heading/paragraph; color and background map to the existing Color /
+   * Highlight marks; classes map to the InlineStyle textStyle class.
+   * (Arbitrary element wrapping from CKEditor stylesSet is not supported.)
+   */
+  private applyStyleFormat(fmt: StyleFormat): void {
+    const chain = this.tiptap?.chain().focus();
+    if (!chain) return;
+
+    const blockEl = fmt.block;
+    if (blockEl) {
+      const m = /^h([1-6])$/.exec(blockEl);
+      if (m) {
+        chain.setHeading({ level: Number(m[1]) as 1 | 2 | 3 | 4 | 5 | 6 });
+      } else if (blockEl === 'p') {
+        chain.setParagraph();
+      }
+    }
+
+    if (fmt.styles) {
+      if (fmt.styles.color) {
+        chain.setColor(fmt.styles.color);
+      }
+      const bg = fmt.styles['background-color'];
+      if (bg) {
+        chain.setHighlight({ color: bg });
+      }
+    }
+
+    if (fmt.classes) {
+      chain.setInlineClass(fmt.classes);
+    }
+
+    chain.run();
+  }
+
+  private createTableDropdown(): HTMLElement {
+    const t = this.trans;
+    const options = [
+      { label: t('Insert table'), value: 'insert' },
+      { label: t('Insert row before'), value: 'rowBefore' },
+      { label: t('Insert row after'), value: 'rowAfter' },
+      { label: t('Delete row'), value: 'deleteRow' },
+      { label: t('Insert column before'), value: 'colBefore' },
+      { label: t('Insert column after'), value: 'colAfter' },
+      { label: t('Delete column'), value: 'deleteCol' },
+      { label: t('Merge cells'), value: 'merge' },
+      { label: t('Split cell'), value: 'split' },
+      { label: t('Toggle header row'), value: 'headerRow' },
+      { label: t('Delete table'), value: 'deleteTable' },
+    ];
+
+    return this.createDropdown('table', this.trans('Table'), options, (option) => {
+      const chain = this.tiptap?.chain().focus();
+      if (!chain) return;
+      switch (option.value) {
+        case 'insert': chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); break;
+        case 'rowBefore': chain.addRowBefore().run(); break;
+        case 'rowAfter': chain.addRowAfter().run(); break;
+        case 'deleteRow': chain.deleteRow().run(); break;
+        case 'colBefore': chain.addColumnBefore().run(); break;
+        case 'colAfter': chain.addColumnAfter().run(); break;
+        case 'deleteCol': chain.deleteColumn().run(); break;
+        case 'merge': chain.mergeCells().run(); break;
+        case 'split': chain.splitCell().run(); break;
+        case 'headerRow': chain.toggleHeaderRow().run(); break;
+        case 'deleteTable': chain.deleteTable().run(); break;
       }
     });
   }
@@ -981,6 +1141,15 @@ export class Toolbar {
         case 'strikethrough':
           isActive = this.tiptap?.isActive('strike') ?? false;
           break;
+        case 'subscript':
+          isActive = this.tiptap?.isActive('subscript') ?? false;
+          break;
+        case 'superscript':
+          isActive = this.tiptap?.isActive('superscript') ?? false;
+          break;
+        case 'unlink':
+          isActive = this.tiptap?.isActive('link') ?? false;
+          break;
         case 'bullist':
           isActive = this.tiptap?.isActive('bulletList') ?? false;
           break;
@@ -1030,6 +1199,9 @@ export class Toolbar {
         uploadBasePath: this.options.config.images_upload_base_path,
         uploadMaxSize: this.options.config.images_upload_max_size,
         uploadHeaders: this.options.config.images_upload_headers,
+        fileTypes: this.options.config.images_file_types,
+        validate: this.options.config.images_upload_validate,
+        onError: this.options.config.images_upload_error,
         trans: this.trans,
       });
     }
@@ -1046,6 +1218,27 @@ export class Toolbar {
     this.linkEditor.open();
   }
   
+  private openAnchorDialog(): void {
+    if (!this.anchorDialog) {
+      this.anchorDialog = new AnchorDialog({
+        editor: this.options.editor,
+        trans: this.trans,
+      });
+    }
+    this.anchorDialog.open();
+  }
+
+  /**
+   * Enable or disable the whole toolbar (used for read-only mode).
+   * Blocks pointer interaction and dims the toolbar via CSS.
+   */
+  setEnabled(enabled: boolean): void {
+    this.container.classList.toggle('md-toolbar-disabled', !enabled);
+    if (!enabled) {
+      this.closeAllDropdowns();
+    }
+  }
+
   private openCharMap(): void {
     if (!this.charMap) {
       this.charMap = new CharacterMap({
@@ -1165,6 +1358,12 @@ export class Toolbar {
     this.speechToText = null;
     this.dictation?.destroy();
     this.dictation = null;
+    this.anchorDialog?.destroy();
+    this.anchorDialog = null;
+    this.linkEditor?.destroy();
+    this.linkEditor = null;
+    this.sourceEditor?.destroy();
+    this.sourceEditor = null;
     this.buttonElements.clear();
     this.dropdowns.clear();
     this.removeBodyMenus();
@@ -1192,7 +1391,10 @@ export class Toolbar {
     this.searchReplace?.destroy();
     this.speechToText?.destroy();
     this.dictation?.destroy();
-    
+    this.anchorDialog?.destroy();
+    this.linkEditor?.destroy();
+    this.sourceEditor?.destroy();
+
     this.buttonElements.clear();
     this.dropdowns.clear();
     this.removeBodyMenus();

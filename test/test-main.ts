@@ -30,6 +30,7 @@ const clockSvg =
 let currentSkin: 'oxide' | 'oxide-dark' | 'confab' | 'confab-dark' = 'oxide';
 let currentNarrowBreakpoint = 768;
 let currentPriorityOverrides: Record<string, number> = {};
+let currentForcedRootBlock: 'p' | 'div' = 'p';
 
 function getContentCss(skin: string): 'default' | 'dark' | 'confab' | 'confab-dark' {
   if (skin === 'oxide-dark') return 'dark';
@@ -47,6 +48,18 @@ function createEditorInstance(skin: typeof currentSkin) {
   browser_spellcheck: true,
   toolbar_narrow_breakpoint: currentNarrowBreakpoint,
   toolbar_priority: currentPriorityOverrides,
+
+  // CKEditor-parity: Enter produces <p> or <div>
+  forced_root_block: currentForcedRootBlock,
+
+  // CKEditor-parity image guard (no upload URL → base64; guard still applies)
+  images_file_types: 'jpg,jpeg,png,gif,bmp',
+  images_upload_validate: (file: File) =>
+    file.size === 0 ? 'Empty files are not allowed' : null,
+  images_upload_error: (message: string) => {
+    log('info', `image rejected: ${message}`);
+    alert(message);
+  },
 
   // Templates
   includeTemplates: true,
@@ -73,9 +86,9 @@ function createEditorInstance(skin: typeof currentSkin) {
 
   // Include custom button names in the toolbar string
   toolbar:
-    'bold italic underline strikethrough | bullist numlist outdent indent blockquote | fontfamily fontsize ' +
+    'bold italic underline strikethrough subscript superscript | blocks styles | bullist numlist outdent indent blockquote | fontfamily fontsize ' +
     '|| lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste ' +
-    '| undo redo | image charmap emoticons | fullscreen preview | code link codesample | ltr rtl | searchreplace ' +
+    '| undo redo | image table charmap emoticons hr | fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace ' +
     '| template | dictate speechtotext | wordcount timestamp markpen',
 
   setup: (ed) => {
@@ -137,9 +150,13 @@ function createEditorInstance(skin: typeof currentSkin) {
       ed.setContent(
         '<h2>Welcome to the Test Page</h2>' +
         '<p>Start typing or use the sidebar controls to test features.</p>' +
-        '<p>Try <strong>bold</strong>, <em>italic</em>, <u>underline</u>, and <s>strikethrough</s>.</p>' +
+        '<p>Try <strong>bold</strong>, <em>italic</em>, <u>underline</u>, <s>strikethrough</s>, ' +
+        'H<sub>2</sub>O and E=mc<sup>2</sup>.</p>' +
+        '<p>A named anchor target: <a id="welcome"></a> (insert more with the anchor button).</p>' +
         '<ul><li>Bullet one</li><li>Bullet two</li></ul>' +
-        '<blockquote><p>A block quote for testing.</p></blockquote>'
+        '<blockquote><p>A block quote for testing.</p></blockquote>' +
+        '<table><tbody><tr><th>Feature</th><th>Status</th></tr>' +
+        '<tr><td>Tables</td><td>✓</td></tr><tr><td>Anchors</td><td>✓</td></tr></tbody></table>'
       );
       refreshHtml();
     });
@@ -324,6 +341,27 @@ setInterval(() => {
     $('#state-narrow-mode').textContent = editorEl.classList.contains('md-editor-narrow') ? 'YES' : 'no';
   }
 }, 500);
+
+// ── Read-only toggle ─────────────────────────────────
+$('#btn-toggle-readonly').addEventListener('click', () => {
+  const next = !editor.isReadOnly();
+  editor.setReadOnly(next);
+  $('#state-readonly').textContent = String(next);
+  log('info', `readonly → ${next}`);
+});
+
+// ── forced_root_block (Enter mode) ───────────────────
+$<HTMLSelectElement>('#cmd-root-block').addEventListener('change', (e) => {
+  currentForcedRootBlock = (e.target as HTMLSelectElement).value as 'p' | 'div';
+  const content = editor.getContent();
+  editor.destroy();
+  editor = createEditorInstance(currentSkin);
+  setTimeout(() => {
+    editor.setContent(content);
+    refreshHtml();
+    log('info', `forced_root_block → ${currentForcedRootBlock}`);
+  }, 50);
+});
 
 // ── Skin selector ────────────────────────────────────
 $<HTMLSelectElement>('#cmd-skin').addEventListener('change', (e) => {

@@ -3,8 +3,11 @@
  * A TinyMCE-compatible HTML editor built on TipTap
  */
 
-import { Editor as TipTapEditor, EditorOptions, AnyExtension } from '@tiptap/core';
+import { Editor as TipTapEditor, EditorOptions, AnyExtension, mergeAttributes } from '@tiptap/core';
 import { StarterKit } from '@tiptap/starter-kit';
+import { Paragraph } from '@tiptap/extension-paragraph';
+import { Subscript } from '@tiptap/extension-subscript';
+import { Superscript } from '@tiptap/extension-superscript';
 import { Underline } from '@tiptap/extension-underline';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -30,6 +33,8 @@ import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
 import { SignatureBlock } from '../extensions/SignatureBlock';
 import { Mention } from '../extensions/Mention';
+import { Anchor } from '../extensions/Anchor';
+import { InlineStyle } from '../extensions/InlineStyle';
 import { PasteFromOffice } from '../extensions/PasteFromOffice';
 import { ImageUpload } from '../extensions/ImageUpload';
 
@@ -51,8 +56,8 @@ const lowlight = createLowlight(common);
 export const fontNames = 'Andale Mono=andale mono,times; Arial=arial,helvetica,sans-serif; Arial Black=arial black,avant garde; Book Antiqua=book antiqua,palatino; Comic Sans MS=comic sans ms,sans-serif; Courier New=courier new,courier; Georgia=georgia,palatino; Helvetica=helvetica; Impact=impact,chicago; Tahoma=tahoma,arial,helvetica,sans-serif; Terminal=terminal,monaco; Times New Roman=times new roman,times; Trebuchet MS=trebuchet ms,geneva; Verdana=verdana,geneva';
 
 // Default toolbar configurations
-const FULL_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent blockquote | fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image charmap emoticons | fullscreen preview | code link codesample | ltr rtl | searchreplace';
-const BASIC_TOOLBAR = 'bold italic underline strikethrough | bullist numlist outdent indent | fontfamily fontsize blockquote | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link | ltr rtl | searchreplace';
+const FULL_TOOLBAR = 'bold italic underline strikethrough subscript superscript | blocks styles | bullist numlist outdent indent blockquote | fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image table charmap emoticons hr | fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace';
+const BASIC_TOOLBAR = 'bold italic underline strikethrough subscript superscript | bullist numlist outdent indent | fontfamily fontsize blockquote | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link unlink | ltr rtl | searchreplace';
 
 // Default font sizes
 const DEFAULT_FONT_SIZES = '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt';
@@ -147,6 +152,8 @@ export class HTMLEditor implements IMDHTMLEditor {
   private normalizeConfig(config: EditorConfig): EditorConfig {
     return {
       basicEditor: config.basicEditor ?? false,
+      readonly: config.readonly ?? false,
+      forced_root_block: config.forced_root_block ?? 'p',
       includeTemplates: config.includeTemplates ?? false,
       templates: config.templates ?? [],
       dropbox: config.dropbox ?? false,
@@ -155,8 +162,14 @@ export class HTMLEditor implements IMDHTMLEditor {
       images_upload_base_path: config.images_upload_base_path ?? '/',
       images_upload_max_size: config.images_upload_max_size,
       images_upload_headers: config.images_upload_headers,
-      font_family_formats: config.font_family_formats ?? fontNames,
-      font_size_formats: config.font_size_formats ?? DEFAULT_FONT_SIZES,
+      images_file_types: config.images_file_types,
+      images_upload_validate: config.images_upload_validate,
+      images_upload_error: config.images_upload_error,
+      // CKEditor aliases: font_names / fontSize_sizes map to the TinyMCE keys
+      font_family_formats: config.font_family_formats ?? config.font_names ?? fontNames,
+      font_size_formats: config.font_size_formats ?? config.fontSize_sizes ?? DEFAULT_FONT_SIZES,
+      block_formats: config.block_formats,
+      style_formats: config.style_formats,
       fontName: config.fontName,
       fontSize: config.fontSize,
       directionality: config.directionality ?? 'ltr',
@@ -250,6 +263,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       element: editorContent,
       extensions,
       content: '',
+      editable: !this.config.readonly,
       editorProps: {
         attributes: {
           class: 'md-editor-body',
@@ -294,7 +308,13 @@ export class HTMLEditor implements IMDHTMLEditor {
       narrowBreakpoint: this.config.toolbar_narrow_breakpoint ?? 768,
       priorityOverrides: this.config.toolbar_priority ?? {},
     });
-    
+
+    // Apply initial read-only state
+    if (this.config.readonly) {
+      this.editorWrapper.classList.add('md-editor-readonly');
+      this.toolbar.setEnabled(false);
+    }
+
     // Handle auto focus
     if (this.config.auto_focus) {
       setTimeout(() => this.focus(), 10);
@@ -322,6 +342,9 @@ export class HTMLEditor implements IMDHTMLEditor {
         uploadBasePath: this.config.images_upload_base_path,
         uploadMaxSize: this.config.images_upload_max_size,
         uploadHeaders: this.config.images_upload_headers,
+        fileTypes: this.config.images_file_types,
+        validate: this.config.images_upload_validate,
+        onError: this.config.images_upload_error,
         trans: globalTranslate,
       });
     }
@@ -384,20 +407,31 @@ export class HTMLEditor implements IMDHTMLEditor {
     const helper = this.getImageUploadHelper();
     helper.uploadFile(file).then((src) => {
       this.tiptap?.chain().focus().setImage({ src }).run();
-    }).catch(() => {
-      // Upload failed — silently fail for inline operations
+    }).catch((err: unknown) => {
+      // No dialog for inline drop/paste — route the reason to the caller's alert.
+      const message = err instanceof Error && err.message ? err.message : globalTranslate('Upload failed');
+      this.config.images_upload_error?.(message);
     });
   }
 
   private buildExtensions(): AnyExtension[] {
+    const useDivBlocks = this.config.forced_root_block === 'div';
+
     const extensions: AnyExtension[] = [
       StarterKit.configure({
         codeBlock: false, // We use CodeBlockLowlight instead
+        // When forced_root_block is 'div', swap StarterKit's <p> paragraph for
+        // a custom Paragraph that renders as <div> (CKEditor ENTER_DIV parity).
+        ...(useDivBlocks ? { paragraph: false } : {}),
       }),
       SignatureBlock,
       Mention,
+      Anchor,
+      Subscript,
+      Superscript,
       Underline,
       TextStyle,
+      InlineStyle,
       FontFamily,
       FontSize,
       LineHeight,
@@ -434,6 +468,23 @@ export class HTMLEditor implements IMDHTMLEditor {
       }),
       TextDirection,
     ];
+
+    // forced_root_block: 'div' — Enter produces <div> instead of <p>.
+    // The custom Paragraph keeps the 'paragraph' node name (so TextAlign,
+    // FontSize, etc. still apply) but parses/renders as <div>. SignatureBlock's
+    // div[id="signature"] rule has a higher parse priority so it still wins.
+    if (useDivBlocks) {
+      extensions.push(
+        Paragraph.extend({
+          parseHTML() {
+            return [{ tag: 'p' }, { tag: 'div' }];
+          },
+          renderHTML({ HTMLAttributes }) {
+            return ['div', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
+          },
+        }),
+      );
+    }
 
     // Add paste-from-office cleaning
     if (this.config.paste_from_office !== false) {
@@ -524,6 +575,12 @@ export class HTMLEditor implements IMDHTMLEditor {
       case 'strikethrough':
         chain.toggleStrike().run();
         return true;
+      case 'subscript':
+        chain.toggleSubscript().run();
+        return true;
+      case 'superscript':
+        chain.toggleSuperscript().run();
+        return true;
       case 'fontname':
         if (typeof value === 'string') {
           chain.setFontFamily(value).run();
@@ -588,6 +645,12 @@ export class HTMLEditor implements IMDHTMLEditor {
       case 'removeformat':
         chain.unsetAllMarks().clearNodes().run();
         return true;
+      case 'unlink':
+        chain.unsetLink().run();
+        return true;
+      case 'inserthorizontalrule':
+        chain.setHorizontalRule().run();
+        return true;
       case 'mceremoveeditor':
         this.destroy();
         return true;
@@ -606,6 +669,21 @@ export class HTMLEditor implements IMDHTMLEditor {
     if (!state) {
       this.fire('dirty', false);
     }
+  }
+
+  /**
+   * Toggle read-only mode. Disables editing and dims the toolbar.
+   * Mirrors CKEditor's editor.setReadOnly(bool).
+   */
+  setReadOnly(state: boolean): void {
+    this.config.readonly = state;
+    this.tiptap?.setEditable(!state);
+    this.editorWrapper?.classList.toggle('md-editor-readonly', state);
+    this.toolbar?.setEnabled(!state);
+  }
+
+  isReadOnly(): boolean {
+    return this.config.readonly ?? false;
   }
   
   focus(): void {

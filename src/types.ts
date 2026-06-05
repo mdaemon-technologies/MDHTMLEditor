@@ -49,6 +49,13 @@ export interface UIRegistry {
 export interface EditorConfig {
   // Editor mode
   basicEditor?: boolean;
+  /** Start the editor in read-only mode. */
+  readonly?: boolean;
+  /**
+   * Root block element produced when the user presses Enter.
+   * 'p' (default) emits <p>; 'div' emits <div> (CKEditor ENTER_DIV parity).
+   */
+  forced_root_block?: 'p' | 'div';
   
   // Templates
   includeTemplates?: boolean;
@@ -63,12 +70,38 @@ export interface EditorConfig {
   images_upload_base_path?: string;
   images_upload_max_size?: number;
   images_upload_headers?: Record<string, string>;
-  
+  /**
+   * Comma- or space-separated list of accepted image file extensions
+   * (e.g. 'jpg,jpeg,png,gif,bmp'). When set, restricts uploads to these
+   * types. When omitted, the default permissive set is used.
+   */
+  images_file_types?: string;
+  /**
+   * Optional validation hook run before an image upload starts. Return a
+   * non-null string to reject the file (the string is shown via
+   * images_upload_error / the dialog). Return null to allow.
+   */
+  images_upload_validate?: (file: File) => string | null;
+  /**
+   * Caller-supplied alert/notification used to report upload rejections and
+   * failures from drag-drop / paste (which have no dialog to show errors in).
+   * Mirrors the CKEditor simpleuploads newAlert flow.
+   */
+  images_upload_error?: (message: string) => void;
+
   // Font configuration
   font_family_formats?: string;
   font_size_formats?: string;
+  /** CKEditor alias for font_size_formats (space-separated sizes). */
+  fontSize_sizes?: string;
+  /** CKEditor alias for font_family_formats (semicolon list). */
+  font_names?: string;
   fontName?: string;  // Default font
   fontSize?: string;  // Default font size
+  /** Block format dropdown definitions, TinyMCE-style 'Paragraph=p;Heading 1=h1;...'. */
+  block_formats?: string;
+  /** Named style definitions for the Styles dropdown (CKEditor stylesSet-compatible). */
+  style_formats?: StyleFormat[];
   
   // Directionality
   directionality?: 'ltr' | 'rtl';
@@ -124,6 +157,29 @@ export interface EditorConfig {
 }
 
 /**
+ * Named style definition for the Styles dropdown.
+ * CKEditor stylesSet-compatible shape. Either `inline` or `block` identifies
+ * how the style is applied; `element` is the legacy/CKEditor tag name and is
+ * treated as inline unless `block` is set.
+ */
+export interface StyleFormat {
+  /** Display name in the Styles dropdown. */
+  title: string;
+  /** Inline element to apply (e.g. 'span'). */
+  inline?: string;
+  /** Block element to apply (e.g. 'h3', 'p'). */
+  block?: string;
+  /** CKEditor-style element name (mapped to inline unless block is set). */
+  element?: string;
+  /** Inline CSS styles to apply (e.g. { color: 'Blue' }). */
+  styles?: Record<string, string>;
+  /** Space-separated CSS class names to apply. */
+  classes?: string;
+  /** HTML attributes to apply (e.g. { dir: 'rtl' }). */
+  attributes?: Record<string, string>;
+}
+
+/**
  * Event callback types
  */
 export type InitCallback = (editor: MDHTMLEditor) => void;
@@ -170,6 +226,8 @@ export interface MDHTMLEditor {
   // State
   isDirty(): boolean;
   setDirty(state: boolean): void;
+  setReadOnly(state: boolean): void;
+  isReadOnly(): boolean;
   
   // Focus
   focus(): void;

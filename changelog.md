@@ -1,5 +1,29 @@
 # MDHTMLEditor Changelog
 
+## 1.4.0 (June 5, 2026)
+
+### New Features
+- Added CKEditor feature parity for sites migrating off CKEditor 4:
+  - **Read-only mode** — new `readonly` config option plus `setReadOnly(state)` / `isReadOnly()` methods; disables editing and dims/blocks the toolbar
+  - **`forced_root_block` option** — set to `'div'` so Enter produces `<div>` blocks (CKEditor `ENTER_DIV` parity); defaults to `'p'`. The `<div id="signature">` signature block is preserved in either mode
+  - **Subscript / Superscript** — new `subscript` and `superscript` toolbar buttons, `execCommand` support, and TipTap extensions
+  - **Horizontal rule** — new `hr` toolbar button and `inserthorizontalrule` command
+  - **Tables** — new `table` toolbar dropdown to insert tables and run row/column/cell operations (insert/delete row & column, merge/split cells, toggle header row, delete table)
+  - **Block format dropdown** — new `blocks` button (alias `formatselect`) for Paragraph / Heading 1–6, customizable via `block_formats`
+  - **Styles dropdown** — new `styles` button driven by a configurable, CKEditor `stylesSet`-compatible `style_formats` option (block elements, inline color/background, and CSS classes)
+  - **Named anchors** — new `anchor` toolbar button and dialog inserting `<a id="name">` targets; preserves existing anchors through the parse/serialize cycle
+  - **Unlink** — new `unlink` toolbar button and command to remove the link at the cursor
+- Image upload improvements (CKEditor `simpleuploads` parity):
+  - New `images_file_types` option to restrict accepted extensions (e.g. `'jpg,jpeg,png,gif,bmp'`); added BMP support
+  - New `images_upload_validate` cancelable pre-upload hook (return a message to reject a file)
+  - New `images_upload_error` callback so drag-drop and clipboard-paste rejections/failures route to a caller-supplied alert
+- Added CKEditor config aliases `font_names` (→ `font_family_formats`) and `fontSize_sizes` (→ `font_size_formats`) for drop-in compatibility
+- New default toolbars surface the new buttons; existing custom `toolbar` strings are unaffected
+- Translated the new UI strings into all 31 supported locales
+
+### Improvements
+- Added `@tiptap/extension-subscript`, `@tiptap/extension-superscript`, and a direct `@tiptap/extension-paragraph` dependency
+
 ## 1.3.0 (May 21, 2026)
 
 ### New Features

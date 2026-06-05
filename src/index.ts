@@ -20,6 +20,12 @@ export { EmojiPicker, EMOJI_CATEGORIES } from './extensions/Emoji';
 export { SearchReplace } from './extensions/SearchReplace';
 export { SignatureBlock } from './extensions/SignatureBlock';
 export { Mention } from './extensions/Mention';
+export { Anchor } from './extensions/Anchor';
+export type { AnchorOptions } from './extensions/Anchor';
+export { AnchorDialog } from './extensions/AnchorDialog';
+export type { AnchorDialogOptions } from './extensions/AnchorDialog';
+export { InlineStyle } from './extensions/InlineStyle';
+export type { InlineStyleOptions } from './extensions/InlineStyle';
 export { SourceEditor } from './extensions/SourceEditor';
 export type { SourceEditorOptions } from './extensions/SourceEditor';
 export { LinkEditor } from './extensions/LinkEditor';
@@ -40,6 +46,7 @@ export type {
   EditorEvents,
   EditorEventMap,
   MDHTMLEditor,
+  StyleFormat,
   Template,
   ToolbarButtonSpec,
   ToolbarButtonAPI,

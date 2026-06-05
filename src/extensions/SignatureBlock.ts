@@ -29,7 +29,10 @@ export const SignatureBlock = Node.create({
   parseHTML() {
     return [
       {
+        // Higher priority than the generic div->paragraph rule used when
+        // forced_root_block is 'div', so the signature wrapper still matches.
         tag: 'div[id="signature"]',
+        priority: 100,
       },
     ];
   },

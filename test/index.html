@@ -179,6 +179,25 @@
         </div>
       </div>
 
+      <!-- Mode: read-only + Enter behavior -->
+      <div class="card">
+        <div class="card-header">Mode</div>
+        <div class="card-body">
+          <div class="toggle-row">
+            <strong>Read-only:</strong> <span id="state-readonly">false</span>
+            <button class="btn" id="btn-toggle-readonly" style="margin-left:auto;">Toggle</button>
+          </div>
+          <div class="control-group" style="margin-top:10px;">
+            <label>Enter behavior (<code>forced_root_block</code>)</label>
+            <select id="cmd-root-block">
+              <option value="p" selected>&lt;p&gt; (default)</option>
+              <option value="div">&lt;div&gt; (CKEditor ENTER_DIV)</option>
+            </select>
+            <p style="font-size:11px;color:#888;margin:4px 0 0;">Changing this recreates the editor. Type and press Enter, then watch the HTML output.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Responsive toolbar -->
       <div class="card">
         <div class="card-header">Responsive Toolbar</div>
@@ -229,6 +248,12 @@
             <button class="btn" data-cmd="italic">Italic</button>
             <button class="btn" data-cmd="underline">Underline</button>
             <button class="btn" data-cmd="strikethrough">Strike</button>
+          </div>
+          <div class="btn-row" style="margin-top:6px;">
+            <button class="btn" data-cmd="subscript">Sub</button>
+            <button class="btn" data-cmd="superscript">Super</button>
+            <button class="btn" data-cmd="unlink">Unlink</button>
+            <button class="btn" data-cmd="inserthorizontalrule">HR</button>
           </div>
           <div class="btn-row" style="margin-top:6px;">
             <button class="btn" data-cmd="justifyleft">Left</button>

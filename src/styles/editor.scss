@@ -66,6 +66,30 @@ $md-dark-hover: #2d3e50;
     border-radius: 0;
     height: 100vh !important;
   }
+
+  // Read-only mode — editing is disabled and the toolbar is dimmed/blocked
+  &.md-editor-readonly {
+    .md-editor-body {
+      cursor: default;
+    }
+  }
+
+  // Named anchor marker (Anchor extension renders an empty <a id>)
+  .md-anchor {
+    display: inline-block;
+    width: 12px;
+    height: 14px;
+    vertical-align: middle;
+    background: rgba($md-primary, 0.12);
+    border-bottom: 1px dotted $md-primary;
+    cursor: default;
+
+    &::after {
+      content: '\2693'; // anchor symbol
+      font-size: 11px;
+      opacity: 0.6;
+    }
+  }
 }
 
 // Toolbar
@@ -83,6 +107,12 @@ $md-dark-hover: #2d3e50;
     position: sticky;
     top: 0;
     z-index: 10;
+  }
+
+  // Disabled (read-only) — block interaction and dim
+  &.md-toolbar-disabled {
+    pointer-events: none;
+    opacity: 0.5;
   }
 }
 

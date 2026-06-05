@@ -75,6 +75,8 @@ const editor = new HTMLEditor(container, {
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `basicEditor` | boolean | false | Use simplified toolbar for notes/tasks |
+| `readonly` | boolean | false | Start the editor in read-only mode (see `setReadOnly`) |
+| `forced_root_block` | 'p' \| 'div' | 'p' | Block element produced on Enter. `'div'` gives CKEditor `ENTER_DIV` parity |
 | `includeTemplates` | boolean | false | Show template dropdown |
 | `templates` | Template[] | [] | Array of templates |
 | `dropbox` | boolean | false | Enable Dropbox integration |
@@ -83,8 +85,15 @@ const editor = new HTMLEditor(container, {
 | `images_upload_base_path` | string | '/' | Base path prefix for uploaded image URLs |
 | `images_upload_max_size` | number | 10485760 | Maximum upload file size in bytes (default 10 MB) |
 | `images_upload_headers` | Record\<string, string\> | - | Custom HTTP headers for upload requests |
+| `images_file_types` | string | *(permissive)* | Comma/space-separated accepted extensions (e.g. `'jpg,jpeg,png,gif,bmp'`). Restricts uploads when set |
+| `images_upload_validate` | (file: File) => string \| null | - | Pre-upload hook; return a message to reject the file, or null to allow |
+| `images_upload_error` | (message: string) => void | - | Caller-supplied alert for drag-drop/paste upload rejections & failures (no dialog to show errors in) |
 | `font_family_formats` | string | *(TinyMCE defaults)* | Semicolon-separated font list (`Name=family,...`) |
 | `font_size_formats` | string | '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt' | Space-separated font sizes |
+| `font_names` | string | - | CKEditor alias for `font_family_formats` |
+| `fontSize_sizes` | string | - | CKEditor alias for `font_size_formats` |
+| `block_formats` | string | 'Paragraph=p;Heading 1=h1;…' | Block-format dropdown definitions (`blocks` button) |
+| `style_formats` | StyleFormat[] | *(subset)* | Named styles for the Styles dropdown (`styles` button) |
 | `fontName` | string | - | Default font family |
 | `fontSize` | string | - | Default font size |
 | `directionality` | 'ltr' \| 'rtl' | 'ltr' | Text direction |
@@ -132,6 +141,8 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command
 - `isDirty(): boolean` - Check if content has changed
 - `setDirty(state: boolean): void` - Set dirty state
+- `setReadOnly(state: boolean): void` - Toggle read-only mode (disables editing and dims the toolbar)
+- `isReadOnly(): boolean` - Check if the editor is read-only
 - `focus(): void` - Focus the editor
 - `hasFocus(): boolean` - Check if editor has focus
 - `setLanguage(code: string): void` - Change UI language at runtime (rebuilds toolbar)
@@ -230,6 +241,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `italic` | Toggle italic |
 | `underline` | Toggle underline |
 | `strikethrough` | Toggle strikethrough |
+| `subscript` | Toggle subscript |
+| `superscript` | Toggle superscript |
 | `bullist` | Toggle bullet list |
 | `numlist` | Toggle numbered list |
 | `outdent` | Decrease indent |
@@ -238,6 +251,10 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `fontfamily` | Font family dropdown |
 | `fontsize` | Font size dropdown |
 | `lineheight` | Line height dropdown (1, 1.2, 1.4, 1.6, 2) |
+| `blocks` | Block format dropdown (Paragraph, Heading 1–6; alias `formatselect`) |
+| `styles` | Named styles dropdown (configurable via `style_formats`) |
+| `table` | Table dropdown (insert table + row/column/cell operations) |
+| `hr` | Insert horizontal rule |
 | `template` | Template dropdown (requires `includeTemplates: true`) |
 | `alignleft` | Align left |
 | `aligncenter` | Align center |
@@ -256,6 +273,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `emoticons` | Emoji picker with search (smileys, gestures, hearts, objects, symbols, arrows) |
 | `code` | Open HTML source code editor dialog |
 | `link` | Open Insert/Edit Link dialog |
+| `unlink` | Remove the link at the cursor |
+| `anchor` | Insert a named anchor (`<a id>` target) |
 | `codesample` | Toggle code sample block |
 | `fullscreen` | Toggle fullscreen editing mode |
 | `preview` | Open content preview in a new window |
@@ -270,13 +289,13 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 **Full toolbar** (default when `basicEditor: false`):
 
 ```
-bold italic underline strikethrough | bullist numlist outdent indent blockquote | fontfamily fontsize || lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image charmap emoticons | fullscreen preview | code link codesample | ltr rtl | searchreplace
+bold italic underline strikethrough subscript superscript | blocks styles | bullist numlist outdent indent blockquote | fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image table charmap emoticons hr | fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace
 ```
 
 **Basic toolbar** (when `basicEditor: true`):
 
 ```
-bold italic underline strikethrough | bullist numlist outdent indent | fontfamily fontsize blockquote || lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link | ltr rtl | searchreplace
+bold italic underline strikethrough subscript superscript | bullist numlist outdent indent | fontfamily fontsize blockquote | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link unlink | ltr rtl | searchreplace
 ```
 
 ## Image Upload
@@ -302,6 +321,25 @@ const editor = new HTMLEditor(container, {
 });
 ```
 
+### Restricting file types and rejecting uploads
+
+`images_file_types` restricts which extensions are accepted (matched against the
+file name, falling back to MIME for clipboard pastes that have no name). The
+`images_upload_validate` hook runs before every upload — return a message to
+reject the file. For drag-drop and clipboard-paste uploads there is no dialog to
+show the message in, so rejections and failures are routed to `images_upload_error`
+(supply your own alert/notification — the CKEditor `simpleuploads` `newAlert` flow).
+
+```typescript
+const editor = new HTMLEditor(container, {
+  images_upload_url: '/api/upload',
+  images_file_types: 'jpg,jpeg,png,gif,bmp', // CKEditor simpleuploads parity
+  images_upload_validate: (file) =>
+    file.size === 0 ? 'Empty files are not allowed' : null,
+  images_upload_error: (message) => myApp.showAlert(message),
+});
+```
+
 ## Source Code Editor
 
 The `code` toolbar button opens a modal dialog for viewing and editing the raw HTML source of the editor content. The dialog features a full-size monospace textarea with the current HTML, **Cancel** and **Save** buttons, and supports Escape to close and Tab to indent.
@@ -317,7 +355,69 @@ The `link` toolbar button opens a modal dialog for inserting or editing hyperlin
 - **Title** — the HTML `title` attribute (shown as a tooltip on hover)
 - **Open link in…** — dropdown to choose between _Current window_ or _New window_ (`target="_blank"`)
 
-When editing an existing link, all fields are pre-populated from the current link attributes. Clearing the URL and saving removes the link. The dialog inherits the active skin theme.
+When editing an existing link, all fields are pre-populated from the current link attributes. Clearing the URL and saving removes the link. The dialog inherits the active skin theme. The separate `unlink` toolbar button removes the link at the cursor without opening the dialog.
+
+## Named Anchors
+
+The `anchor` toolbar button opens a dialog to insert a named anchor — an `<a id="name">` target for in-page linking. The anchor name is required and may not contain spaces. Existing anchors in loaded content (`<a id>` with no `href`) are preserved through the editor's parse/serialize cycle.
+
+```typescript
+// Programmatic insertion via the TipTap command:
+editor.getTipTap()?.commands.setAnchor('section-1');
+```
+
+## Tables
+
+The `table` toolbar button is a dropdown that inserts a table and edits the one under the cursor:
+
+- **Insert table** — inserts a 3×3 table with a header row.
+- **Insert/delete row**, **Insert/delete column**, **Merge cells**, **Split cell**, **Toggle header row**, **Delete table**.
+
+Tables are resizable by dragging column borders.
+
+## Block & Style Formats
+
+- The `blocks` button (alias `formatselect`) is a block-format dropdown — Paragraph and Heading 1–6 by default. Customize it with `block_formats` (TinyMCE syntax):
+
+  ```typescript
+  const editor = new HTMLEditor(container, {
+    block_formats: 'Paragraph=p;Title=h1;Subtitle=h2',
+  });
+  ```
+
+- The `styles` button is a named-styles dropdown driven by `style_formats` (CKEditor `stylesSet`-compatible). Each entry applies a block element and/or inline color/background/class to the selection:
+
+  ```typescript
+  const editor = new HTMLEditor(container, {
+    style_formats: [
+      { title: 'Blue Title', block: 'h3', styles: { color: 'Blue' } },
+      { title: 'Marker', inline: 'span', styles: { 'background-color': 'Yellow' } },
+      { title: 'Callout', inline: 'span', classes: 'callout' },
+    ],
+  });
+  ```
+
+  > Note: block elements map to headings/paragraph, `color`/`background-color` map to the editor's text-color/highlight marks, and `classes` apply a CSS class to the selection. Arbitrary element wrapping from CKEditor's stylesSet (e.g. `big`, `tt`, `cite`) is not supported by the underlying TipTap schema.
+
+## Read-Only Mode
+
+Start the editor read-only with `readonly: true`, or toggle it at runtime. Read-only mode disables editing and dims/blocks the toolbar.
+
+```typescript
+const editor = new HTMLEditor(container, { readonly: true });
+
+editor.setReadOnly(false); // make editable
+editor.setReadOnly(true);  // back to read-only
+console.log(editor.isReadOnly());
+```
+
+## Enter Behavior (`forced_root_block`)
+
+By default, pressing Enter creates a new `<p>` block. Set `forced_root_block: 'div'` for CKEditor `ENTER_DIV` parity, so new blocks (and the serialized output) use `<div>` instead. The `<div id="signature">` signature block is still preserved in either mode.
+
+```typescript
+const editor = new HTMLEditor(container, { forced_root_block: 'div' });
+```
 
 ## Search & Replace
 
