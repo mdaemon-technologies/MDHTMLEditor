@@ -1,5 +1,15 @@
 # MDHTMLEditor Changelog
 
+## 1.6.0 (June 9, 2026)
+
+### New Features
+- **Block-level default font styling** — the default font family and font size are now inlined directly on every block element in the exported HTML (`font-family` on `<p>`/`<div>`/`<hN>`, `font-size` on `<p>`/`<div>`), instead of relying on the editor's container CSS being present on the receiving end. This fixes sent messages losing their font when rendered elsewhere (e.g. an email body opened in another client). The defaults come from the `fontName` / `fontSize` config options and fall back to `arial, helvetica, sans-serif` / `12pt`.
+- New `BlockFontStyle` extension (and `BlockFontStyleOptions` type) exported from the package entry point.
+
+### Notes
+- Per-selection font changes are unchanged: selecting text and choosing a font or size from the toolbar still produces an inline `<span>` that overrides the block default, so a single paragraph can mix fonts and sizes (e.g. "this is **A BIG font**, and this is a small font").
+- Font-size defaults are applied to paragraphs only — headings keep their level-based sizing (`h1` = 2em, etc.). Font-family defaults apply to paragraphs and headings.
+
 ## 1.4.2 (June 9, 2026)
 
 ### New Features

@@ -95,8 +95,8 @@ const editor = new HTMLEditor(container, {
 | `fontSize_sizes` | string | - | CKEditor alias for `font_size_formats` |
 | `block_formats` | string | 'Paragraph=p;Heading 1=h1;…' | Block-format dropdown definitions (`blocks` button) |
 | `style_formats` | StyleFormat[] | *(subset)* | Named styles for the Styles dropdown (`styles` button) |
-| `fontName` | string | - | Default font family |
-| `fontSize` | string | - | Default font size |
+| `fontName` | string | `arial, helvetica, sans-serif` | Default font family, inlined on every block element (see [Font Family & Size](#font-family--size)) |
+| `fontSize` | string | `12pt` | Default font size, inlined on every paragraph (see [Font Family & Size](#font-family--size)) |
 | `directionality` | 'ltr' \| 'rtl' | 'ltr' | Text direction |
 | `language` | string | 'en' | UI language code (built-in translations for 31 languages) |
 | `height` | string \| number | 300 | Editor height (fixed) |
@@ -401,6 +401,48 @@ Tables are resizable by dragging column borders.
   ```
 
   > Note: block elements map to headings/paragraph, `color`/`background-color` map to the editor's text-color/highlight marks, and `classes` apply a CSS class to the selection. Arbitrary element wrapping from CKEditor's stylesSet (e.g. `big`, `tt`, `cite`) is not supported by the underlying TipTap schema.
+
+## Font Family & Size
+
+The editor inlines a **default font directly on the block elements** of the
+exported HTML so content keeps its font when rendered outside the editor (for
+example, an email body opened in another client that doesn't load the editor's
+CSS). Set the base font with `fontName` / `fontSize`:
+
+```typescript
+const editor = new HTMLEditor(container, {
+  fontName: 'Georgia, serif',
+  fontSize: '14pt',
+});
+```
+
+With the config above, `getContent()` produces blocks that carry the font inline:
+
+```html
+<p style="font-family: Georgia, serif; font-size: 14pt;">Hello</p>
+```
+
+Defaults when the options are omitted: `arial, helvetica, sans-serif` and `12pt`.
+
+- `font-family` is inlined on paragraphs **and** headings.
+- `font-size` is inlined on paragraphs only — headings keep their level-based
+  sizing (`h1` = 2em, `h2` = 1.5em, …), which a forced default would otherwise
+  clobber.
+
+**Per-selection changes still work.** Selecting text and picking a font or size
+from the `fontfamily` / `fontsize` toolbar dropdowns (or `execCommand('fontname', …)`
+/ `execCommand('fontsize', …)`) produces an inline `<span>` that overrides the
+block default for just that text — so a single paragraph can mix fonts and sizes:
+
+```html
+<p style="font-family: Georgia, serif; font-size: 14pt;">
+  this is <span style="font-size: 24pt;">A BIG font</span>, and this is a small font
+</p>
+```
+
+This is handled by the exported `BlockFontStyle` extension (block defaults) layered
+with the inline `FontSize` mark and TipTap's `FontFamily` mark (per-selection
+overrides).
 
 ## Read-Only Mode
 

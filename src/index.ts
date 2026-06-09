@@ -13,6 +13,8 @@ export type { IconSet } from './icons';
 
 // Extensions
 export { FontSize } from './extensions/FontSize';
+export { BlockFontStyle } from './extensions/BlockFontStyle';
+export type { BlockFontStyleOptions } from './extensions/BlockFontStyle';
 export { LineHeight } from './extensions/LineHeight';
 export { TextDirection } from './extensions/TextDirection';
 export { CharacterMap, CHAR_MAP } from './extensions/CharacterMap';

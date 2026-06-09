@@ -52,6 +52,12 @@ function createEditorInstance(skin: typeof currentSkin) {
   // CKEditor-parity: Enter produces <p> or <div>
   forced_root_block: currentForcedRootBlock,
 
+  // Default font inlined on every block element of the exported HTML (check the
+  // "HTML Output" panel — each <p>/<div> carries font-family/font-size). Picking
+  // a font/size from the toolbar still creates inline <span> overrides.
+  fontName: 'Arial, Helvetica, sans-serif',
+  fontSize: '12pt',
+
   // CKEditor-parity image guard (no upload URL → base64; guard still applies)
   images_file_types: 'jpg,jpeg,png,gif,bmp',
   images_upload_validate: (file: File) =>

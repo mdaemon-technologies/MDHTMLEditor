@@ -49,7 +49,11 @@ describe('CKEditor parity features', () => {
     it('emits <p> by default', () => {
       editor = new HTMLEditor(container);
       editor.setContent('<p>Hello</p>');
-      expect(editor.getContent()).toContain('<p>');
+      const html = editor.getContent();
+      // The paragraph carries inlined default font styles, so match the tag
+      // rather than a bare "<p>".
+      expect(html).toMatch(/<p[ >]/);
+      expect(html).not.toContain('<div');
     });
 
     it('emits <div> when forced_root_block is "div"', () => {

@@ -29,6 +29,7 @@ import { Toolbar } from './Toolbar';
 import { DEFAULT_ICONS, CONFAB_ICONS } from '../icons';
 import type { IconSet } from '../icons';
 import { FontSize } from '../extensions/FontSize';
+import { BlockFontStyle } from '../extensions/BlockFontStyle';
 import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
 import { SignatureBlock } from '../extensions/SignatureBlock';
@@ -61,6 +62,13 @@ const BASIC_TOOLBAR = 'bold italic underline strikethrough subscript superscript
 
 // Default font sizes
 const DEFAULT_FONT_SIZES = '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt';
+
+// Base font inlined on every block element (paragraph/div) when the consumer
+// has not configured fontName/fontSize. Inlining on the block keeps the font
+// associated with the content in exported HTML (e.g. an email body) instead of
+// relying on the editor's container CSS being present on the receiving end.
+const DEFAULT_FONT_FAMILY = 'arial, helvetica, sans-serif';
+const DEFAULT_FONT_SIZE = '12pt';
 
 let editorIdCounter = 0;
 
@@ -436,8 +444,19 @@ export class HTMLEditor implements IMDHTMLEditor {
       Underline,
       TextStyle,
       InlineStyle,
+      // Inline (mark-based) font styling for per-selection changes: produces
+      // <span style="font-family|font-size:…"> so a single paragraph can mix
+      // fonts/sizes.
       FontFamily,
       FontSize,
+      // Block-level default font: inlines font-family on <p>/<div>/<hN> and
+      // font-size on <p>/<div>, from the configured fontName/fontSize, so
+      // exported content carries the base font on the block itself. Inline
+      // spans above still override it for the text they wrap.
+      BlockFontStyle.configure({
+        defaultFontFamily: this.config.fontName ?? DEFAULT_FONT_FAMILY,
+        defaultFontSize: this.config.fontSize ?? DEFAULT_FONT_SIZE,
+      }),
       LineHeight,
       Color,
       Highlight.configure({

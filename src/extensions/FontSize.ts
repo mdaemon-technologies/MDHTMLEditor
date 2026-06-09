@@ -1,6 +1,14 @@
 /**
  * FontSize Extension
- * Adds font-size support with pt/px values
+ * Adds font-size support with pt/px values.
+ *
+ * This is the INLINE (mark-based) font-size: the toolbar font-size dropdown
+ * applies it to the current selection, producing a <span style="font-size:…">.
+ * That allows different sizes within a single paragraph
+ * (e.g. "this is A BIG font, and this is a small font").
+ *
+ * The *default* base font-size that gets inlined on every block element is
+ * handled separately by the BlockFontStyle extension.
  */
 
 import { Extension } from '@tiptap/core';
