@@ -422,6 +422,10 @@ export class HTMLEditor implements IMDHTMLEditor {
         codeBlock: false, // We use CodeBlockLowlight instead
         // When forced_root_block is 'div', swap StarterKit's <p> paragraph for
         // a custom Paragraph that renders as <div> (CKEditor ENTER_DIV parity).
+        // StarterKit enables trailingNode by default; it accepts `false` to
+        // disable or an options object, but not `true`. Map our boolean toggle:
+        // truthy → undefined (use StarterKit's default/enabled), otherwise disable.
+        trailingNode: this.config.trailingNode ? undefined : false,
         ...(useDivBlocks ? { paragraph: false } : {}),
       }),
       SignatureBlock,

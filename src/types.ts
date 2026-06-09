@@ -56,6 +56,12 @@ export interface EditorConfig {
    * 'p' (default) emits <p>; 'div' emits <div> (CKEditor ENTER_DIV parity).
    */
   forced_root_block?: 'p' | 'div';
+  /**
+   * Append an empty trailing paragraph when the document ends in a block node
+   * (table, image, code block, etc.) so the cursor can be placed after it.
+   * Disabled by default.
+   */
+  trailingNode?: boolean;
   
   // Templates
   includeTemplates?: boolean;

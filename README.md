@@ -77,6 +77,7 @@ const editor = new HTMLEditor(container, {
 | `basicEditor` | boolean | false | Use simplified toolbar for notes/tasks |
 | `readonly` | boolean | false | Start the editor in read-only mode (see `setReadOnly`) |
 | `forced_root_block` | 'p' \| 'div' | 'p' | Block element produced on Enter. `'div'` gives CKEditor `ENTER_DIV` parity |
+| `trailingNode` | boolean | false | Append an empty trailing paragraph when the document ends in a block node (table, image, code block) so the cursor can be placed after it |
 | `includeTemplates` | boolean | false | Show template dropdown |
 | `templates` | Template[] | [] | Array of templates |
 | `dropbox` | boolean | false | Enable Dropbox integration |
