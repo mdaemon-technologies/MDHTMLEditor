@@ -32,6 +32,10 @@ document.createRange = () => ({
   commonAncestorContainer: document.body,
 }) as unknown as Range;
 
+// Mock document.elementFromPoint (jsdom doesn't implement it; TipTap's
+// placeholder viewport tracking calls it during editor construction)
+document.elementFromPoint = () => null;
+
 // Mock ResizeObserver
 class ResizeObserver {
   observe() {}

@@ -58,11 +58,43 @@ export class LinkEditor {
     if (this.targetSelect) this.targetSelect.value = attrs.target ?? '';
   }
 
+  /**
+   * Ensure a user-entered URL is usable as an href. Domain-like input typed
+   * without a scheme (e.g. "www.example.com", "example.com/path") would
+   * otherwise resolve as a relative path and produce a broken link, so prepend
+   * a default protocol. Anchors (#...), relative/absolute paths, protocol-
+   * relative URLs (//host) and anything with an existing scheme are left alone.
+   */
+  private normalizeUrl(url: string): string {
+    if (!url) return url;
+
+    // Already has a scheme (http:, https:, mailto:, tel:, ftp:, etc.)
+    if (/^[a-z][a-z0-9+.-]*:/i.test(url)) return url;
+
+    // Protocol-relative, anchor, or relative/absolute path — leave untouched
+    if (
+      url.startsWith('//') ||
+      url.startsWith('#') ||
+      url.startsWith('/') ||
+      url.startsWith('./') ||
+      url.startsWith('../')
+    ) {
+      return url;
+    }
+
+    // Looks like a bare domain ("www.example.com", "example.com/path") — add protocol
+    if (/^(www\.|[^\s/?#@]+\.[a-z]{2,})(?:[/?#:]|$)/i.test(url)) {
+      return `http://${url}`;
+    }
+
+    return url;
+  }
+
   private save(): void {
     const tiptap = this.tiptap;
     if (!tiptap) return;
 
-    const url = this.urlInput?.value.trim() ?? '';
+    const url = this.normalizeUrl(this.urlInput?.value.trim() ?? '');
     const text = this.textInput?.value ?? '';
     const title = this.titleInput?.value.trim() ?? '';
     const target = this.targetSelect?.value ?? '';

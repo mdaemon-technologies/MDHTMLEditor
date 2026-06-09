@@ -265,7 +265,7 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `removeformat` | Clear all formatting |
 | `copy` | Copy selection |
 | `cut` | Cut selection |
-| `paste` | Paste from clipboard |
+| `paste` | Paste from clipboard (async Clipboard API; prefers HTML, falls back to plain text) |
 | `undo` | Undo last change |
 | `redo` | Redo last undo |
 | `image` | Insert image dialog (upload file or enter URL) |
@@ -356,6 +356,8 @@ The `link` toolbar button opens a modal dialog for inserting or editing hyperlin
 - **Open link in…** — dropdown to choose between _Current window_ or _New window_ (`target="_blank"`)
 
 When editing an existing link, all fields are pre-populated from the current link attributes. Clearing the URL and saving removes the link. The dialog inherits the active skin theme. The separate `unlink` toolbar button removes the link at the cursor without opening the dialog.
+
+**URL normalization:** a URL entered without a scheme that looks like a bare domain (e.g. `www.example.com` or `example.com/path`) is saved with `http://` prepended, so it resolves as an external link instead of a broken relative path. URLs that already carry a scheme (`https:`, `mailto:`, `tel:`, `ftp:`, …), anchors (`#section`), absolute/relative paths (`/`, `./`, `../`), and protocol-relative URLs (`//host`) are left exactly as typed.
 
 ## Named Anchors
 

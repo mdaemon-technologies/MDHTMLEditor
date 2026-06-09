@@ -173,6 +173,45 @@ describe('LinkEditor', () => {
     });
   });
 
+  describe('URL normalization', () => {
+    const insertLink = (value: string): string => {
+      linkEditor.open();
+      const urlInput = document.querySelector('.md-link-editor-input') as HTMLInputElement;
+      urlInput.value = value;
+      const saveBtn = document.querySelector('.md-link-editor-save') as HTMLElement;
+      saveBtn.click();
+      return editor.getContent();
+    };
+
+    it('prepends http:// to a bare domain', () => {
+      expect(insertLink('example.com')).toContain('href="http://example.com"');
+    });
+
+    it('prepends http:// to a www-prefixed host', () => {
+      expect(insertLink('www.example.com/path')).toContain('href="http://www.example.com/path"');
+    });
+
+    it('leaves an existing http(s) scheme untouched', () => {
+      expect(insertLink('https://example.com')).toContain('href="https://example.com"');
+    });
+
+    it('leaves mailto: links untouched', () => {
+      expect(insertLink('mailto:user@example.com')).toContain('href="mailto:user@example.com"');
+    });
+
+    it('leaves anchor links untouched', () => {
+      expect(insertLink('#section')).toContain('href="#section"');
+    });
+
+    it('leaves relative paths untouched', () => {
+      expect(insertLink('/docs/page')).toContain('href="/docs/page"');
+    });
+
+    it('leaves protocol-relative URLs untouched', () => {
+      expect(insertLink('//cdn.example.com/a.js')).toContain('href="//cdn.example.com/a.js"');
+    });
+  });
+
   describe('Destroy', () => {
     it('should remove overlay from DOM on destroy', () => {
       linkEditor.open();

@@ -503,7 +503,7 @@ export class Toolbar {
         
       case 'paste':
         return this.createActionButton('paste', this.icon('paste'), this.trans('Paste'), () => {
-          document.execCommand('paste');
+          void this.pasteFromClipboard();
         });
         
       case 'undo':
@@ -629,10 +629,111 @@ export class Toolbar {
     if (isActive) {
       button.setAttribute('data-has-active', 'true');
     }
-    
+
     return button;
   }
-  
+
+  /**
+   * Paste clipboard contents into the editor.
+   *
+   * `document.execCommand('paste')` is deprecated and blocked by every modern
+   * browser (a page is not allowed to silently read the clipboard), so we use
+   * the async Clipboard API instead. It prompts the user for clipboard-read
+   * permission on first use. We focus the editor *before* awaiting the read —
+   * the Clipboard API rejects with "Document is not focused" if the page has
+   * lost focus, and focusing first also restores the editor selection so the
+   * content lands where the cursor was. HTML is preferred when the clipboard
+   * provides it; otherwise we fall back to plain text.
+   *
+   * Note: some browsers (notably Firefox) block clipboard reads from web pages
+   * by default; in that case nothing can be pasted programmatically and the
+   * user must use Ctrl/Cmd+V, which the engine handles directly.
+   */
+  private async pasteFromClipboard(): Promise<void> {
+    if (!this.tiptap) {
+      return;
+    }
+
+    // Restore focus/selection to the editor up front (also satisfies the
+    // Clipboard API's "document must be focused" requirement).
+    this.tiptap.commands.focus();
+
+    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+    if (!clipboard || (typeof clipboard.read !== 'function' && typeof clipboard.readText !== 'function')) {
+      // eslint-disable-next-line no-console
+      console.warn('[html-editor] Paste button: the Clipboard API is unavailable. Use Ctrl/Cmd+V instead.');
+      return;
+    }
+
+    let html: string | null = null;
+    let text: string | null = null;
+
+    try {
+      // Prefer the richer read() so we can keep HTML formatting when present.
+      if (typeof clipboard.read === 'function') {
+        const items = await clipboard.read();
+        for (const item of items) {
+          if (item.types.includes('text/html')) {
+            html = await (await item.getType('text/html')).text();
+          } else if (item.types.includes('text/plain') && text === null) {
+            text = await (await item.getType('text/plain')).text();
+          }
+        }
+      }
+    } catch (err) {
+      // read() can reject (no HTML on clipboard, or read() unsupported on this
+      // browser) — fall back to readText() below. Genuine permission denials
+      // are surfaced by the readText() catch.
+      // eslint-disable-next-line no-console
+      console.debug('[html-editor] clipboard.read() failed, falling back to readText():', err);
+    }
+
+    if (html === null && text === null) {
+      try {
+        if (typeof clipboard.readText === 'function') {
+          text = await clipboard.readText();
+        }
+      } catch (err) {
+        // Permission denied or unsupported — nothing we can do programmatically.
+        // eslint-disable-next-line no-console
+        console.warn('[html-editor] Paste button: clipboard read was blocked by the browser. Use Ctrl/Cmd+V instead.', err);
+        return;
+      }
+    }
+
+    // Clipboard HTML is wrapped in document scaffolding (a <meta charset> tag
+    // and Start/EndFragment comments) that ProseMirror does not parse cleanly;
+    // strip it down to the actual fragment before inserting.
+    const content = html !== null ? this.extractClipboardFragment(html) : text;
+    if (!content) {
+      return;
+    }
+
+    this.tiptap.chain().focus().insertContent(content).run();
+    this.updateButtonStates();
+  }
+
+  /**
+   * Reduce a raw `text/html` clipboard payload to the meaningful fragment:
+   * unwrap the `<html>/<body>` scaffolding browsers add and drop the
+   * `<!--StartFragment-->`/`<!--EndFragment-->` markers and leading `<meta>`.
+   */
+  private extractClipboardFragment(html: string): string {
+    const start = html.indexOf('<!--StartFragment-->');
+    const end = html.indexOf('<!--EndFragment-->');
+    if (start !== -1 && end !== -1) {
+      return html.slice(start + '<!--StartFragment-->'.length, end).trim();
+    }
+
+    const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html);
+    if (bodyMatch) {
+      return bodyMatch[1].trim();
+    }
+
+    // No scaffolding — just strip any leading <meta>/<html> noise.
+    return html.replace(/^\s*<meta[^>]*>/i, '').trim();
+  }
+
   private createCustomButton(name: string, spec: ToolbarButtonSpec): HTMLElement {
     const button = document.createElement('button');
     button.type = 'button';
