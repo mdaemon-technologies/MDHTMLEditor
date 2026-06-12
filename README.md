@@ -1,3 +1,5 @@
+[![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmdaemon-technologies%2FMDHTMLEditor%2Fmaster%2Fpackage.json&query=%24.version&prefix=v&label=npm&color=blue)](https://www.npmjs.com/package/@mdaemon/html-editor) [![install size](https://packagephobia.com/badge?p=@mdaemon/html-editor)](https://packagephobia.com/result?p=@mdaemon/html-editor) [![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmdaemon-technologies%2FMDHTMLEditor%2Fmaster%2Fpackage.json&query=%24.license&prefix=v&label=license&color=green)](https://github.com/mdaemon-technologies/MDHTMLEditor/blob/master/LICENSE) [![Node.js CI](https://github.com/mdaemon-technologies/MDHTMLEditor/actions/workflows/ci.yml/badge.svg)](https://github.com/mdaemon-technologies/MDHTMLEditor/actions/workflows/ci.yml)
+
 # MDHTMLEditor
 
 A TinyMCE-compatible HTML editor built on TipTap. This is the core vanilla TypeScript package - for React usage, see `@mdaemon/html-editor-react`.
