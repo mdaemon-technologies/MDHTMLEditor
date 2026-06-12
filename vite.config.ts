@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
       fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`,
       cssFileName: 'styles',
     },
-    rollupOptions: {
+    rolldownOptions: {
       external: [],
       output: {
         globals: {},
