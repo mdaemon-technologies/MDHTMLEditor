@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MDHTMLEditor — UMD / script-tag demo</title>
+
+  <!-- Built editor styles. A UMD/CDN consumer loads these separately;
+       the UMD bundle ships JavaScript only. -->
+  <link rel="stylesheet" href="../dist/styles.css" />
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #1a1a1a;
+    }
+    h1 { font-size: 1.4rem; }
+    .note {
+      background: #f4f6f8;
+      border-left: 3px solid #4a90d9;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      border-radius: 0 4px 4px 0;
+    }
+    .note code { background: #e3e8ec; padding: 0 0.25rem; border-radius: 3px; }
+    .controls { margin: 1rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    button {
+      padding: 0.45rem 0.9rem;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    button:hover { background: #f0f0f0; }
+    #output {
+      margin-top: 1rem;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>MDHTMLEditor — UMD / script-tag demo</h1>
+
+  <p class="note">
+    This page loads the built <code>dist/index.umd.js</code> bundle via a plain
+    <code>&lt;script&gt;</code> tag and uses the <code>window.MDHTMLEditor</code> global —
+    no bundler, no module imports. This mirrors how a CDN (unpkg / jsdelivr) consumer
+    would use the package. Run <code>npm run demo:umd</code> to build and serve it.
+  </p>
+
+  <div id="editor-container"></div>
+
+  <div class="controls">
+    <button id="btn-get">Get content</button>
+    <button id="btn-set">Set content</button>
+    <button id="btn-bold">Toggle bold (execCommand)</button>
+    <button id="btn-clear">Clear</button>
+  </div>
+
+  <div id="output">Output will appear here…</div>
+
+  <!-- The self-contained UMD bundle. Exposes the full public API on window.MDHTMLEditor. -->
+  <script src="../dist/index.umd.js"></script>
+
+  <script>
+    (function () {
+      var out = document.getElementById('output');
+      function show(label, value) {
+        out.textContent = '[' + new Date().toLocaleTimeString() + '] ' + label +
+          (value === undefined ? '' : '\n' + value);
+      }
+
+      // Guard so the page gives a clear message if the build hasn't been run yet.
+      if (!window.MDHTMLEditor || !window.MDHTMLEditor.HTMLEditor) {
+        show('ERROR: window.MDHTMLEditor not found — run `npm run build` first.');
+        return;
+      }
+
+      var HTMLEditor = window.MDHTMLEditor.HTMLEditor;
+
+      var editor = new HTMLEditor(document.getElementById('editor-container'), {
+        height: 360,
+        basicEditor: false,
+        skin: 'oxide',
+        content_css: 'default',
+      });
+
+      editor.setContent(
+        '<p>Hello from the <strong>UMD</strong> bundle! ' +
+        'Edit me, then try the buttons below.</p>'
+      );
+
+      editor.on('change', function () {
+        show('change event fired (content updated)');
+      });
+
+      document.getElementById('btn-get').addEventListener('click', function () {
+        show('getContent():', editor.getContent());
+      });
+      document.getElementById('btn-set').addEventListener('click', function () {
+        editor.setContent('<p>Content replaced via <em>setContent()</em>.</p>');
+        show('setContent() called');
+      });
+      document.getElementById('btn-bold').addEventListener('click', function () {
+        editor.execCommand('bold');
+        show("execCommand('bold') called");
+      });
+      document.getElementById('btn-clear').addEventListener('click', function () {
+        editor.setContent('');
+        show('cleared');
+      });
+
+      show('Editor created from window.MDHTMLEditor.HTMLEditor ✓');
+    })();
+  </script>
+</body>
+</html>

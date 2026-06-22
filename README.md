@@ -56,6 +56,26 @@ editor.on('dirty', (isDirty) => {
 editor.destroy();
 ```
 
+### Browser (CDN / script tag)
+
+For static pages without a bundler, load the self-contained UMD bundle via a `<script>` tag.
+It exposes the entire public API under the `MDHTMLEditor` global. Styles must be loaded
+separately — the UMD bundle contains JavaScript only.
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/@mdaemon/html-editor/dist/styles.css">
+<script src="https://unpkg.com/@mdaemon/html-editor"></script>
+<script>
+  const editor = new MDHTMLEditor.HTMLEditor(
+    document.getElementById('editor'),
+    { height: 400 }
+  );
+</script>
+```
+
+`unpkg` and `jsdelivr` both serve the package; pin a version for production
+(e.g. `https://unpkg.com/@mdaemon/html-editor@1.7.0`).
+
 ### Custom Toolbar Buttons
 
 ```typescript
@@ -720,6 +740,36 @@ The editor DOM uses BEM-style classes you can target for further customization:
 - Firefox (latest)
 - Safari (latest)
 - Edge (latest)
+
+## Development
+
+Clone the repo and install dependencies with `npm install`, then use:
+
+```bash
+npm run build        # production build → dist/ (ES, CJS, UMD, .d.ts, styles.css)
+npm run build:dev    # development build (unminified, sourcemaps)
+npm run dev          # rebuild on change (watch mode)
+npm test             # run the Jest suite
+npm run test:dist    # build, then smoke-test the built UMD bundle
+npm run typecheck    # tsc --noEmit (strict)
+npm run lint         # eslint src
+```
+
+### Demos
+
+```bash
+npm run demo         # live demo from TypeScript source (Vite dev server, HTTPS)
+npm run demo:umd     # build, then serve the UMD/script-tag demo as static files
+```
+
+- **`npm run demo`** serves `test/index.html` through Vite's dev server, importing the editor
+  directly from `src/`. Use this for day-to-day feature work — it hot-reloads and exercises the
+  full toolbar. It runs over HTTPS (self-signed cert) so microphone-dependent features
+  (Speech-to-Text, Dictation) work.
+- **`npm run demo:umd`** runs a production build and then serves `test/umd.html` as raw static
+  files (via `test/serve-umd.mjs`), loading the built `dist/index.umd.js` and `dist/styles.css`
+  exactly the way a CDN / `<script>`-tag consumer would. Use this to verify the UMD bundle and
+  the `MDHTMLEditor` global.
 
 ## License
 

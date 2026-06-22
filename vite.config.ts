@@ -23,8 +23,12 @@ export default defineConfig(({ mode }) => ({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'MDHTMLEditor',
-      formats: ['es', 'cjs'],
-      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`,
+      formats: ['es', 'cjs', 'umd'],
+      fileName: (format) => {
+        if (format === 'es') return 'index.mjs';
+        if (format === 'umd') return 'index.umd.js';
+        return 'index.js'; // cjs
+      },
       cssFileName: 'styles',
     },
     rolldownOptions: {
@@ -34,7 +38,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
     sourcemap: mode !== 'production',
-    minify: false,
   },
   css: {
     preprocessorOptions: {

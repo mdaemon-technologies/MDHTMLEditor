@@ -1,5 +1,16 @@
 # MDHTMLEditor Changelog
 
+## 1.7.0 (June 19, 2026)
+
+### New Features
+- **UMD bundle for browser / CDN usage** — the build now emits a third output, `dist/index.umd.js`, alongside the existing ES (`dist/index.mjs`) and CJS (`dist/index.js`) bundles. The UMD file is fully self-contained (all TipTap dependencies inlined) and exposes the entire public API under the `MDHTMLEditor` browser global, so the editor can be dropped into a static HTML page with a plain `<script>` tag — no bundler required.
+- The package now advertises the UMD file to CDNs via the `unpkg` and `jsdelivr` fields, and exposes it through the `@mdaemon/html-editor/umd` export subpath. CDN usage (`<script src="https://unpkg.com/@mdaemon/html-editor">`) is documented in the README. Note that styles (`dist/styles.css`) must be loaded separately, as the UMD bundle contains JS only.
+
+### Build / Tooling
+- **Production builds are now minified.** Removed `minify: false` from `vite.config.ts` so the production build uses the default Rolldown/Oxc minifier. The published bundles shrank substantially (e.g. `dist/index.umd.js` ~1.59 MB → ~856 KB). The development build (`npm run build:dev`) remains unminified with sourcemaps.
+- **New `npm run demo:umd` script** — builds the package and serves a standalone UMD demo (`test/umd.html`) as raw static files via a tiny dependency-free Node server (`test/serve-umd.mjs`). Unlike `npm run demo` (which runs the source through Vite's dev pipeline), this loads the built `dist/index.umd.js` and `dist/styles.css` exactly as a CDN/`<script>` consumer would.
+- **UMD packaging tests.** `__tests__/packaging.test.ts` guards against config drift (asserts `package.json` `unpkg`/`jsdelivr`/`exports["./umd"]` and the `vite.config.ts` `formats`/filename stay consistent) and runs as part of `npm test`. A new `npm run test:dist` script builds the package and runs a post-build smoke test (`__tests__/dist-umd.smoke.ts`) that loads the built UMD bundle in a sandbox and verifies it registers `window.MDHTMLEditor.HTMLEditor`.
+
 ## 1.6.1 (June 12, 2026)
 
 ### Build / Tooling

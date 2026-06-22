@@ -1,6 +1,6 @@
 {
   "name": "@mdaemon/html-editor",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "A TinyMCE-compatible HTML editor built on TipTap",
   "homepage": "https://github.com/mdaemon-technologies/MDHTMLEditor",
   "repository": {
@@ -12,6 +12,8 @@
   },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
+  "unpkg": "dist/index.umd.js",
+  "jsdelivr": "dist/index.umd.js",
   "types": "dist/index.d.ts",
   "style": "dist/styles.css",
   "exports": {
@@ -20,6 +22,7 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
+    "./umd": "./dist/index.umd.js",
     "./styles": {
       "types": "./dist/styles.d.ts",
       "default": "./dist/styles.css"
@@ -42,9 +45,11 @@
     "dev": "vite build --watch --mode development",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "test:dist": "npm run build && jest --testMatch \"**/*.smoke.ts\"",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "demo": "vite test",
+    "demo:umd": "npm run build && node test/serve-umd.mjs",
     "update:tiptap": "npm install @tiptap/core@latest @tiptap/extension-character-count@latest @tiptap/extension-code-block-lowlight@latest @tiptap/extension-color@latest @tiptap/extension-font-family@latest @tiptap/extension-highlight@latest @tiptap/extension-image@latest @tiptap/extension-link@latest @tiptap/extension-paragraph@latest @tiptap/extension-placeholder@latest @tiptap/extension-subscript@latest @tiptap/extension-superscript@latest @tiptap/extension-table@latest @tiptap/extension-table-cell@latest @tiptap/extension-table-header@latest @tiptap/extension-table-row@latest @tiptap/extension-text-align@latest @tiptap/extension-text-style@latest @tiptap/extension-underline@latest @tiptap/pm@latest @tiptap/starter-kit@latest"
   },
   "keywords": [
