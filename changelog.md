@@ -1,5 +1,15 @@
 # MDHTMLEditor Changelog
 
+## 1.8.0 (July 13, 2026)
+
+### Bug Fixes
+- **A font picked before typing is no longer silently discarded.** Choosing a font or size from the `fontfamily`/`fontsize` toolbar dropdowns (or via `execCommand('fontname'|'fontsize', …)`) while the cursor sat in an empty block applied it as an inline mark. With nothing to mark, that only parked a ProseMirror *stored mark* on the selection — and stored marks are discarded by the next transaction that moves the selection or changes the document. Clicking into the body, or a host app calling `setTextSelection`, dropped the font before the user typed a character. Font changes made in an empty block are now written to the block's own `font-family`/`font-size`, so they persist and land in the exported HTML. Changes made with text selected still produce an inline `<span>` override, and changes made mid-text still use a stored mark, as before.
+- **The configured `fontName`/`fontSize` are no longer re-applied as inline marks on `init`.** The editor used to run `setFontFamily`/`setFontSize` in TipTap's `onCreate`, which had the same stored-mark problem (the marks never survived to the first keystroke) and additionally **stole focus** — `chain().focus()` pulled focus into the editor body on every init, overriding `auto_focus`/`setFocus` and any focus the host app had placed elsewhere. The defaults are carried by the `BlockFontStyle` extension (added in 1.6.0), which already renders them on every block, so the `onCreate` calls were dead weight; they have been removed. Text typed immediately after init also no longer gets wrapped in a redundant `<span>` repeating the block's own font.
+
+### New Features
+- **`getFontFamily()` / `getFontSize()`** on `HTMLEditor` — report the font in effect at the cursor, resolving inline `<span>` override → block font → configured default. The toolbar font dropdowns now use these to highlight the current font when opened; previously they read only the inline mark and so showed nothing selected whenever the font came from the block default (i.e. almost always).
+- **`setBlockFontFamily` / `setBlockFontSize` commands** on the `BlockFontStyle` extension — set the font on every block the selection touches. Available on the TipTap instance via `getTipTap()`.
+
 ## 1.7.0 (June 19, 2026)
 
 ### New Features

@@ -228,7 +228,11 @@ export interface MDHTMLEditor {
   
   // Command execution
   execCommand(command: string, ui?: boolean, value?: unknown): boolean;
-  
+
+  // Current font at the cursor (inline override → block font → configured default)
+  getFontFamily(): string;
+  getFontSize(): string;
+
   // State
   isDirty(): boolean;
   setDirty(state: boolean): void;

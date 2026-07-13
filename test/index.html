@@ -293,6 +293,15 @@
             </select>
           </div>
           <div class="control-group">
+            <label>Font at cursor <span style="font-weight:normal;color:#888;">(getFontFamily / getFontSize)</span></label>
+            <div id="font-at-cursor" style="font-family:monospace;font-size:12px;background:#f4f6f8;border:1px solid #e0e4e8;border-radius:3px;padding:6px 8px;">—</div>
+            <p style="font-size:11px;color:#888;margin:4px 0 0;">
+              Pick a font/size above with the body <strong>empty</strong>, then click into the body and type —
+              the text keeps the font you picked. It is written to the block (see the HTML Output panel),
+              not left as a stored mark that a selection change would discard.
+            </p>
+          </div>
+          <div class="control-group">
             <label>Line Height</label>
             <select id="cmd-lineheight">
               <option value="">— pick —</option>

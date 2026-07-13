@@ -287,16 +287,17 @@ export class HTMLEditor implements IMDHTMLEditor {
       onBlur: () => {
         this.fire('blur');
       },
-      onCreate: ({ editor }) => {
-        // Apply default font and size
-        if (this.config.fontName) {
-          editor.chain().focus().setFontFamily(this.config.fontName).run();
-        }
-        if (this.config.fontSize) {
-          editor.chain().focus().setFontSize(this.config.fontSize).run();
-        }
-        
-        // Fire init event
+      onCreate: () => {
+        // NOTE: the configured fontName/fontSize are deliberately NOT applied
+        // here as inline marks. With an empty document the cursor is collapsed,
+        // so setFontFamily/setFontSize would only park a *stored mark* on the
+        // selection — and ProseMirror discards stored marks on the next
+        // transaction that moves the selection or changes the doc. Any click
+        // into the body (or a host app calling setTextSelection) drops them
+        // before the user ever types, and they would never reach the exported
+        // HTML. The defaults are carried by the BlockFontStyle extension
+        // instead (see buildExtensions), which puts them on the block node's
+        // attributes, so they persist and are rendered on every <p>/<div>.
         this.fire('init', this);
       },
     };
@@ -579,9 +580,60 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.tiptap?.commands.insertContent(html);
   }
   
+  /**
+   * True when the cursor is collapsed inside a block that has no content yet.
+   *
+   * Font changes made here cannot be expressed as an inline mark: there is no
+   * text to wrap, so setMark would only leave a stored mark that ProseMirror
+   * discards as soon as the selection moves. In that case the font belongs on
+   * the block node instead (see BlockFontStyle), where it persists and renders
+   * into the exported HTML.
+   */
+  private inEmptyBlock(): boolean {
+    if (!this.tiptap) return false;
+
+    const { empty, $from } = this.tiptap.state.selection;
+    return empty && $from.parent.isTextblock && $from.parent.content.size === 0;
+  }
+
+  /**
+   * The font family in effect at the cursor: an inline <span> override if the
+   * selection carries one, otherwise the block's font, otherwise the configured
+   * default.
+   */
+  getFontFamily(): string {
+    if (!this.tiptap) return this.config.fontName ?? DEFAULT_FONT_FAMILY;
+
+    const inline = this.tiptap.getAttributes('textStyle').fontFamily;
+    if (typeof inline === 'string' && inline) return inline;
+
+    const block = this.tiptap.getAttributes('paragraph').blockFontFamily
+      ?? this.tiptap.getAttributes('heading').blockFontFamily;
+    if (typeof block === 'string' && block) return block;
+
+    return this.config.fontName ?? DEFAULT_FONT_FAMILY;
+  }
+
+  /**
+   * The font size in effect at the cursor. Same resolution order as
+   * {@link getFontFamily}. Headings carry no block font-size (they size by
+   * level), so inside a heading this reports the inline override or ''.
+   */
+  getFontSize(): string {
+    if (!this.tiptap) return this.config.fontSize ?? DEFAULT_FONT_SIZE;
+
+    const inline = this.tiptap.getAttributes('textStyle').fontSize;
+    if (typeof inline === 'string' && inline) return inline;
+
+    const block = this.tiptap.getAttributes('paragraph').blockFontSize;
+    if (typeof block === 'string' && block) return block;
+
+    return this.tiptap.isActive('heading') ? '' : (this.config.fontSize ?? DEFAULT_FONT_SIZE);
+  }
+
   execCommand(command: string, _ui?: boolean, value?: unknown): boolean {
     if (!this.tiptap) return false;
-    
+
     const chain = this.tiptap.chain().focus();
     
     // Map TinyMCE commands to TipTap
@@ -606,12 +658,20 @@ export class HTMLEditor implements IMDHTMLEditor {
         return true;
       case 'fontname':
         if (typeof value === 'string') {
-          chain.setFontFamily(value).run();
+          if (this.inEmptyBlock()) {
+            chain.setBlockFontFamily(value).run();
+          } else {
+            chain.setFontFamily(value).run();
+          }
         }
         return true;
       case 'fontsize':
         if (typeof value === 'string') {
-          chain.setFontSize(value).run();
+          if (this.inEmptyBlock()) {
+            chain.setBlockFontSize(value).run();
+          } else {
+            chain.setFontSize(value).run();
+          }
         }
         return true;
       case 'lineheight':

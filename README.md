@@ -162,6 +162,8 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `setContent(html: string): void` - Set HTML content
 - `insertContent(html: string): void` - Insert HTML at cursor
 - `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command
+- `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default)
+- `getFontSize(): string` - Font size in effect at the cursor (same resolution order)
 - `isDirty(): boolean` - Check if content has changed
 - `setDirty(state: boolean): void` - Set dirty state
 - `setReadOnly(state: boolean): void` - Toggle read-only mode (disables editing and dims the toolbar)
@@ -462,9 +464,30 @@ block default for just that text — so a single paragraph can mix fonts and siz
 </p>
 ```
 
-This is handled by the exported `BlockFontStyle` extension (block defaults) layered
-with the inline `FontSize` mark and TipTap's `FontFamily` mark (per-selection
-overrides).
+### Where a font change is stored
+
+A font change has to be recorded somewhere that survives until the user actually
+types, so the editor picks the target based on the selection:
+
+| Selection when the font is picked | Where it goes | Result |
+| --- | --- | --- |
+| Text is selected | Inline `<span>` mark | Overrides the block default for that text only |
+| Cursor in an **empty** block (e.g. a fresh, empty message body) | The block's own `font-family` / `font-size` | Persists; everything typed into that block gets it |
+| Cursor inside existing text | Stored mark, as in any editor | Applies to what you type next, until you move the cursor |
+
+The empty-block rule matters: an inline mark has no text to attach to there, so
+it can only be parked as a ProseMirror *stored mark* — which is discarded by the
+very next transaction that moves the selection or changes the document. Clicking
+into the body, or a host app calling `setTextSelection`, would silently drop the
+font before a single character was typed. Writing it to the block instead makes
+the choice stick and puts it in the exported HTML.
+
+Use `getFontFamily()` / `getFontSize()` to read back the font in effect at the
+cursor, wherever it happens to be stored.
+
+This is handled by the exported `BlockFontStyle` extension (block defaults and the
+`setBlockFontFamily` / `setBlockFontSize` commands) layered with the inline
+`FontSize` mark and TipTap's `FontFamily` mark (per-selection overrides).
 
 ## Read-Only Mode
 

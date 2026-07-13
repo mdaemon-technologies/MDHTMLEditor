@@ -66,6 +66,7 @@
     <button id="btn-get">Get content</button>
     <button id="btn-set">Set content</button>
     <button id="btn-bold">Toggle bold (execCommand)</button>
+    <button id="btn-font">Font at cursor</button>
     <button id="btn-clear">Clear</button>
   </div>
 
@@ -95,6 +96,12 @@
         basicEditor: false,
         skin: 'oxide',
         content_css: 'default',
+
+        // Default font. It is inlined on every block of the exported HTML — clear
+        // the editor, pick a different font from the toolbar before typing, then
+        // "Get content": the font you picked is on the <p>, not lost.
+        fontName: 'Georgia, serif',
+        fontSize: '14pt',
       });
 
       editor.setContent(
@@ -116,6 +123,10 @@
       document.getElementById('btn-bold').addEventListener('click', function () {
         editor.execCommand('bold');
         show("execCommand('bold') called");
+      });
+      document.getElementById('btn-font').addEventListener('click', function () {
+        show('getFontFamily() / getFontSize():',
+          editor.getFontFamily() + ' · ' + (editor.getFontSize() || '(heading)'));
       });
       document.getElementById('btn-clear').addEventListener('click', function () {
         editor.setContent('');

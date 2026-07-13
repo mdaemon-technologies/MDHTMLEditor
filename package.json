@@ -1,6 +1,6 @@
 {
   "name": "@mdaemon/html-editor",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "A TinyMCE-compatible HTML editor built on TipTap",
   "homepage": "https://github.com/mdaemon-technologies/MDHTMLEditor",
   "repository": {
@@ -65,27 +65,27 @@
   },
   "license": "LGPL-3.0-or-later",
   "dependencies": {
-    "@tiptap/core": "^3.23.4",
-    "@tiptap/extension-character-count": "^3.23.4",
-    "@tiptap/extension-code-block-lowlight": "^3.23.4",
-    "@tiptap/extension-color": "^3.23.4",
-    "@tiptap/extension-font-family": "^3.23.4",
-    "@tiptap/extension-highlight": "^3.23.4",
-    "@tiptap/extension-image": "^3.23.4",
-    "@tiptap/extension-link": "^3.23.4",
-    "@tiptap/extension-paragraph": "^3.23.4",
-    "@tiptap/extension-placeholder": "^3.23.4",
-    "@tiptap/extension-subscript": "^3.23.4",
-    "@tiptap/extension-superscript": "^3.23.4",
-    "@tiptap/extension-table": "^3.23.4",
-    "@tiptap/extension-table-cell": "^3.23.4",
-    "@tiptap/extension-table-header": "^3.23.4",
-    "@tiptap/extension-table-row": "^3.23.4",
-    "@tiptap/extension-text-align": "^3.23.4",
-    "@tiptap/extension-text-style": "^3.23.4",
-    "@tiptap/extension-underline": "^3.23.4",
-    "@tiptap/pm": "^3.23.4",
-    "@tiptap/starter-kit": "^3.23.4",
+    "@tiptap/core": "^3.27.4",
+    "@tiptap/extension-character-count": "^3.27.4",
+    "@tiptap/extension-code-block-lowlight": "^3.27.4",
+    "@tiptap/extension-color": "^3.27.4",
+    "@tiptap/extension-font-family": "^3.27.4",
+    "@tiptap/extension-highlight": "^3.27.4",
+    "@tiptap/extension-image": "^3.27.4",
+    "@tiptap/extension-link": "^3.27.4",
+    "@tiptap/extension-paragraph": "^3.27.4",
+    "@tiptap/extension-placeholder": "^3.27.4",
+    "@tiptap/extension-subscript": "^3.27.4",
+    "@tiptap/extension-superscript": "^3.27.4",
+    "@tiptap/extension-table": "^3.27.4",
+    "@tiptap/extension-table-cell": "^3.27.4",
+    "@tiptap/extension-table-header": "^3.27.4",
+    "@tiptap/extension-table-row": "^3.27.4",
+    "@tiptap/extension-text-align": "^3.27.4",
+    "@tiptap/extension-text-style": "^3.27.4",
+    "@tiptap/extension-underline": "^3.27.4",
+    "@tiptap/pm": "^3.27.4",
+    "@tiptap/starter-kit": "^3.27.4",
     "lowlight": "^3.3.0"
   },
   "devDependencies": {
@@ -102,8 +102,8 @@
     "vite-plugin-dts": "^4.5.4"
   },
   "allowScripts": {
-    "esbuild@0.27.7": true,
-    "@parcel/watcher@2.5.6": true,
-    "unrs-resolver@1.12.2": true
+    "esbuild": true,
+    "@parcel/watcher": true,
+    "unrs-resolver": true
   }
 }

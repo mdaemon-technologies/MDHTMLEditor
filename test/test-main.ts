@@ -205,7 +205,22 @@ const htmlOutput = $<HTMLTextAreaElement>('#html-output');
 
 function refreshHtml() {
   htmlOutput.value = editor.getContent();
+  refreshFontAtCursor();
 }
+
+// ── Font at cursor ───────────────────────────────────
+// Reports the font actually in effect where the caret is: an inline <span>
+// override if there is one, else the block's own font, else the configured
+// default. Pick a font with the body empty, click away, click back, type — the
+// readout (and the typed text) keep it.
+const fontAtCursor = $('#font-at-cursor');
+
+function refreshFontAtCursor() {
+  const size = editor.getFontSize();
+  fontAtCursor.textContent = `${editor.getFontFamily()} · ${size || '(heading)'}`;
+}
+
+document.addEventListener('selectionchange', refreshFontAtCursor);
 
 $('#btn-refresh-html').addEventListener('click', refreshHtml);
 $('#btn-copy-html').addEventListener('click', () => {
@@ -246,6 +261,7 @@ $<HTMLSelectElement>('#cmd-fontname').addEventListener('change', (e) => {
   if (val) {
     editor.execCommand('fontname', false, val);
     log('cmd', `fontname → ${val}`);
+    refreshFontAtCursor();
   }
 });
 
@@ -254,6 +270,7 @@ $<HTMLSelectElement>('#cmd-fontsize').addEventListener('change', (e) => {
   if (val) {
     editor.execCommand('fontsize', false, val);
     log('cmd', `fontsize → ${val}`);
+    refreshFontAtCursor();
   }
 });
 

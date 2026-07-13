@@ -773,25 +773,25 @@ export class Toolbar {
     return button;
   }
   
+  // Both font dropdowns go through execCommand rather than calling TipTap
+  // directly, so they inherit its rule for where the font is stored: on the
+  // block node when the cursor sits in an empty block (persistent), as an
+  // inline mark otherwise. Calling setFontFamily/setFontSize here would leave a
+  // stored mark that ProseMirror drops the moment the selection moves — i.e.
+  // picking a font in an empty message body would silently do nothing.
   private createFontFamilyDropdown(): HTMLElement {
     const fonts = parseFontFormats(this.options.config.font_family_formats ?? defaultFontNames);
     return this.createDropdown('fontfamily', this.trans('Font'), fonts, (font) => {
-      this.tiptap?.chain().focus().setFontFamily(font.value).run();
-    }, () => {
-      const attrs = this.tiptap?.getAttributes('textStyle');
-      return attrs?.fontFamily ?? '';
-    });
+      this.options.editor.execCommand('fontname', false, font.value);
+    }, () => this.options.editor.getFontFamily());
   }
-  
+
   private createFontSizeDropdown(): HTMLElement {
     const sizes = parseFontSizes(this.options.config.font_size_formats ?? '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt');
     const options = sizes.map(s => ({ label: s, value: s }));
     return this.createDropdown('fontsize', this.trans('Font size'), options, (size) => {
-      this.tiptap?.chain().focus().setFontSize(size.value).run();
-    }, () => {
-      const attrs = this.tiptap?.getAttributes('textStyle');
-      return attrs?.fontSize ?? '';
-    });
+      this.options.editor.execCommand('fontsize', false, size.value);
+    }, () => this.options.editor.getFontSize());
   }
   
   private createLineHeightDropdown(): HTMLElement {

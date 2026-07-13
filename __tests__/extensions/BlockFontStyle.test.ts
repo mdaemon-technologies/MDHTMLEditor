@@ -95,6 +95,55 @@ describe('BlockFontStyle Extension', () => {
     expect(html).not.toContain('font-size: 12pt');
   });
 
+  describe('setBlockFontFamily / setBlockFontSize', () => {
+    it('rewrites the block font of the paragraph holding the cursor', () => {
+      editor = createEditor('<p>Hi</p>');
+      editor.commands.setBlockFontFamily('Georgia');
+      editor.commands.setBlockFontSize('18pt');
+
+      const html = editor.getHTML();
+      expect(html).toContain('font-family: Georgia');
+      expect(html).toContain('font-size: 18pt');
+      expect(html).not.toContain('<span');
+    });
+
+    it('applies to an empty paragraph, where an inline mark could not', () => {
+      editor = createEditor('<p></p>');
+      editor.commands.setBlockFontFamily('Georgia');
+
+      // A stored mark would be gone by now; a block attribute is not.
+      editor.commands.setTextSelection(0);
+      editor.commands.insertContent('typed later');
+
+      expect(editor.getHTML()).toContain('font-family: Georgia');
+    });
+
+    it('applies to every block the selection touches', () => {
+      editor = createEditor('<p>one</p><p>two</p>');
+      editor.commands.selectAll();
+      editor.commands.setBlockFontSize('18pt');
+
+      const html = editor.getHTML();
+      expect(html.match(/font-size: 18pt/g)).toHaveLength(2);
+      expect(html).not.toContain('font-size: 12pt');
+    });
+
+    it('does not put a block font-size on headings', () => {
+      editor = createEditor('<h1>Title</h1>');
+      const applied = editor.commands.setBlockFontSize('18pt');
+
+      expect(applied).toBe(false);
+      expect(editor.getHTML()).not.toContain('font-size: 18pt');
+    });
+
+    it('does set a block font-family on headings', () => {
+      editor = createEditor('<h1>Title</h1>');
+      editor.commands.setBlockFontFamily('Georgia');
+
+      expect(editor.getHTML()).toContain('font-family: Georgia');
+    });
+  });
+
   it('lets an inline span override the block default for part of a paragraph', () => {
     // "this is A BIG font, and this is a small font" — mixed sizes in one block
     editor = createEditor('<p>start</p>');

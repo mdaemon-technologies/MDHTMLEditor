@@ -498,6 +498,152 @@ describe('Global Functions', () => {
     });
   });
 
+  describe('default font (fontName / fontSize)', () => {
+    // The configured default font must still be in effect at the moment the
+    // user actually types, which is always *after* at least one selection
+    // change (clicking into the body, a host app calling setTextSelection, or
+    // focus bouncing to another field and back). A ProseMirror stored mark
+    // cannot survive that, so the default lives on the block node instead.
+    const nextTick = () => new Promise(resolve => setTimeout(resolve, 0));
+
+    let container: HTMLElement;
+    let editor: HTMLEditor;
+
+    beforeEach(() => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+      editor?.destroy();
+      container?.remove();
+    });
+
+    it('renders the configured default font on the block, not as a stored mark', () => {
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+
+      const html = editor.getContent();
+      expect(html).toContain('font-family: Verdana');
+      expect(html).toContain('font-size: 14pt');
+      expect(html).not.toContain('<span');
+    });
+
+    it('leaves no stored marks behind on init', async () => {
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+      await nextTick(); // TipTap emits `create` on a setTimeout(0)
+
+      expect(editor.getTipTap()?.state.storedMarks).toBeNull();
+    });
+
+    it('keeps the default font after the host app moves the selection and the user types', async () => {
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+      await nextTick();
+
+      const tiptap = editor.getTipTap()!;
+      tiptap.commands.setTextSelection(0); // what a host app does in its init handler
+      tiptap.commands.insertContent('Hello');
+
+      const html = editor.getContent();
+      expect(html).toContain('font-family: Verdana');
+      expect(html).toContain('font-size: 14pt');
+    });
+
+    it('does not steal focus on init', async () => {
+      const other = document.createElement('input');
+      document.body.appendChild(other);
+      other.focus();
+
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+      await nextTick();
+
+      expect(editor.hasFocus()).toBe(false);
+      expect(document.activeElement).toBe(other);
+      other.remove();
+    });
+
+    it('reports the effective font at the cursor', () => {
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+
+      expect(editor.getFontFamily()).toBe('Verdana');
+      expect(editor.getFontSize()).toBe('14pt');
+    });
+  });
+
+  describe('execCommand fontname / fontsize', () => {
+    let container: HTMLElement;
+    let editor: HTMLEditor;
+
+    beforeEach(() => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+      editor?.destroy();
+      container?.remove();
+    });
+
+    it('writes the font to the block when the cursor is in an empty block, so it survives a selection change', () => {
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+
+      // User picks a font before typing anything — the compose-window case.
+      editor.execCommand('fontname', false, 'Georgia');
+      editor.execCommand('fontsize', false, '18pt');
+
+      const tiptap = editor.getTipTap()!;
+      tiptap.commands.setTextSelection(0); // drops stored marks
+      tiptap.commands.insertContent('Hello');
+
+      const html = editor.getContent();
+      expect(html).toContain('font-family: Georgia');
+      expect(html).toContain('font-size: 18pt');
+      expect(html).not.toContain('Verdana');
+      expect(html).not.toContain('14pt');
+    });
+
+    it('reports the block font chosen in an empty block', () => {
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+
+      editor.execCommand('fontname', false, 'Georgia');
+      editor.execCommand('fontsize', false, '18pt');
+
+      expect(editor.getFontFamily()).toBe('Georgia');
+      expect(editor.getFontSize()).toBe('18pt');
+    });
+
+    it('applies an inline span when text is selected, leaving the block default intact', () => {
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+      editor.setContent('<p>Hello</p>');
+
+      const tiptap = editor.getTipTap()!;
+      tiptap.commands.selectAll();
+      editor.execCommand('fontname', false, 'Georgia');
+      editor.execCommand('fontsize', false, '18pt');
+
+      const html = editor.getContent();
+      // inline override for the selected text …
+      expect(html).toContain('<span');
+      expect(html).toContain('font-family: Georgia');
+      expect(html).toContain('font-size: 18pt');
+      // … and the block keeps carrying the default for anything typed after it
+      expect(html).toContain('font-family: Verdana');
+      expect(html).toContain('font-size: 14pt');
+    });
+
+    it('prefers an inline override over the block font when reporting the current font', () => {
+      editor = new HTMLEditor(container, { fontName: 'Verdana', fontSize: '14pt' });
+      editor.setContent('<p>Hello</p>');
+
+      const tiptap = editor.getTipTap()!;
+      tiptap.commands.selectAll();
+      editor.execCommand('fontname', false, 'Georgia');
+      editor.execCommand('fontsize', false, '18pt');
+
+      expect(editor.getFontFamily()).toBe('Georgia');
+      expect(editor.getFontSize()).toBe('18pt');
+    });
+  });
+
   describe('fontNames constant', () => {
     it('should export default font names', () => {
       expect(fontNames).toBeDefined();
