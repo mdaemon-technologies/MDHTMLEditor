@@ -158,6 +158,12 @@ function createEditorInstance(skin: typeof currentSkin) {
         '<p>Start typing or use the sidebar controls to test features.</p>' +
         '<p>Try <strong>bold</strong>, <em>italic</em>, <u>underline</u>, <s>strikethrough</s>, ' +
         'H<sub>2</sub>O and E=mc<sup>2</sup>.</p>' +
+        // Click through this paragraph and watch the toolbar's font dropdowns:
+        // they show the family/size at the cursor. Selecting across two of these
+        // spans is the "mixed" case, where they fall back to "Font"/"Font size".
+        '<p>Mixed fonts: <span style="font-family: times new roman, times; font-size: 18pt;">Times New Roman 18pt</span>, ' +
+        '<span style="font-family: georgia, palatino; font-size: 24pt;">Georgia 24pt</span>, ' +
+        '<span style="font-family: Calibri, sans-serif;">and Calibri, which is not in the font list</span>.</p>' +
         '<p>A named anchor target: <a id="welcome"></a> (insert more with the anchor button).</p>' +
         '<ul><li>Bullet one</li><li>Bullet two</li></ul>' +
         '<blockquote><p>A block quote for testing.</p></blockquote>' +

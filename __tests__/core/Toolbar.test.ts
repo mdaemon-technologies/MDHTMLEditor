@@ -191,6 +191,73 @@ describe('Toolbar', () => {
     });
   });
 
+  describe('Font Dropdown Labels', () => {
+    // The labels are refreshed from the toolbar's state-update interval, so the
+    // editor has to be built while fake timers are installed.
+    beforeEach(() => {
+      editor.destroy();
+      jest.useFakeTimers();
+      editor = new HTMLEditor(container);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    const labelOf = (name: string): string =>
+      container.querySelector(`[data-dropdown="${name}"] .md-toolbar-dropdown-label`)?.textContent ?? '';
+
+    const titleOf = (name: string): string =>
+      container.querySelector(`[data-dropdown="${name}"] .md-toolbar-dropdown-btn`)?.getAttribute('title') ?? '';
+
+    const select = (from: number, to: number) => {
+      editor.getTipTap()?.commands.setTextSelection({ from, to });
+      jest.advanceTimersByTime(150);
+    };
+
+    it('should show the default font and size rather than generic words', () => {
+      jest.advanceTimersByTime(150);
+      expect(labelOf('fontfamily')).toBe('Arial');
+      expect(labelOf('fontsize')).toBe('12pt');
+    });
+
+    it('should show the font name for the family at the cursor', () => {
+      editor.setContent('<p><span style="font-family: times new roman, times">Hello</span></p>');
+      select(3, 3);
+      expect(labelOf('fontfamily')).toBe('Times New Roman');
+    });
+
+    it('should show the size at the cursor', () => {
+      editor.setContent('<p><span style="font-size: 18pt">Hello</span></p>');
+      select(3, 3);
+      expect(labelOf('fontsize')).toBe('18pt');
+    });
+
+    it('should show an unconfigured font by its first family name', () => {
+      editor.setContent('<p><span style="font-family: Calibri, sans-serif">Hello</span></p>');
+      select(3, 3);
+      expect(labelOf('fontfamily')).toBe('Calibri');
+    });
+
+    it('should fall back to the generic label for a size inside a heading', () => {
+      editor.setContent('<h1>Title</h1>');
+      select(3, 3);
+      expect(labelOf('fontsize')).toBe('Font size');
+    });
+
+    it('should fall back to the generic label for a selection spanning two sizes', () => {
+      editor.setContent('<p><span style="font-size: 18pt">AAA</span><span style="font-size: 24pt">BBB</span></p>');
+      select(1, 7);
+      expect(labelOf('fontsize')).toBe('Font size');
+    });
+
+    it('should carry the untruncated label on the button title', () => {
+      editor.setContent('<p><span style="font-family: times new roman, times">Hello</span></p>');
+      select(3, 3);
+      expect(titleOf('fontfamily')).toBe('Times New Roman');
+    });
+  });
+
   describe('Color Pickers', () => {
     it('should have forecolor button', () => {
       const forecolorBtn = container.querySelector('[data-colorpicker="forecolor"]');

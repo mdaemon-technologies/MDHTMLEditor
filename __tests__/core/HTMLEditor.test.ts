@@ -407,6 +407,57 @@ describe('HTMLEditor', () => {
     });
   });
 
+  describe('Font Resolution', () => {
+    const select = (from: number, to: number) => {
+      editor.getTipTap()?.commands.setTextSelection({ from, to });
+    };
+
+    beforeEach(() => {
+      editor = new HTMLEditor(container);
+    });
+
+    it('should report the configured defaults in empty content', () => {
+      expect(editor.getFontFamily()).toBe('arial, helvetica, sans-serif');
+      expect(editor.getFontSize()).toBe('12pt');
+    });
+
+    it('should report the inline font at a collapsed cursor', () => {
+      editor.setContent('<p><span style="font-family: Georgia">Hello</span></p>');
+      select(3, 3);
+      expect(editor.getFontFamily()).toBe('Georgia');
+    });
+
+    it('should report the inline size at a collapsed cursor', () => {
+      editor.setContent('<p><span style="font-size: 18pt">Hello</span></p>');
+      select(3, 3);
+      expect(editor.getFontSize()).toBe('18pt');
+    });
+
+    it('should report the size for a selection with a single size', () => {
+      editor.setContent('<p><span style="font-size: 18pt">AAA</span><span style="font-size: 24pt">BBB</span></p>');
+      select(1, 4);
+      expect(editor.getFontSize()).toBe('18pt');
+    });
+
+    it('should report empty for a selection spanning two sizes', () => {
+      editor.setContent('<p><span style="font-size: 18pt">AAA</span><span style="font-size: 24pt">BBB</span></p>');
+      select(1, 7);
+      expect(editor.getFontSize()).toBe('');
+    });
+
+    it('should report empty for a selection spanning two families', () => {
+      editor.setContent('<p><span style="font-family: Georgia">AAA</span><span style="font-family: Verdana">BBB</span></p>');
+      select(1, 7);
+      expect(editor.getFontFamily()).toBe('');
+    });
+
+    it('should report empty for a size inside a heading', () => {
+      editor.setContent('<h1>Title</h1>');
+      select(3, 3);
+      expect(editor.getFontSize()).toBe('');
+    });
+  });
+
   describe('TipTap Access', () => {
     beforeEach(() => {
       editor = new HTMLEditor(container);

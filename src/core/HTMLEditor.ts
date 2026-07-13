@@ -4,6 +4,7 @@
  */
 
 import { Editor as TipTapEditor, EditorOptions, AnyExtension, mergeAttributes } from '@tiptap/core';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { Subscript } from '@tiptap/extension-subscript';
@@ -597,12 +598,64 @@ export class HTMLEditor implements IMDHTMLEditor {
   }
 
   /**
+   * The one value `resolve` reports across every text node in a non-empty
+   * selection, or '' when the selection spans more than one — a range covering
+   * both 12pt and 18pt text has no single size to report, and saying "12pt"
+   * because that is what sits at the selection head would be a lie.
+   *
+   * Returns null when the range holds no text at all (an image selection, say)
+   * or when the selection is collapsed, leaving the caller on its cursor path.
+   */
+  private resolveOverSelection(
+    resolve: (node: ProseMirrorNode, parent: ProseMirrorNode | null) => string
+  ): string | null {
+    if (!this.tiptap) return null;
+
+    const { empty, from, to } = this.tiptap.state.selection;
+    if (empty) return null;
+
+    let found: string | null = null;
+    let mixed = false;
+
+    this.tiptap.state.doc.nodesBetween(from, to, (node, _pos, parent) => {
+      if (mixed) return false;
+      if (!node.isText) return true;
+
+      const value = resolve(node, parent);
+      if (found === null) {
+        found = value;
+      } else if (found !== value) {
+        mixed = true;
+        return false;
+      }
+      return true;
+    });
+
+    if (mixed) return '';
+    return found;
+  }
+
+  /**
    * The font family in effect at the cursor: an inline <span> override if the
    * selection carries one, otherwise the block's font, otherwise the configured
-   * default.
+   * default. A selection spanning two different families reports '' — see
+   * {@link resolveOverSelection}.
    */
   getFontFamily(): string {
     if (!this.tiptap) return this.config.fontName ?? DEFAULT_FONT_FAMILY;
+
+    const fallback = this.config.fontName ?? DEFAULT_FONT_FAMILY;
+
+    const overSelection = this.resolveOverSelection((node, parent) => {
+      const inline = node.marks.find(m => m.type.name === 'textStyle')?.attrs.fontFamily;
+      if (typeof inline === 'string' && inline) return inline;
+
+      const block = parent?.attrs.blockFontFamily;
+      if (typeof block === 'string' && block) return block;
+
+      return fallback;
+    });
+    if (overSelection !== null) return overSelection;
 
     const inline = this.tiptap.getAttributes('textStyle').fontFamily;
     if (typeof inline === 'string' && inline) return inline;
@@ -611,7 +664,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       ?? this.tiptap.getAttributes('heading').blockFontFamily;
     if (typeof block === 'string' && block) return block;
 
-    return this.config.fontName ?? DEFAULT_FONT_FAMILY;
+    return fallback;
   }
 
   /**
@@ -622,13 +675,26 @@ export class HTMLEditor implements IMDHTMLEditor {
   getFontSize(): string {
     if (!this.tiptap) return this.config.fontSize ?? DEFAULT_FONT_SIZE;
 
+    const fallback = this.config.fontSize ?? DEFAULT_FONT_SIZE;
+
+    const overSelection = this.resolveOverSelection((node, parent) => {
+      const inline = node.marks.find(m => m.type.name === 'textStyle')?.attrs.fontSize;
+      if (typeof inline === 'string' && inline) return inline;
+
+      const block = parent?.attrs.blockFontSize;
+      if (typeof block === 'string' && block) return block;
+
+      return parent?.type.name === 'heading' ? '' : fallback;
+    });
+    if (overSelection !== null) return overSelection;
+
     const inline = this.tiptap.getAttributes('textStyle').fontSize;
     if (typeof inline === 'string' && inline) return inline;
 
     const block = this.tiptap.getAttributes('paragraph').blockFontSize;
     if (typeof block === 'string' && block) return block;
 
-    return this.tiptap.isActive('heading') ? '' : (this.config.fontSize ?? DEFAULT_FONT_SIZE);
+    return this.tiptap.isActive('heading') ? '' : fallback;
   }
 
   execCommand(command: string, _ui?: boolean, value?: unknown): boolean {

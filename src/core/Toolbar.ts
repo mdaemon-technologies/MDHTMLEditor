@@ -114,12 +114,47 @@ function parseFontSizes(formats: string): string[] {
   return formats.split(' ').map(s => s.trim()).filter(Boolean);
 }
 
+/**
+ * Reduce a font stack to a comparable form: lowercase, no quotes, no padding.
+ * `"Times New Roman", Times, serif` and `Times New Roman,Times,serif` both
+ * become `times new roman,times,serif`, so a stack stored in the document
+ * matches its configured option regardless of how it was written.
+ */
+function normalizeFontStack(stack: string): string {
+  return stack
+    .split(',')
+    .map(family => family.trim().replace(/^["']|["']$/g, '').toLowerCase())
+    .filter(Boolean)
+    .join(',');
+}
+
+/**
+ * The first family in a stack, unquoted — the best display name available for a
+ * font that is not in the configured list (e.g. pasted from another editor).
+ */
+function firstFamilyOf(stack: string): string {
+  return stack.split(',')[0]?.trim().replace(/^["']|["']$/g, '') ?? '';
+}
+
+/**
+ * A dropdown whose button face tracks the value at the cursor rather than
+ * showing a fixed word. Registered at creation, refreshed by syncDropdownLabels.
+ */
+interface LabelSyncer {
+  labelEl: HTMLElement;
+  button: HTMLElement;
+  fallback: string;
+  getCurrentValue: () => string;
+  format: (value: string) => string;
+}
+
 export class Toolbar {
   private container: HTMLElement;
   private options: ToolbarOptions;
   private state: ToolbarState;
   private buttonElements: Map<string, HTMLElement> = new Map();
   private dropdowns: Map<string, HTMLElement> = new Map();
+  private labelSyncers: LabelSyncer[] = [];
   private bodyMenus: HTMLElement[] = [];
   private charMap: CharacterMap | null = null;
   private emojiPicker: EmojiPicker | null = null;
@@ -783,7 +818,14 @@ export class Toolbar {
     const fonts = parseFontFormats(this.options.config.font_family_formats ?? defaultFontNames);
     return this.createDropdown('fontfamily', this.trans('Font'), fonts, (font) => {
       this.options.editor.execCommand('fontname', false, font.value);
-    }, () => this.options.editor.getFontFamily());
+    }, () => this.options.editor.getFontFamily(), (value) => {
+      if (!value) return '';
+      const normalized = normalizeFontStack(value);
+      const match = fonts.find(f => normalizeFontStack(f.value) === normalized);
+      // An unconfigured font (pasted from elsewhere) still has a usable name:
+      // show its first family rather than falling back to the generic word.
+      return match?.label ?? firstFamilyOf(value);
+    });
   }
 
   private createFontSizeDropdown(): HTMLElement {
@@ -791,7 +833,7 @@ export class Toolbar {
     const options = sizes.map(s => ({ label: s, value: s }));
     return this.createDropdown('fontsize', this.trans('Font size'), options, (size) => {
       this.options.editor.execCommand('fontsize', false, size.value);
-    }, () => this.options.editor.getFontSize());
+    }, () => this.options.editor.getFontSize(), (value) => value);
   }
   
   private createLineHeightDropdown(): HTMLElement {
@@ -944,17 +986,23 @@ export class Toolbar {
     menu.style.left = `${rect.left}px`;
   }
   
+  /**
+   * @param format When given, the button face shows the value at the cursor
+   *   (via getCurrentValue) instead of the static `label`, which becomes the
+   *   fallback for when there is no single value to show. See syncDropdownLabels.
+   */
   private createDropdown(
     name: string,
     label: string,
     options: Array<{ label: string; value: string; description?: string }>,
     onSelect: (option: { label: string; value: string }) => void,
-    getCurrentValue?: () => string
+    getCurrentValue?: () => string,
+    format?: (value: string) => string
   ): HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.className = 'md-toolbar-dropdown';
     wrapper.setAttribute('data-dropdown', name);
-    
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'md-toolbar-dropdown-btn';
@@ -963,7 +1011,12 @@ export class Toolbar {
       <span class="md-toolbar-dropdown-label">${label}</span>
       <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
     `;
-    
+
+    if (format && getCurrentValue) {
+      const labelEl = button.querySelector('.md-toolbar-dropdown-label') as HTMLElement;
+      this.labelSyncers.push({ labelEl, button, fallback: label, getCurrentValue, format });
+    }
+
     const menu = document.createElement('div');
     menu.className = 'md-toolbar-dropdown-menu';
     menu.style.display = 'none';
@@ -1285,8 +1338,28 @@ export class Toolbar {
       
       button.classList.toggle('md-toolbar-btn-active', isActive);
     });
+
+    this.syncDropdownLabels();
   }
-  
+
+  /**
+   * Point the font/size dropdown faces at whatever is in effect at the cursor,
+   * so the toolbar reads "Times New Roman" / "12pt" rather than "Font" / "Font
+   * size". An empty formatted value (no single value applies — e.g. a selection
+   * spanning two sizes) falls back to the generic word.
+   *
+   * The label is width-constrained in CSS so the toolbar does not reflow as the
+   * caret moves; the button title carries the untruncated text.
+   */
+  private syncDropdownLabels(): void {
+    this.labelSyncers.forEach(({ labelEl, button, fallback, getCurrentValue, format }) => {
+      const text = format(getCurrentValue()) || fallback;
+      if (labelEl.textContent === text) return;
+      labelEl.textContent = text;
+      button.title = text;
+    });
+  }
+
   // Dialog methods
   
   private openImageDialog(): void {
@@ -1467,6 +1540,7 @@ export class Toolbar {
     this.sourceEditor = null;
     this.buttonElements.clear();
     this.dropdowns.clear();
+    this.labelSyncers = [];
     this.removeBodyMenus();
     this.buttonsEl = null;
     this.toggleBtn = null;
@@ -1498,6 +1572,7 @@ export class Toolbar {
 
     this.buttonElements.clear();
     this.dropdowns.clear();
+    this.labelSyncers = [];
     this.removeBodyMenus();
     this.container.innerHTML = '';
   }

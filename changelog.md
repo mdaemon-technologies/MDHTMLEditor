@@ -1,5 +1,16 @@
 # MDHTMLEditor Changelog
 
+## 1.9.0 (July 13, 2026)
+
+### New Features
+- **The font dropdowns now show the font and size at the cursor.** The `fontfamily` and `fontsize` toolbar buttons displayed the static words "Font" and "Font size", which told the user nothing about the text they were editing. They now read the value in effect at the cursor — "Times New Roman", "12pt" — and track it as the caret moves, the way TinyMCE and word processors do. The family is displayed by its configured name (the label from `font_family_formats`), not its raw CSS stack; a font that is not in the configured list (pasted from another editor, say) is shown by its first family name. When there is no single value to show, the button falls back to the generic word, so no new translatable strings were added.
+
+### Changed
+- **`getFontFamily()` / `getFontSize()` now return `''` for a selection that spans more than one value.** They previously read the attributes at the selection *head*, so a selection covering both 12pt and 18pt text confidently reported "12pt". With the value now displayed on the toolbar face, that head-biased answer would actively mislead, so a mixed selection reports no value instead — matching TinyMCE, which blanks the control in the same situation. Collapsed cursors and single-value selections are unaffected. This also fixes the dropdown menu check-marking a font that only applies to part of the selection.
+
+### Styles
+- New `.md-toolbar-dropdown-label` rules give the two font dropdowns a fixed label width with ellipsis truncation (the full text is on the button's `title`). The width is pinned deliberately: the toolbar measures button widths to decide the `||` primary/overflow row split, so a label that resized with the caret would make buttons hop between rows while typing.
+
 ## 1.8.0 (July 13, 2026)
 
 ### Bug Fixes

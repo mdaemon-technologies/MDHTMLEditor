@@ -106,7 +106,12 @@
 
       editor.setContent(
         '<p>Hello from the <strong>UMD</strong> bundle! ' +
-        'Edit me, then try the buttons below.</p>'
+        'Edit me, then try the buttons below.</p>' +
+        // The toolbar's font dropdowns show the family/size at the cursor —
+        // click through this paragraph to watch them change, and select across
+        // two spans to see them fall back to "Font" / "Font size".
+        '<p><span style="font-family: times new roman, times; font-size: 18pt;">Times New Roman 18pt</span>, ' +
+        '<span style="font-family: georgia, palatino; font-size: 24pt;">Georgia 24pt</span>.</p>'
       );
 
       editor.on('change', function () {
@@ -125,8 +130,10 @@
         show("execCommand('bold') called");
       });
       document.getElementById('btn-font').addEventListener('click', function () {
+        // Either getter returns '' when the selection spans more than one value
+        // (and getFontSize() also does inside a heading).
         show('getFontFamily() / getFontSize():',
-          editor.getFontFamily() + ' · ' + (editor.getFontSize() || '(heading)'));
+          (editor.getFontFamily() || '(mixed)') + ' · ' + (editor.getFontSize() || '(mixed or heading)'));
       });
       document.getElementById('btn-clear').addEventListener('click', function () {
         editor.setContent('');

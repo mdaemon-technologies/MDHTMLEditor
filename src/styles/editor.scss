@@ -235,11 +235,32 @@ $md-dark-hover: #2d3e50;
   }
 }
 
+// The font dropdowns show the value at the cursor ("Times New Roman", "12pt"),
+// so their label text changes as the caret moves. Pin the width and ellipsize:
+// a label that resized itself would re-measure the toolbar and make buttons hop
+// between the primary and overflow rows mid-typing. The full text is on the
+// button's title attribute.
+.md-toolbar-dropdown-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md-toolbar-dropdown[data-dropdown='fontfamily'] .md-toolbar-dropdown-label {
+  width: 110px;
+}
+
+.md-toolbar-dropdown[data-dropdown='fontsize'] .md-toolbar-dropdown-label {
+  width: 56px;
+}
+
 .md-toolbar-dropdown-arrow {
   display: inline-flex;
   align-items: center;
   opacity: 0.6;
-  
+  flex-shrink: 0;
+
   svg {
     display: block;
     width: 8px;

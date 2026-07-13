@@ -162,8 +162,8 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `setContent(html: string): void` - Set HTML content
 - `insertContent(html: string): void` - Insert HTML at cursor
 - `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command
-- `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default)
-- `getFontSize(): string` - Font size in effect at the cursor (same resolution order)
+- `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default). Returns `''` when the selection spans more than one family
+- `getFontSize(): string` - Font size in effect at the cursor (same resolution order). Returns `''` when the selection spans more than one size, and inside a heading with no inline override (headings size by level)
 - `isDirty(): boolean` - Check if content has changed
 - `setDirty(state: boolean): void` - Set dirty state
 - `setReadOnly(state: boolean): void` - Toggle read-only mode (disables editing and dims the toolbar)
@@ -273,8 +273,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `outdent` | Decrease indent |
 | `indent` | Increase indent |
 | `blockquote` | Toggle block quote |
-| `fontfamily` | Font family dropdown |
-| `fontsize` | Font size dropdown |
+| `fontfamily` | Font family dropdown (button shows the family at the cursor) |
+| `fontsize` | Font size dropdown (button shows the size at the cursor) |
 | `lineheight` | Line height dropdown (1, 1.2, 1.4, 1.6, 2) |
 | `blocks` | Block format dropdown (Paragraph, Heading 1–6; alias `formatselect`) |
 | `styles` | Named styles dropdown (configurable via `style_formats`) |
@@ -484,6 +484,19 @@ the choice stick and puts it in the exported HTML.
 
 Use `getFontFamily()` / `getFontSize()` to read back the font in effect at the
 cursor, wherever it happens to be stored.
+
+**The toolbar dropdowns show the current font.** The `fontfamily` and `fontsize`
+buttons display the value in effect at the cursor — "Times New Roman", "12pt" —
+and update as the caret moves, rather than showing the static words "Font" and
+"Font size". A family is shown by its configured name (the label side of
+`font_family_formats`); a font that isn't in the configured list, such as one
+pasted from another editor, is shown by its first family name. The labels are
+width-constrained and ellipsized to keep the toolbar from reflowing as the caret
+moves, with the full text on each button's `title`.
+
+Where no single value applies, the button falls back to the generic word. That
+happens for a selection spanning two different fonts or sizes, and for font size
+inside a heading (headings size by level and carry no block font-size).
 
 This is handled by the exported `BlockFontStyle` extension (block defaults and the
 `setBlockFontFamily` / `setBlockFontSize` commands) layered with the inline
