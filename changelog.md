@@ -1,5 +1,10 @@
 # MDHTMLEditor Changelog
 
+## 1.9.1 (July 17, 2026)
+
+### Bug Fixes
+- **Blank lines no longer vanish when the content is rendered outside the editor.** TipTap/ProseMirror serializes an empty line as a bare `<div></div>` (or `<p></p>`) — the live-editing trailing break is a view decoration, not part of the document, so it is absent from `getHTML()`. Bare empty blocks collapse to zero height in mail clients and other consumers, so the blank lines a user typed appeared to disappear on send. `getContent()` now injects a `<br>` into each empty block at serialization time (a new `fillEmptyBlocks` utility), mirroring TinyMCE's `format_empty_lines` and CKEditor's `fillEmptyBlocks`. This is gated on the existing `format_empty_lines` option, which already defaults to `true`; setting `format_empty_lines: false` opts out and restores the old pass-through. The transform runs only on serialized output — it never touches the live editor DOM, so it does not collide with ProseMirror's own trailing break. It is idempotent (a block already holding a `<br>` is left alone, so round-tripping content never accumulates `<br><br>`), attribute-agnostic (empty blocks carrying an inlined default font from `BlockFontStyle` are still filled), and leaves table cells, list items, and blocks containing void/embedded elements untouched.
+
 ## 1.9.0 (July 13, 2026)
 
 ### New Features

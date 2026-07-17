@@ -107,6 +107,10 @@
       editor.setContent(
         '<p>Hello from the <strong>UMD</strong> bundle! ' +
         'Edit me, then try the buttons below.</p>' +
+        // An intentional blank line: format_empty_lines (on by default) makes
+        // getContent() emit `<p><br></p>` for it, so the blank line is not lost
+        // when the HTML is rendered outside the editor. Click "Get content".
+        '<p></p>' +
         // The toolbar's font dropdowns show the family/size at the cursor —
         // click through this paragraph to watch them change, and select across
         // two spans to see them fall back to "Font" / "Font size".

@@ -72,6 +72,44 @@ describe('CKEditor parity features', () => {
     });
   });
 
+  describe('format_empty_lines', () => {
+    it('fills blank lines with a <br> so they survive outside the editor (div mode)', () => {
+      editor = new HTMLEditor(container, { forced_root_block: 'div' });
+      editor.setContent('<div>a</div><div></div><div>b</div>');
+      const html = editor.getContent();
+      // The blank line between a and b keeps its height via an injected <br>.
+      expect(html).toContain('<br');
+      expect(html).toMatch(/<div[^>]*>\s*<br[^>]*>\s*<\/div>/);
+    });
+
+    it('fills a blank paragraph in the default <p> mode', () => {
+      editor = new HTMLEditor(container);
+      editor.setContent('<p>a</p><p></p><p>b</p>');
+      expect(editor.getContent()).toMatch(/<p[^>]*>\s*<br[^>]*>\s*<\/p>/);
+    });
+
+    it('round-trips stably — parse → serialize → fill does not accumulate <br>', () => {
+      editor = new HTMLEditor(container, { forced_root_block: 'div' });
+      editor.setContent('<div>a</div><div><br></div><div>b</div>');
+      const first = editor.getContent();
+      editor.setContent(first);
+      const second = editor.getContent();
+      expect(second).toBe(first);
+      expect(second).not.toContain('<br><br>');
+    });
+
+    it('leaves content untouched when format_empty_lines is false', () => {
+      editor = new HTMLEditor(container, {
+        forced_root_block: 'div',
+        format_empty_lines: false,
+      });
+      editor.setContent('<div>a</div><div></div><div>b</div>');
+      const html = editor.getContent();
+      // Opt-out: the bare empty block is passed through as the engine emits it.
+      expect(html).not.toMatch(/<div[^>]*>\s*<br[^>]*>\s*<\/div>/);
+    });
+  });
+
   describe('execCommand additions', () => {
     beforeEach(() => {
       editor = new HTMLEditor(container);

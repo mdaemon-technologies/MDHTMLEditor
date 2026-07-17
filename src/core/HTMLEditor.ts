@@ -38,6 +38,7 @@ import { Mention } from '../extensions/Mention';
 import { Anchor } from '../extensions/Anchor';
 import { InlineStyle } from '../extensions/InlineStyle';
 import { PasteFromOffice } from '../extensions/PasteFromOffice';
+import { fillEmptyBlocks } from '../utils/fillEmptyBlocks';
 import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
@@ -570,7 +571,8 @@ export class HTMLEditor implements IMDHTMLEditor {
   // Public API methods
   
   getContent(): string {
-    return this.tiptap?.getHTML() ?? '';
+    const html = this.tiptap?.getHTML() ?? '';
+    return this.config.format_empty_lines ? fillEmptyBlocks(html) : html;
   }
   
   setContent(html: string): void {
