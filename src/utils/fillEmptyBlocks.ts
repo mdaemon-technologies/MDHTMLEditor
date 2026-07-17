@@ -57,3 +57,55 @@ export function fillEmptyBlocks(html: string): string {
 
   return doc.body.innerHTML;
 }
+
+/**
+ * A block is a "filled blank line" — the exact shape `fillEmptyBlocks` emits —
+ * when it has no visible text, no nested block, and its only content-bearing
+ * element is a single `<br>`. That lone `<br>` is the export artifact standing
+ * in for a blank line; empty inline wrappers around it (a `<span>` carrying a
+ * font, say) are ignored, mirroring `isBlankLine`. A block with real content
+ * (`<div>hello<br></div>` — a user's Shift+Enter) has text, so it fails here
+ * and is left alone.
+ */
+function isFilledBlankLine(el: Element): { br: Element } | null {
+  if ((el.textContent ?? '').trim() !== '') return null;
+  if (el.querySelector(BLOCK_SELECTOR)) return null; // container of blocks, not a line
+  const contentBearing = el.querySelectorAll(CONTENT_BEARING);
+  if (contentBearing.length === 1 && contentBearing[0].tagName === 'BR') {
+    return { br: contentBearing[0] };
+  }
+  return null;
+}
+
+/**
+ * Inverse of {@link fillEmptyBlocks}: strip the lone `<br>` back out of an
+ * otherwise-empty block so the importer sees a genuinely empty block.
+ *
+ * A `<br>` inside an empty block is an export artifact for non-editor renderers
+ * (see `fillEmptyBlocks`), not real editor content. If it survives into
+ * `setContent`, TipTap parses it as a `hardBreak` node inside the block — which,
+ * on top of ProseMirror's own trailing-break decoration, renders the single
+ * blank line as *two*. Stripping it first makes TipTap model the block as one
+ * empty line, so `setContent(getContent(x))` reproduces the original state
+ * instead of growing a blank line on every round-trip.
+ *
+ * Runs only at import time (see `HTMLEditor.setContent()`), gated on the same
+ * `format_empty_lines` flag as its inverse, and shares `BLOCK_SELECTOR` /
+ * `CONTENT_BEARING` so the two can never drift apart on what "empty" means.
+ *
+ * Narrow and source-agnostic: `<div><br></div>` unambiguously means "one blank
+ * line" in HTML regardless of who authored it (this editor, a legacy theme,
+ * another client), so collapsing it to one empty editor line is correct for all
+ * inputs. Idempotent — a block with no `<br>` is left untouched.
+ */
+export function stripEmptyLineBreaks(html: string): string {
+  if (!html) return html;
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.body.querySelectorAll(BLOCK_SELECTOR).forEach((el) => {
+    const match = isFilledBlankLine(el);
+    if (match) match.br.remove();
+  });
+
+  return doc.body.innerHTML;
+}

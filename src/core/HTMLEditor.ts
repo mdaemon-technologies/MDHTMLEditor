@@ -38,7 +38,7 @@ import { Mention } from '../extensions/Mention';
 import { Anchor } from '../extensions/Anchor';
 import { InlineStyle } from '../extensions/InlineStyle';
 import { PasteFromOffice } from '../extensions/PasteFromOffice';
-import { fillEmptyBlocks } from '../utils/fillEmptyBlocks';
+import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
@@ -576,7 +576,12 @@ export class HTMLEditor implements IMDHTMLEditor {
   }
   
   setContent(html: string): void {
-    this.tiptap?.commands.setContent(html);
+    // Inverse of getContent()'s fillEmptyBlocks: strip the export-only <br> from
+    // empty blocks before TipTap parses it, so a blank line does not import as a
+    // hardBreak (which would render as two lines). Gated on the same flag.
+    this.tiptap?.commands.setContent(
+      this.config.format_empty_lines ? stripEmptyLineBreaks(html) : html,
+    );
   }
   
   insertContent(html: string): void {

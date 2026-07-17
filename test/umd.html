@@ -65,6 +65,7 @@
   <div class="controls">
     <button id="btn-get">Get content</button>
     <button id="btn-set">Set content</button>
+    <button id="btn-roundtrip">Round-trip</button>
     <button id="btn-bold">Toggle bold (execCommand)</button>
     <button id="btn-font">Font at cursor</button>
     <button id="btn-clear">Clear</button>
@@ -128,6 +129,13 @@
       document.getElementById('btn-set').addEventListener('click', function () {
         editor.setContent('<p>Content replaced via <em>setContent()</em>.</p>');
         show('setContent() called');
+      });
+      document.getElementById('btn-roundtrip').addEventListener('click', function () {
+        // format_empty_lines symmetry: getContent() fills blank lines with <br>,
+        // setContent() strips it back out — so the blank line above holds instead
+        // of doubling. Click repeatedly and re-check "Get content".
+        editor.setContent(editor.getContent());
+        show('round-tripped: setContent(getContent())', editor.getContent());
       });
       document.getElementById('btn-bold').addEventListener('click', function () {
         editor.execCommand('bold');

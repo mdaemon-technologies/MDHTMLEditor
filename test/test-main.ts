@@ -234,6 +234,16 @@ $('#btn-copy-html').addEventListener('click', () => {
   log('info', 'HTML copied to clipboard');
 });
 
+// ── Round-trip: setContent(getContent()) ─────────────
+// Exercises the format_empty_lines symmetry: getContent() fills blank lines
+// with <br>, setContent() strips it back out, so blank lines stay put instead
+// of doubling. Add blank lines, click this a few times, and watch them hold.
+$('#btn-roundtrip').addEventListener('click', () => {
+  editor.setContent(editor.getContent());
+  refreshHtml();
+  log('info', 'round-tripped: setContent(getContent())');
+});
+
 // ── Content controls ─────────────────────────────────
 $('#btn-set-content').addEventListener('click', () => {
   const val = $<HTMLTextAreaElement>('#set-content-input').value;

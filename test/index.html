@@ -157,8 +157,9 @@
           <div class="btn-row" style="margin-top:8px;">
             <button class="btn" id="btn-copy-html">Copy HTML</button>
             <button class="btn" id="btn-refresh-html">Refresh</button>
+            <button class="btn" id="btn-roundtrip">Round-trip</button>
           </div>
-          <p style="font-size:11px;color:#888;margin:6px 0 0;">Type a few blank lines (press Enter on empty lines) between paragraphs, then Refresh: <code>format_empty_lines</code> fills each empty block with <code>&lt;br&gt;</code> so the blank lines survive outside the editor.</p>
+          <p style="font-size:11px;color:#888;margin:6px 0 0;">Type a few blank lines (press Enter on empty lines) between paragraphs, then Refresh: <code>format_empty_lines</code> fills each empty block with <code>&lt;br&gt;</code> so the blank lines survive outside the editor. <strong>Round-trip</strong> runs <code>setContent(getContent())</code> — with the flag on, blank lines stay put instead of doubling each time.</p>
         </div>
       </div>
     </div>

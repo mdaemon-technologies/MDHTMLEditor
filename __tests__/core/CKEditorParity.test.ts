@@ -98,6 +98,39 @@ describe('CKEditor parity features', () => {
       expect(second).not.toContain('<br><br>');
     });
 
+    it('setContent strips the export <br> so a blank line imports as one empty line, not a hardBreak', () => {
+      editor = new HTMLEditor(container, { forced_root_block: 'div' });
+      // Simulate re-importing previously-exported content: getContent() would
+      // have filled the empty block with a <br>. Without the inverse strip on
+      // import, TipTap parses that <br> as a hardBreak inside the block, which
+      // renders as a *second* line on top of the trailing-break decoration.
+      editor.setContent('<div>a</div><div><br></div><div>b</div>');
+      // The raw engine output (before fillEmptyBlocks re-adds the export <br>)
+      // must show a genuinely empty block — no hardBreak node survived import.
+      const raw = editor.getTipTap()?.getHTML() ?? '';
+      expect(raw).not.toContain('<br');
+      // And the exported form still carries exactly one <br> for that blank line.
+      expect(editor.getContent()).toContain('<br');
+    });
+
+    it('does not grow blank lines across repeated round-trips (setContent(getContent()) is stable)', () => {
+      editor = new HTMLEditor(container, { forced_root_block: 'div' });
+      editor.setContent('<div>a</div><div></div><div>b</div>');
+      const first = editor.getContent();
+      // Three more round-trips must not accumulate <br> or hardBreaks.
+      for (let i = 0; i < 3; i++) {
+        editor.setContent(editor.getContent());
+      }
+      expect(editor.getContent()).toBe(first);
+      expect(editor.getTipTap()?.getHTML() ?? '').not.toContain('<br');
+    });
+
+    it('preserves a genuine trailing hard break through setContent (Shift+Enter is not stripped)', () => {
+      editor = new HTMLEditor(container, { forced_root_block: 'div' });
+      editor.setContent('<div>hello<br>world</div>');
+      expect(editor.getTipTap()?.getHTML() ?? '').toContain('<br');
+    });
+
     it('leaves content untouched when format_empty_lines is false', () => {
       editor = new HTMLEditor(container, {
         forced_root_block: 'div',

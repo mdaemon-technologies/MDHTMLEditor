@@ -1,5 +1,10 @@
 # MDHTMLEditor Changelog
 
+## 1.9.3 (July 17, 2026)
+
+### Bug Fixes
+- **A blank line no longer doubles every time content is round-tripped through the editor.** `getContent()` fills each empty block with a `<br>` (the `format_empty_lines` fix from 1.9.1) so blank lines survive outside the editor. But `setContent()` had no inverse: re-importing that output — which every consumer does on skin/root-block change, and mail apps do when reloading a saved draft — handed the `<br>` to TipTap, which parsed it as a `hardBreak` node *inside* the block. On top of ProseMirror's own trailing-break decoration, that single blank line then rendered as **two**, growing by one line on every save/reload cycle. `setContent()` now runs the exact inverse of `fillEmptyBlocks` (a new `stripEmptyLineBreaks` utility, paired with it in the same module and gated on the same `format_empty_lines` flag): it removes the lone `<br>` from an otherwise-empty block before TipTap parses it, so the block is modeled as one genuinely empty line. `setContent(getContent(x))` now reproduces the original blank-line state and is stable across any number of round-trips. The strip is narrow and source-agnostic — `<div><br></div>` unambiguously means "one blank line" in HTML no matter who authored it, so it is collapsed for all inputs (this editor's output, a legacy theme, another client), while a genuine trailing hard break (`<div>hello<br></div>` from Shift+Enter) has text content and is left untouched. Opting out with `format_empty_lines: false` disables both halves.
+
 ## 1.9.2 (July 17, 2026)
 
 ### Bug Fixes

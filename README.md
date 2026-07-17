@@ -134,7 +134,7 @@ const editor = new HTMLEditor(container, {
 | `browser_spellcheck` | boolean | true | Enable browser spell-check |
 | `entity_encoding` | 'raw' \| 'named' \| 'numeric' | 'raw' | HTML entity encoding mode |
 | `convert_unsafe_embeds` | boolean | true | Sanitize embedded content |
-| `format_empty_lines` | boolean | true | Preserve blank lines in exported content. When `true`, `getContent()` injects a `<br>` into each empty block so blank lines keep their height in mail clients and other consumers that would otherwise collapse a bare `<div></div>`/`<p></p>` to zero height. Set `false` to pass the engine's output through unchanged. |
+| `format_empty_lines` | boolean | true | Preserve blank lines in exported content. When `true`, `getContent()` injects a `<br>` into each empty block so blank lines keep their height in mail clients and other consumers that would otherwise collapse a bare `<div></div>`/`<p></p>` to zero height, and `setContent()` runs the exact inverse — stripping that `<br>` back out on import so a blank line is not re-parsed as a doubled line. This keeps `setContent(getContent(x))` stable across round-trips (skin/root-block changes, saved-draft reloads). Set `false` to pass the engine's output through unchanged in both directions. |
 | `paste_from_office` | boolean | true | Clean and preserve formatting when pasting from Microsoft Word and Excel |
 | `speech_to_text` | boolean | true | Enable Speech to Text and Dictate toolbar buttons (requires Web Speech API: Chrome, Edge, Safari) |
 | `setup` | (editor) => void | - | Callback invoked before init — use to register custom buttons |
