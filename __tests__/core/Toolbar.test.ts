@@ -174,6 +174,73 @@ describe('Toolbar', () => {
     });
   });
 
+  describe('Keyboard shortcuts', () => {
+    // Regression: the toolbar used to bind Ctrl+B/I/U and Ctrl+Z on `document`.
+    // TipTap already binds those natively on the editor DOM; ProseMirror
+    // preventDefaults but does not stopPropagation, so the event still bubbled
+    // to this document handler, which ran the command a SECOND time — toggling
+    // the mark TipTap had just applied straight back off (net no-op for the
+    // user on Ctrl+B/I/U) and undoing twice on Ctrl+Z.
+    //
+    // In jsdom a keydown dispatched on `document` does NOT reach ProseMirror's
+    // native keymap (that lives on the editor DOM), so these tests exercise the
+    // document handler in isolation: after the fix it must be inert for
+    // B/I/U/Z, which is exactly what stops the double-application in a browser.
+    // (jsdom also can't focus a contenteditable element, so `isFocused` is
+    // forced to satisfy the handler's focus guard.)
+    let tt: NonNullable<ReturnType<HTMLEditor['getTipTap']>>;
+
+    beforeEach(() => {
+      editor.setContent('<p>hello</p>');
+      tt = editor.getTipTap()!;
+      Object.defineProperty(tt, 'isFocused', { get: () => true, configurable: true });
+    });
+
+    const modKey = (key: string, opts: Partial<KeyboardEventInit> = {}) =>
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, ...opts }),
+      );
+
+    it('does not apply bold itself on Ctrl+B (delegated to TipTap)', () => {
+      tt.commands.selectAll();
+      expect(tt.isActive('bold')).toBe(false);
+
+      modKey('b');
+
+      // Before the fix the document handler toggled bold on here; in a browser
+      // that landed on top of TipTap's own toggle, cancelling it out.
+      expect(tt.isActive('bold')).toBe(false);
+    });
+
+    it('does not apply italic or underline itself on Ctrl+I / Ctrl+U', () => {
+      tt.commands.selectAll();
+
+      modKey('i');
+      modKey('u');
+
+      expect(tt.isActive('italic')).toBe(false);
+      expect(tt.isActive('underline')).toBe(false);
+    });
+
+    it('does not undo itself on Ctrl+Z (delegated to TipTap History)', () => {
+      tt.commands.insertContent(' world');
+      const before = editor.getContent();
+      expect(before).toContain('world');
+
+      modKey('z');
+
+      // The document handler no longer undoes; content is unchanged. Before the
+      // fix this leg ran a second undo on top of History's.
+      expect(editor.getContent()).toBe(before);
+    });
+
+    it('still opens Search/Replace on Ctrl+F (no native binding to delegate to)', () => {
+      modKey('f');
+
+      expect(document.querySelector('.md-searchreplace-dialog')).not.toBeNull();
+    });
+  });
+
   describe('Dropdown Buttons', () => {
     it('should have font family dropdown', () => {
       const fontFamilyDropdown = container.querySelector('[data-dropdown="fontfamily"]');

@@ -1219,29 +1219,23 @@ export class Toolbar {
     };
     document.addEventListener('click', this.boundClickHandler);
     
-    // Keyboard shortcuts
+    // Keyboard shortcuts.
+    //
+    // Only bind shortcuts that TipTap does NOT already provide. Bold (Mod-b),
+    // Italic (Mod-i), Underline (Mod-u) and History (Mod-z / Mod-y) are bound
+    // natively by their TipTap extensions on the editor DOM. ProseMirror calls
+    // preventDefault on those keys but does NOT stopPropagation, so the event
+    // still bubbles up to this document-level listener. Re-running the command
+    // here therefore applied it a *second* time — toggling the mark TipTap had
+    // just applied straight back off (net no-op for Ctrl+B/I/U), and undoing
+    // twice for Ctrl+Z. Delegating to TipTap is the fix. Search/Replace has no
+    // native binding, so Mod-f stays here.
     this.boundKeydownHandler = (e: KeyboardEvent) => {
       if (!this.tiptap?.isFocused) return;
-      
+
       const isMod = e.ctrlKey || e.metaKey;
-      
-      if (isMod && e.key === 'b') {
-        e.preventDefault();
-        this.tiptap?.chain().focus().toggleBold().run();
-      } else if (isMod && e.key === 'i') {
-        e.preventDefault();
-        this.tiptap?.chain().focus().toggleItalic().run();
-      } else if (isMod && e.key === 'u') {
-        e.preventDefault();
-        this.tiptap?.chain().focus().toggleUnderline().run();
-      } else if (isMod && e.key === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          this.tiptap?.chain().focus().redo().run();
-        } else {
-          this.tiptap?.chain().focus().undo().run();
-        }
-      } else if (isMod && e.key === 'f') {
+
+      if (isMod && e.key === 'f') {
         e.preventDefault();
         this.openSearchReplace();
       }

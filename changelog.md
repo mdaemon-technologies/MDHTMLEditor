@@ -1,5 +1,10 @@
 # MDHTMLEditor Changelog
 
+## 1.9.2 (July 17, 2026)
+
+### Bug Fixes
+- **`Ctrl/Cmd+B`, `Ctrl+I`, `Ctrl+U`, and `Ctrl+Z` keyboard shortcuts work again.** The toolbar registered its own `document`-level `keydown` listener that re-ran `toggleBold`/`toggleItalic`/`toggleUnderline`/`undo` for these chords. But TipTap's Bold/Italic/Underline/History extensions already bind them natively on the editor DOM, and ProseMirror calls `preventDefault` without `stopPropagation` — so every one of those key presses was handled *twice*. The two toggles cancelled out (net no-op for `Ctrl+B/I/U`) and `Ctrl+Z` undid two steps at once. Worse, because the listener compared `event.key` case-sensitively, holding Shift slipped past it: `Ctrl+Shift+B` fell through to TipTap's blockquote binding, and `Ctrl+Shift+I`/`Ctrl+Shift+U` reached TipTap's uppercase italic/underline bindings — so the marks only appeared to work with Shift held. The redundant bold/italic/underline/undo/redo bindings have been removed; these shortcuts are now owned solely by TipTap (matching the documented behavior). `Ctrl/Cmd+F` (Find & Replace) has no native TipTap binding and is still handled by the toolbar.
+
 ## 1.9.1 (July 17, 2026)
 
 ### Bug Fixes
