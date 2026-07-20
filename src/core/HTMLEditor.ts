@@ -31,6 +31,7 @@ import { DEFAULT_ICONS, CONFAB_ICONS } from '../icons';
 import type { IconSet } from '../icons';
 import { FontSize } from '../extensions/FontSize';
 import { BlockFontStyle } from '../extensions/BlockFontStyle';
+import { BlockIndent } from '../extensions/BlockIndent';
 import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
 import { SignatureBlock } from '../extensions/SignatureBlock';
@@ -461,6 +462,9 @@ export class HTMLEditor implements IMDHTMLEditor {
         defaultFontFamily: this.config.fontName ?? DEFAULT_FONT_FAMILY,
         defaultFontSize: this.config.fontSize ?? DEFAULT_FONT_SIZE,
       }),
+      // Block indentation (margin-left) for paragraphs/headings, plus the Tab /
+      // Shift+Tab keymap that indents the block when the cursor is not in a list.
+      BlockIndent,
       LineHeight,
       Color,
       Highlight.configure({
@@ -787,14 +791,18 @@ export class HTMLEditor implements IMDHTMLEditor {
         chain.toggleOrderedList().run();
         return true;
       case 'indent':
-        // TipTap doesn't have direct indent, use sink list item
+        // In a list, indent nests the item; elsewhere it adds a block margin.
         if (this.tiptap.isActive('listItem')) {
           chain.sinkListItem('listItem').run();
+        } else {
+          chain.indentBlock().run();
         }
         return true;
       case 'outdent':
         if (this.tiptap.isActive('listItem')) {
           chain.liftListItem('listItem').run();
+        } else {
+          chain.outdentBlock().run();
         }
         return true;
       case 'undo':

@@ -1,6 +1,18 @@
 # MDHTMLEditor Changelog
 
-## 1.9.4 (July 20, 2026)
+## 1.10.0 (July 20, 2026)
+
+### New Features
+- **`Tab` / `Shift+Tab` are now always handled, so the key never escapes the editor and moves focus to the next element on the page (CKEditor parity).** Previously, indentation only worked inside lists; anywhere else `Tab` jumped keyboard focus out of the editor. A new `BlockIndent` extension adds a left indent (inline `margin-left`, in 40px steps up to 400px) to the paragraph(s) or heading(s) in the selection, and binds `Tab` / `Shift+Tab` to it. The routing mirrors CKEditor and covers every context:
+  - **In a table** — deferred to the Table extension, so `Tab` moves between cells.
+  - **In a code block** — inserts a literal tab character.
+  - **In a list item that can nest** (has a preceding sibling) — sinks the item; **Shift+Tab** lifts it.
+  - **In a list item that cannot nest** (e.g. the first item at a level) — indents the item's own content instead of doing nothing, so `Tab` still adds a "tab inside the `<li>`".
+  - **Everywhere else** (paragraphs, headings) — indents/outdents the block, and consumes the key even at the min/max indent so focus never leaves the editor.
+
+  The `indent` / `outdent` toolbar buttons and `execCommand('indent'|'outdent')` follow the same rule (list → nest, otherwise → block margin). The indent is stored on the element as inline `margin-left`, so it survives in mail clients and other consumers that do not load the editor stylesheet, and an incoming `margin-left` is parsed back as the starting indent. `BlockIndent` (with an `indentBlock` / `outdentBlock` command pair and `BlockIndentOptions` for `types` / `step` / `max`) is exported.
+
+  Because Tab is captured, a keyboard escape is provided so the editor is not a focus trap (WCAG 2.1.2 "No Keyboard Trap"): pressing **`Esc` then `Tab`** (CodeMirror's convention) moves focus to the next focusable element outside the editor instead of indenting, and **`Esc` then `Shift+Tab`** moves to the previous one. `Esc` arms this for a single key press only; any other key disarms it, so a stray `Esc` never makes a later Tab jump out of the editor.
 
 ### Bug Fixes
 - **Content whose closing-tag slashes were backslash-escaped (`<\/p>`, `<\/li>`, `<\/ul>`) now imports as real tags instead of literal text.** Some hosts serialize the editor's HTML through encoders that escape `/` as `\/` — most notably PHP's `json_encode`, which does this by default unless `JSON_UNESCAPED_SLASHES` is set. The slash-free *opening* tags still built a real element tree, but the browser's HTML parser (the one TipTap uses in `setContent`/`insertContent`) does not treat `<\` as a tag opener, so the closing tags rendered as visible garbage text (`</p>`-looking characters) mid-content — a half-parsed list with broken markup. TinyMCE's hand-rolled parser silently tolerated the escaped slash, so restoring that leniency is part of preserving the facade: `setContent`, `insertContent`, and the Templates dropdown now normalize `<\/` back to `</` (a new `unescapeTagSlashes` utility) before parsing. The rewrite is limited to the `<\/` sequence — genuine text containing `<\/` would have arrived HTML-escaped as `&lt;\/`, so it can only ever repair a mangled closing tag — and is idempotent. This also restores `Tab` / `Shift+Tab` list indentation, which had only *appeared* broken because the mangled markup produced a malformed list with no real sibling items to nest; a well-formed list indents the second and later items as before (`Tab` on the first item at a level is a no-op, matching TipTap's `sinkListItem`).

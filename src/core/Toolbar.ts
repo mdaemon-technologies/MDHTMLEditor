@@ -468,13 +468,17 @@ export class Toolbar {
         return this.createActionButton('outdent', this.icon('outdent'), this.trans('Decrease indent'), () => {
           if (this.tiptap?.isActive('listItem')) {
             this.tiptap?.chain().focus().liftListItem('listItem').run();
+          } else {
+            this.tiptap?.chain().focus().outdentBlock().run();
           }
         });
-        
+
       case 'indent':
         return this.createActionButton('indent', this.icon('indent'), this.trans('Increase indent'), () => {
           if (this.tiptap?.isActive('listItem')) {
             this.tiptap?.chain().focus().sinkListItem('listItem').run();
+          } else {
+            this.tiptap?.chain().focus().indentBlock().run();
           }
         });
         

@@ -270,8 +270,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `superscript` | Toggle superscript |
 | `bullist` | Toggle bullet list |
 | `numlist` | Toggle numbered list |
-| `outdent` | Decrease indent |
-| `indent` | Increase indent |
+| `outdent` | Decrease indent (lifts a list item, or reduces a block's left margin) |
+| `indent` | Increase indent (nests a list item, or adds a left margin to a block) |
 | `blockquote` | Toggle block quote |
 | `fontfamily` | Font family dropdown (button shows the family at the cursor) |
 | `fontsize` | Font size dropdown (button shows the size at the cursor) |
@@ -544,8 +544,9 @@ The `searchreplace` toolbar button (or **Ctrl/Cmd+F**) opens a Find & Replace di
 | Ctrl/Cmd+Z | Undo |
 | Ctrl/Cmd+Shift+Z | Redo |
 | Ctrl/Cmd+F | Open Find & Replace |
-| Tab (in a list) | Indent the current list item (second and later items at a level; the first item does not nest) |
-| Shift+Tab (in a list) | Outdent the current list item |
+| Tab | Always handled (never escapes the editor). Nests the current list item (or, for an item that can't nest, indents its content), inserts a tab in a code block, moves to the next cell in a table, or adds a left margin to the current paragraph/heading |
+| Shift+Tab | Inverse of Tab: reduces the current block's left margin, lifts the current list item, or moves to the previous table cell |
+| Esc, then Tab | Moves focus out of the editor to the next focusable element (Shift+Tab → previous), so Tab is not a keyboard trap. Esc arms this for the next key press only; any other key cancels it |
 
 ## Localization
 

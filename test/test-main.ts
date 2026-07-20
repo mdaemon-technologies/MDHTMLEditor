@@ -179,6 +179,10 @@ function createEditorInstance(skin: typeof currentSkin) {
         '<span style="font-family: georgia, palatino; font-size: 24pt;">Georgia 24pt</span>, ' +
         '<span style="font-family: Calibri, sans-serif;">and Calibri, which is not in the font list</span>.</p>' +
         '<p>A named anchor target: <a id="welcome"></a> (insert more with the anchor button).</p>' +
+        // Put the cursor in this paragraph and press Tab / Shift+Tab: it indents
+        // and outdents the block (margin-left), CKEditor-style, instead of moving
+        // focus out of the editor. The indent/outdent toolbar buttons do the same.
+        '<p>Press Tab here to indent this paragraph.</p>' +
         '<ul><li>Bullet one</li><li>Bullet two</li></ul>' +
         '<blockquote><p>A block quote for testing.</p></blockquote>' +
         '<table><tbody><tr><th>Feature</th><th>Status</th></tr>' +

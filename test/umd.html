@@ -117,6 +117,9 @@
         // two spans to see them fall back to "Font" / "Font size".
         '<p><span style="font-family: times new roman, times; font-size: 18pt;">Times New Roman 18pt</span>, ' +
         '<span style="font-family: georgia, palatino; font-size: 24pt;">Georgia 24pt</span>.</p>' +
+        // Press Tab / Shift+Tab in this paragraph: it indents/outdents the block
+        // (margin-left, CKEditor-style) instead of moving focus out of the editor.
+        '<p>Press Tab here to indent this paragraph.<\\/p>' +
         // This list's closing-tag slashes are backslash-escaped (<\/li>), the
         // shape a PHP json_encode host emits. setContent() repairs them to real
         // tags, so it imports as a proper list instead of literal "</li>" text.

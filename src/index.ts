@@ -15,6 +15,8 @@ export type { IconSet } from './icons';
 export { FontSize } from './extensions/FontSize';
 export { BlockFontStyle } from './extensions/BlockFontStyle';
 export type { BlockFontStyleOptions } from './extensions/BlockFontStyle';
+export { BlockIndent } from './extensions/BlockIndent';
+export type { BlockIndentOptions } from './extensions/BlockIndent';
 export { LineHeight } from './extensions/LineHeight';
 export { TextDirection } from './extensions/TextDirection';
 export { CharacterMap, CHAR_MAP } from './extensions/CharacterMap';
