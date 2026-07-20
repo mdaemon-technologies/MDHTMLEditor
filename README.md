@@ -159,8 +159,8 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 ### Methods
 
 - `getContent(): string` - Get HTML content
-- `setContent(html: string): void` - Set HTML content
-- `insertContent(html: string): void` - Insert HTML at cursor
+- `setContent(html: string): void` - Set HTML content. Backslash-escaped closing tags (`<\/p>`, produced by hosts that pass HTML through PHP `json_encode` and similar `/`→`\/` encoders) are repaired to real tags before parsing, matching TinyMCE's lenient parser
+- `insertContent(html: string): void` - Insert HTML at cursor (same `<\/` repair as `setContent`)
 - `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command
 - `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default). Returns `''` when the selection spans more than one family
 - `getFontSize(): string` - Font size in effect at the cursor (same resolution order). Returns `''` when the selection spans more than one size, and inside a heading with no inline override (headings size by level)
@@ -544,6 +544,8 @@ The `searchreplace` toolbar button (or **Ctrl/Cmd+F**) opens a Find & Replace di
 | Ctrl/Cmd+Z | Undo |
 | Ctrl/Cmd+Shift+Z | Redo |
 | Ctrl/Cmd+F | Open Find & Replace |
+| Tab (in a list) | Indent the current list item (second and later items at a level; the first item does not nest) |
+| Shift+Tab (in a list) | Outdent the current list item |
 
 ## Localization
 

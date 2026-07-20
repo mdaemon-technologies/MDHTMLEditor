@@ -88,6 +88,20 @@ function createEditorInstance(skin: typeof currentSkin) {
       description: 'Weekly status update template',
       content: '<h2>Status Update</h2><h3>Completed</h3><ul><li>Task 1</li></ul><h3>In Progress</h3><ul><li>Task 2</li></ul><h3>Blocked</h3><ul><li>None</li></ul>',
     },
+    {
+      // Demonstrates the <\/tag> repair: this body's closing-tag slashes are
+      // backslash-escaped (as a PHP json_encode host would emit). Without the
+      // fix these would show as literal "</p>"/"</li>" text; the editor now
+      // parses them as real tags. With a well-formed list, Tab / Shift+Tab
+      // indent the second and later items (the first item at a level does not
+      // nest).
+      id: 4,
+      title: 'Escaped Status (repair demo)',
+      description: 'Body with backslash-escaped closing tags + nested list',
+      content: '<p>Last Week<\\/p><ul><li>Completed the following<\\/li>' +
+        '<li>Fixed the following<ul><li>sub task<\\/li><\\/ul><\\/li><\\/ul>' +
+        '<p>This Week<\\/p><ul><li>Ship the release<\\/li><\\/ul>',
+    },
   ],
 
   // Include custom button names in the toolbar string

@@ -1,5 +1,10 @@
 # MDHTMLEditor Changelog
 
+## 1.9.4 (July 20, 2026)
+
+### Bug Fixes
+- **Content whose closing-tag slashes were backslash-escaped (`<\/p>`, `<\/li>`, `<\/ul>`) now imports as real tags instead of literal text.** Some hosts serialize the editor's HTML through encoders that escape `/` as `\/` — most notably PHP's `json_encode`, which does this by default unless `JSON_UNESCAPED_SLASHES` is set. The slash-free *opening* tags still built a real element tree, but the browser's HTML parser (the one TipTap uses in `setContent`/`insertContent`) does not treat `<\` as a tag opener, so the closing tags rendered as visible garbage text (`</p>`-looking characters) mid-content — a half-parsed list with broken markup. TinyMCE's hand-rolled parser silently tolerated the escaped slash, so restoring that leniency is part of preserving the facade: `setContent`, `insertContent`, and the Templates dropdown now normalize `<\/` back to `</` (a new `unescapeTagSlashes` utility) before parsing. The rewrite is limited to the `<\/` sequence — genuine text containing `<\/` would have arrived HTML-escaped as `&lt;\/`, so it can only ever repair a mangled closing tag — and is idempotent. This also restores `Tab` / `Shift+Tab` list indentation, which had only *appeared* broken because the mangled markup produced a malformed list with no real sibling items to nest; a well-formed list indents the second and later items as before (`Tab` on the first item at a level is a no-op, matching TipTap's `sinkListItem`).
+
 ## 1.9.3 (July 17, 2026)
 
 ### Bug Fixes

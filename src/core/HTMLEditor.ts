@@ -39,6 +39,7 @@ import { Anchor } from '../extensions/Anchor';
 import { InlineStyle } from '../extensions/InlineStyle';
 import { PasteFromOffice } from '../extensions/PasteFromOffice';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
+import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
@@ -576,16 +577,20 @@ export class HTMLEditor implements IMDHTMLEditor {
   }
   
   setContent(html: string): void {
+    // Repair closing tags whose slashes were backslash-escaped by the host
+    // (`<\/p>` → `</p>`), which the browser parser would otherwise leave as
+    // literal text. See unescapeTagSlashes.
+    const normalized = unescapeTagSlashes(html);
     // Inverse of getContent()'s fillEmptyBlocks: strip the export-only <br> from
     // empty blocks before TipTap parses it, so a blank line does not import as a
     // hardBreak (which would render as two lines). Gated on the same flag.
     this.tiptap?.commands.setContent(
-      this.config.format_empty_lines ? stripEmptyLineBreaks(html) : html,
+      this.config.format_empty_lines ? stripEmptyLineBreaks(normalized) : normalized,
     );
   }
-  
+
   insertContent(html: string): void {
-    this.tiptap?.commands.insertContent(html);
+    this.tiptap?.commands.insertContent(unescapeTagSlashes(html));
   }
   
   /**

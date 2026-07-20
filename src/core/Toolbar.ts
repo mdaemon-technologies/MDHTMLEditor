@@ -21,6 +21,7 @@ import { LinkEditor } from '../extensions/LinkEditor';
 import { AnchorDialog } from '../extensions/AnchorDialog';
 import { SpeechToText, isSpeechRecognitionSupported } from '../extensions/SpeechToText';
 import { Dictation } from '../extensions/Dictation';
+import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import type { StyleFormat } from '../types';
 
 interface ToolbarOptions {
@@ -858,7 +859,7 @@ export class Toolbar {
     }));
     
     return this.createDropdown('template', this.trans('Templates'), options, (selected) => {
-      this.tiptap?.chain().focus().insertContent(selected.value).run();
+      this.tiptap?.chain().focus().insertContent(unescapeTagSlashes(selected.value)).run();
       const matched = templates.find(t => t.content === selected.value);
       if (matched) {
         this.options.editor.fire('templatechange', matched);

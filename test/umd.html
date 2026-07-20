@@ -116,7 +116,15 @@
         // click through this paragraph to watch them change, and select across
         // two spans to see them fall back to "Font" / "Font size".
         '<p><span style="font-family: times new roman, times; font-size: 18pt;">Times New Roman 18pt</span>, ' +
-        '<span style="font-family: georgia, palatino; font-size: 24pt;">Georgia 24pt</span>.</p>'
+        '<span style="font-family: georgia, palatino; font-size: 24pt;">Georgia 24pt</span>.</p>' +
+        // This list's closing-tag slashes are backslash-escaped (<\/li>), the
+        // shape a PHP json_encode host emits. setContent() repairs them to real
+        // tags, so it imports as a proper list instead of literal "</li>" text.
+        // Click into the second item and press Tab / Shift+Tab to indent and
+        // outdent it (the first item at a level does not nest).
+        '<p>Try Tab in this list:<\\/p>' +
+        '<ul><li>First item<\\/li>' +
+        '<li>Second item — press Tab here<\\/li><\\/ul>'
       );
 
       editor.on('change', function () {
