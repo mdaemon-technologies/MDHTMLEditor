@@ -141,6 +141,77 @@ describe('CKEditor parity features', () => {
       // Opt-out: the bare empty block is passed through as the engine emits it.
       expect(html).not.toMatch(/<div[^>]*>\s*<br[^>]*>\s*<\/div>/);
     });
+
+    it('insertContent strips the export <br> just like setContent', () => {
+      editor = new HTMLEditor(container, { forced_root_block: 'div' });
+      editor.setContent('');
+      // A fragment as getContent() would have produced it: the blank line
+      // carries the export-only <br>. Inserted verbatim it would import as a
+      // hardBreak and render as two blank lines.
+      editor.insertContent('<div>a</div><div><br></div><div>b</div>');
+      expect(editor.getTipTap()?.getHTML() ?? '').not.toContain('<br');
+      // And it still exports with exactly one <br> for that blank line.
+      expect(editor.getContent()).toMatch(/<div[^>]*>\s*<br[^>]*>\s*<\/div>/);
+    });
+
+    it('insertContent leaves a genuine hard break alone', () => {
+      editor = new HTMLEditor(container, { forced_root_block: 'div' });
+      editor.setContent('');
+      editor.insertContent('<div>hello<br>world</div>');
+      expect(editor.getTipTap()?.getHTML() ?? '').toContain('<br');
+    });
+
+    it('insertContent honors the format_empty_lines opt-out', () => {
+      editor = new HTMLEditor(container, {
+        forced_root_block: 'div',
+        format_empty_lines: false,
+      });
+      editor.setContent('');
+      editor.insertContent('<div>a</div><div><br></div><div>b</div>');
+      // No import pass: the <br> survives into the document as a hardBreak.
+      expect(editor.getTipTap()?.getHTML() ?? '').toContain('<br');
+    });
+
+    it('the change event payload matches getContent()', () => {
+      jest.useFakeTimers();
+      try {
+        editor = new HTMLEditor(container, { forced_root_block: 'div' });
+        const seen: string[] = [];
+        editor.on('change', (html: string) => seen.push(html));
+
+        editor.getTipTap()?.commands.setContent('<div>a</div><div></div><div>b</div>');
+        jest.advanceTimersByTime(50);
+
+        expect(seen.length).toBeGreaterThan(0);
+        // Consumers that save the change payload and consumers that poll
+        // getContent() must get byte-identical HTML — blank lines included.
+        expect(seen[seen.length - 1]).toBe(editor.getContent());
+        expect(seen[seen.length - 1]).toMatch(/<div[^>]*>\s*<br[^>]*>\s*<\/div>/);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('the change payload is unformatted when format_empty_lines is false', () => {
+      jest.useFakeTimers();
+      try {
+        editor = new HTMLEditor(container, {
+          forced_root_block: 'div',
+          format_empty_lines: false,
+        });
+        const seen: string[] = [];
+        editor.on('change', (html: string) => seen.push(html));
+
+        editor.getTipTap()?.commands.setContent('<div>a</div><div></div><div>b</div>');
+        jest.advanceTimersByTime(50);
+
+        expect(seen.length).toBeGreaterThan(0);
+        expect(seen[seen.length - 1]).toBe(editor.getContent());
+        expect(seen[seen.length - 1]).not.toMatch(/<div[^>]*>\s*<br[^>]*>\s*<\/div>/);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 
   describe('execCommand additions', () => {

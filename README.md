@@ -134,7 +134,7 @@ const editor = new HTMLEditor(container, {
 | `browser_spellcheck` | boolean | true | Enable browser spell-check |
 | `entity_encoding` | 'raw' \| 'named' \| 'numeric' | 'raw' | HTML entity encoding mode |
 | `convert_unsafe_embeds` | boolean | true | Sanitize embedded content |
-| `format_empty_lines` | boolean | true | Preserve blank lines in exported content. When `true`, `getContent()` injects a `<br>` into each empty block so blank lines keep their height in mail clients and other consumers that would otherwise collapse a bare `<div></div>`/`<p></p>` to zero height, and `setContent()` runs the exact inverse — stripping that `<br>` back out on import so a blank line is not re-parsed as a doubled line. This keeps `setContent(getContent(x))` stable across round-trips (skin/root-block changes, saved-draft reloads). Set `false` to pass the engine's output through unchanged in both directions. |
+| `format_empty_lines` | boolean | true | Preserve blank lines in exported content. When `true`, every path that hands HTML *out* of the editor (`getContent()`, the `change` event payload, the source dialog, preview) injects a `<br>` into each empty block so blank lines keep their height in mail clients and other consumers that would otherwise collapse a bare `<div></div>`/`<p></p>` to zero height, and every path that brings HTML *in* (`setContent()`, `insertContent()`, the Templates dropdown, saving the source dialog) runs the exact inverse — stripping that `<br>` back out on import so a blank line is not re-parsed as a doubled line. This keeps `setContent(getContent(x))` stable across round-trips (skin/root-block changes, saved-draft reloads). Set `false` to pass the engine's output through unchanged in both directions. |
 | `paste_from_office` | boolean | true | Clean and preserve formatting when pasting from Microsoft Word and Excel |
 | `speech_to_text` | boolean | true | Enable Speech to Text and Dictate toolbar buttons (requires Web Speech API: Chrome, Edge, Safari) |
 | `setup` | (editor) => void | - | Callback invoked before init — use to register custom buttons |
@@ -158,9 +158,9 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 
 ### Methods
 
-- `getContent(): string` - Get HTML content
-- `setContent(html: string): void` - Set HTML content. Backslash-escaped closing tags (`<\/p>`, produced by hosts that pass HTML through PHP `json_encode` and similar `/`→`\/` encoders) are repaired to real tags before parsing, matching TinyMCE's lenient parser
-- `insertContent(html: string): void` - Insert HTML at cursor (same `<\/` repair as `setContent`)
+- `getContent(): string` - Get HTML content (applies the `format_empty_lines` serialization pass; the `change` event payload is identical)
+- `setContent(html: string): void` - Set HTML content. Backslash-escaped closing tags (`<\/p>`, produced by hosts that pass HTML through PHP `json_encode` and similar `/`→`\/` encoders) are repaired to real tags before parsing, matching TinyMCE's lenient parser, and the `format_empty_lines` import pass is applied
+- `insertContent(html: string): void` - Insert HTML at cursor (same `<\/` repair and `format_empty_lines` import pass as `setContent`, so inserting a fragment produced by `getContent()` does not double its blank lines)
 - `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command
 - `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default). Returns `''` when the selection spans more than one family
 - `getFontSize(): string` - Font size in effect at the cursor (same resolution order). Returns `''` when the selection spans more than one size, and inside a heading with no inline override (headings size by level)
@@ -182,7 +182,7 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 ### Events
 
 - `init` - Editor initialized
-- `change` - Content changed (debounced)
+- `change` - Content changed (debounced). The payload is byte-identical to `getContent()`, so saving the event's HTML and polling `getContent()` produce the same result
 - `dirty` - Dirty state changed
 - `focus` - Editor focused
 - `blur` - Editor blurred

@@ -4,7 +4,6 @@
  */
 
 import type { HTMLEditor } from '../core/HTMLEditor';
-import type { Editor as TipTapEditor } from '@tiptap/core';
 
 export interface SourceEditorOptions {
   editor: HTMLEditor;
@@ -21,15 +20,11 @@ export class SourceEditor {
     this.options = options;
   }
 
-  private get tiptap(): TipTapEditor | null {
-    return this.options.editor.getTipTap();
-  }
-
   open(): void {
     if (this.overlay) {
       // Re-populate textarea with current HTML
       if (this.textarea) {
-        this.textarea.value = this.tiptap?.getHTML() ?? '';
+        this.textarea.value = this.options.editor.getContent();
       }
       this.overlay.style.display = 'flex';
       this.textarea?.focus();
@@ -47,7 +42,10 @@ export class SourceEditor {
 
   private save(): void {
     if (this.textarea) {
-      this.tiptap?.commands.setContent(this.textarea.value);
+      // Public setContent(), not the raw TipTap command: the textarea holds
+      // getContent() output, so it must be read back through the matching
+      // import pass or every open/save cycle grows the blank lines.
+      this.options.editor.setContent(this.textarea.value);
     }
     this.close();
   }
@@ -89,7 +87,7 @@ export class SourceEditor {
 
     this.textarea = document.createElement('textarea');
     this.textarea.className = 'md-source-editor-textarea';
-    this.textarea.value = this.tiptap?.getHTML() ?? '';
+    this.textarea.value = this.options.editor.getContent();
     this.textarea.spellcheck = false;
 
     // Allow Tab key inside textarea

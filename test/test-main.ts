@@ -192,7 +192,11 @@ function createEditorInstance(skin: typeof currentSkin) {
     });
 
     ed.on('change', (html) => {
-      log('change', `length=${html.length}`);
+      // The payload must be byte-identical to getContent() — a host that saves
+      // the event's HTML and one that polls getContent() have to agree, blank
+      // lines and all. The log calls that out so a regression is visible here.
+      const matches = html === ed.getContent();
+      log('change', `length=${html.length} · matches getContent(): ${matches ? 'yes' : 'NO — MISMATCH'}`);
       refreshHtml();
     });
 
@@ -269,6 +273,9 @@ $('#btn-set-content').addEventListener('click', () => {
   refreshHtml();
 });
 
+// insertContent() runs the same import pass as setContent(), so pasting the
+// "Current HTML" panel's output back in here re-imports its blank lines as one
+// line each rather than doubling them.
 $('#btn-insert-content').addEventListener('click', () => {
   const val = $<HTMLTextAreaElement>('#set-content-input').value;
   editor.insertContent(val);

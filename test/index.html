@@ -159,7 +159,7 @@
             <button class="btn" id="btn-refresh-html">Refresh</button>
             <button class="btn" id="btn-roundtrip">Round-trip</button>
           </div>
-          <p style="font-size:11px;color:#888;margin:6px 0 0;">Type a few blank lines (press Enter on empty lines) between paragraphs, then Refresh: <code>format_empty_lines</code> fills each empty block with <code>&lt;br&gt;</code> so the blank lines survive outside the editor. <strong>Round-trip</strong> runs <code>setContent(getContent())</code> — with the flag on, blank lines stay put instead of doubling each time.</p>
+          <p style="font-size:11px;color:#888;margin:6px 0 0;">Type a few blank lines (press Enter on empty lines) between paragraphs, then Refresh: <code>format_empty_lines</code> fills each empty block with <code>&lt;br&gt;</code> so the blank lines survive outside the editor. <strong>Round-trip</strong> runs <code>setContent(getContent())</code> — with the flag on, blank lines stay put instead of doubling each time. Every other content path shares that same pair: the <code>change</code> event logs whether its payload matches <code>getContent()</code>, <code>insertContent()</code> / the <strong>Templates</strong> dropdown run the import half (paste this panel's HTML into the box below and click <strong>Insert content</strong>), and the toolbar's <strong>Source code</strong> and <strong>Preview</strong> buttons show the same output <code>getContent()</code> returns.</p>
         </div>
       </div>
     </div>

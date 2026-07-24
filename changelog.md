@@ -1,5 +1,17 @@
 # MDHTMLEditor Changelog
 
+## 1.10.1 (July 24, 2026)
+
+### Bug Fixes
+- **The `change` event now emits exactly what `getContent()` returns, and every content path shares the same `format_empty_lines` pair.** The blank-line handling added in 1.9.1/1.9.3 lived only in `getContent()` (serialize: fill each empty block with a `<br>`) and `setContent()` (parse: strip it back out). Every other way HTML crossed the editor boundary went straight to the TipTap instance and skipped both halves, so the two directions disagreed depending on which door the content used:
+  - **`change` payload** — the event fired the engine's raw `getHTML()`. A host that saved the payload (the common pattern for autosave/draft sync) stored content whose blank lines had *no* `<br>` and therefore collapsed to zero height in mail clients, while the same host calling `getContent()` got the corrected HTML. The payload is now the serialized output, so the two are byte-identical.
+  - **`insertContent()`** — applied the `<\/` tag-slash repair but not the blank-line strip, so inserting a fragment previously produced by `getContent()` (a template, a saved snippet) handed the export-only `<br>` to TipTap as a `hardBreak` and grew each blank line into two.
+  - **Templates dropdown** — inserted through the TipTap chain directly rather than `insertContent()`, so it inherited neither pass on its own.
+  - **Source dialog** — showed raw `getHTML()` and saved through the raw TipTap `setContent`, so opening it and pressing Save without editing anything was not a no-op: the displayed HTML and the editor's real output differed, and the round-trip could double blank lines.
+  - **Preview** — rendered raw `getHTML()` in the new window, which is precisely the out-of-editor rendering context `format_empty_lines` exists for, so previewed blank lines collapsed while the sent content kept them.
+
+  The two passes are now a single pair of private helpers on `HTMLEditor` (`formatOutput` / `formatInput`) that all of these route through, so the directions cannot drift apart again. `format_empty_lines: false` still opts out of both halves on every path.
+
 ## 1.10.0 (July 20, 2026)
 
 ### New Features

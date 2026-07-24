@@ -562,39 +562,57 @@ export class HTMLEditor implements IMDHTMLEditor {
       this.dirty = true;
       this.fire('dirty', true);
     }
-    
+
     // Debounce change events
     if (this.changeTimeout) {
       clearTimeout(this.changeTimeout);
     }
-    
+
+    // The payload must be what getContent() would return: a consumer that saves
+    // the `change` html and one that polls getContent() have to agree, or blank
+    // lines survive one path and collapse on the other.
+    const content = this.formatOutput(html);
     this.changeTimeout = setTimeout(() => {
-      this.fire('change', html);
+      this.fire('change', content);
     }, 20);
   }
-  
-  // Public API methods
-  
-  getContent(): string {
-    const html = this.tiptap?.getHTML() ?? '';
+
+  /**
+   * The single serialization pass every path that hands HTML *out* of the editor
+   * must run — getContent(), the `change` event, source view, preview. See
+   * fillEmptyBlocks; formatInput() is its inverse.
+   */
+  private formatOutput(html: string): string {
     return this.config.format_empty_lines ? fillEmptyBlocks(html) : html;
   }
-  
-  setContent(html: string): void {
-    // Repair closing tags whose slashes were backslash-escaped by the host
-    // (`<\/p>` → `</p>`), which the browser parser would otherwise leave as
-    // literal text. See unescapeTagSlashes.
+
+  /**
+   * The single parse pass every path that brings HTML *into* the editor must run
+   * — setContent(), insertContent(). Repairs backslash-escaped closing tags
+   * (`<\/p>` → `</p>`, see unescapeTagSlashes) and strips the export-only <br>
+   * from empty blocks so a blank line does not import as a hardBreak (which
+   * would render as two lines). Inverse of formatOutput().
+   */
+  private formatInput(html: string): string {
     const normalized = unescapeTagSlashes(html);
-    // Inverse of getContent()'s fillEmptyBlocks: strip the export-only <br> from
-    // empty blocks before TipTap parses it, so a blank line does not import as a
-    // hardBreak (which would render as two lines). Gated on the same flag.
-    this.tiptap?.commands.setContent(
-      this.config.format_empty_lines ? stripEmptyLineBreaks(normalized) : normalized,
-    );
+    return this.config.format_empty_lines ? stripEmptyLineBreaks(normalized) : normalized;
+  }
+
+  // Public API methods
+
+  getContent(): string {
+    return this.formatOutput(this.tiptap?.getHTML() ?? '');
+  }
+
+  setContent(html: string): void {
+    this.tiptap?.commands.setContent(this.formatInput(html));
   }
 
   insertContent(html: string): void {
-    this.tiptap?.commands.insertContent(unescapeTagSlashes(html));
+    // Same import pass as setContent: a fragment produced by getContent() (a
+    // template, a saved snippet) carries the export-only <br> in its blank
+    // blocks, and inserting that verbatim would grow a blank line into two.
+    this.tiptap?.commands.insertContent(this.formatInput(html));
   }
   
   /**

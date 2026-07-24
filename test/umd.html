@@ -66,6 +66,7 @@
     <button id="btn-get">Get content</button>
     <button id="btn-set">Set content</button>
     <button id="btn-roundtrip">Round-trip</button>
+    <button id="btn-insert-roundtrip">Insert own output</button>
     <button id="btn-bold">Toggle bold (execCommand)</button>
     <button id="btn-font">Font at cursor</button>
     <button id="btn-clear">Clear</button>
@@ -130,8 +131,12 @@
         '<li>Second item — press Tab here<\\/li><\\/ul>'
       );
 
-      editor.on('change', function () {
-        show('change event fired (content updated)');
+      editor.on('change', function (html) {
+        // The payload is byte-identical to getContent() — a host that saves the
+        // event's HTML and one that polls getContent() must agree, blank lines
+        // included. Shown here so a regression is visible in the demo.
+        show('change event fired · payload matches getContent(): ' +
+          (html === editor.getContent() ? 'yes' : 'NO — MISMATCH'));
       });
 
       document.getElementById('btn-get').addEventListener('click', function () {
@@ -144,9 +149,16 @@
       document.getElementById('btn-roundtrip').addEventListener('click', function () {
         // format_empty_lines symmetry: getContent() fills blank lines with <br>,
         // setContent() strips it back out — so the blank line above holds instead
-        // of doubling. Click repeatedly and re-check "Get content".
+        // of doubling. Click repeatedly and re-check "Get content". insertContent()
+        // and the toolbar's Source code / Preview buttons share the same pair.
         editor.setContent(editor.getContent());
         show('round-tripped: setContent(getContent())', editor.getContent());
+      });
+      document.getElementById('btn-insert-roundtrip').addEventListener('click', function () {
+        // insertContent() runs the same import pass, so re-inserting the editor's
+        // own output does not double its blank lines either.
+        editor.insertContent(editor.getContent());
+        show('inserted getContent() at the cursor', editor.getContent());
       });
       document.getElementById('btn-bold').addEventListener('click', function () {
         editor.execCommand('bold');

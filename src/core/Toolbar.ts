@@ -21,7 +21,6 @@ import { LinkEditor } from '../extensions/LinkEditor';
 import { AnchorDialog } from '../extensions/AnchorDialog';
 import { SpeechToText, isSpeechRecognitionSupported } from '../extensions/SpeechToText';
 import { Dictation } from '../extensions/Dictation';
-import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import type { StyleFormat } from '../types';
 
 interface ToolbarOptions {
@@ -863,7 +862,11 @@ export class Toolbar {
     }));
     
     return this.createDropdown('template', this.trans('Templates'), options, (selected) => {
-      this.tiptap?.chain().focus().insertContent(unescapeTagSlashes(selected.value)).run();
+      // Go through the public insertContent() rather than the TipTap chain so
+      // template HTML gets the same import pass as setContent() — tag-slash
+      // repair and blank-line normalization.
+      this.options.editor.focus();
+      this.options.editor.insertContent(selected.value);
       const matched = templates.find(t => t.content === selected.value);
       if (matched) {
         this.options.editor.fire('templatechange', matched);
@@ -1484,7 +1487,9 @@ export class Toolbar {
   }
   
   private openPreview(): void {
-    const html = this.tiptap?.getHTML() ?? '';
+    // Preview renders outside the editor, which is exactly the case
+    // format_empty_lines exists for — use the serialized output, not the raw doc.
+    const html = this.options.editor.getContent();
     const previewWindow = window.open('', '_blank', 'width=800,height=600');
     if (previewWindow) {
       previewWindow.document.write(`
