@@ -14,6 +14,7 @@
   'Justify': 'По ширине',
   'Text color': 'Цвет текста',
   'Background color': 'Цвет фона',
+  'Remove color': 'Очистить цвет',
   'Remove formatting': 'Очистить форматирование',
   'Copy': 'Копировать',
   'Cut': 'Вырезать',

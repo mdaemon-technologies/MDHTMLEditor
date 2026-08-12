@@ -14,6 +14,7 @@
   'Justify': 'Obojestranska poravnava',
   'Text color': 'Barva besedila',
   'Background color': 'Barva ozadja',
+  'Remove color': 'Odstrani barvo',
   'Remove formatting': 'Odstrani oblikovanje',
   'Copy': 'Kopiraj',
   'Cut': 'Izreži',

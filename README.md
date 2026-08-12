@@ -117,6 +117,9 @@ const editor = new HTMLEditor(container, {
 | `fontSize_sizes` | string | - | CKEditor alias for `font_size_formats` |
 | `block_formats` | string | 'Paragraph=p;Heading 1=h1;…' | Block-format dropdown definitions (`blocks` button) |
 | `style_formats` | StyleFormat[] | *(subset)* | Named styles for the Styles dropdown (`styles` button) |
+| `color_map` | string[] \| ColorOption[] | - | Palette for both color pickers (see [Color Pickers](#color-pickers)) |
+| `color_map_foreground` | string[] \| ColorOption[] | *(40 text colors)* | Palette for the `forecolor` picker; overrides `color_map` |
+| `color_map_background` | string[] \| ColorOption[] | *(26 highlight colors)* | Palette for the `backcolor` picker; overrides `color_map` |
 | `fontName` | string | `arial, helvetica, sans-serif` | Default font family, inlined on every block element (see [Font Family & Size](#font-family--size)) |
 | `fontSize` | string | `12pt` | Default font size, inlined on every paragraph (see [Font Family & Size](#font-family--size)) |
 | `directionality` | 'ltr' \| 'rtl' | 'ltr' | Text direction |
@@ -195,7 +198,7 @@ The following TinyMCE-compatible commands are supported:
 
 - `bold`, `italic`, `underline`, `strikethrough`
 - `fontname`, `fontsize`, `lineheight`
-- `forecolor`, `hilitecolor`, `backcolor`
+- `forecolor`, `hilitecolor`, `backcolor` — pass `''` or `'none'` as the value to clear the color instead of setting one
 - `justifyleft`, `justifycenter`, `justifyright`, `justifyfull`
 - `insertunorderedlist`, `insertorderedlist`
 - `indent`, `outdent`
@@ -285,8 +288,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `aligncenter` | Align center |
 | `alignright` | Align right |
 | `alignjustify` | Justify text |
-| `forecolor` | Text color picker (28 preset colors + custom hex input) |
-| `backcolor` | Highlight color picker (28 preset colors + custom hex input) |
+| `forecolor` | Text color picker (40 preset colors + custom hex input + Remove color) |
+| `backcolor` | Highlight color picker (26 preset colors + custom hex input + Remove color) |
 | `removeformat` | Clear all formatting |
 | `copy` | Copy selection |
 | `cut` | Cut selection |
@@ -425,6 +428,53 @@ Tables are resizable by dragging column borders.
   ```
 
   > Note: block elements map to headings/paragraph, `color`/`background-color` map to the editor's text-color/highlight marks, and `classes` apply a CSS class to the selection. Arbitrary element wrapping from CKEditor's stylesSet (e.g. `big`, `tt`, `cite`) is not supported by the underlying TipTap schema.
+
+## Color Pickers
+
+The `forecolor` (text) and `backcolor` (highlight) pickers have **different default
+palettes**, because a color that reads well behind text often does not read well as
+text. Both are 10 swatches wide:
+
+- **Text (`forecolor`)** — 40 colors: a grayscale ramp, the saturated hues, and two
+  rows of darker shades. Hue columns are red berry, red, orange, yellow, green, cyan,
+  cornflower blue, blue, purple, magenta.
+- **Highlight (`backcolor`)** — 26 colors: a grayscale ramp, the saturated hues, and
+  the pale tints that work as marker colors but are illegible as font colors.
+
+Both pickers also offer a custom hex input and a **Remove color** entry, which clears
+only that color and leaves other formatting on the selection intact (unlike
+`removeformat`, which strips everything).
+
+Override either palette with `color_map_foreground` / `color_map_background`, or both
+at once with `color_map`. A per-picker key wins over `color_map`. Both TinyMCE's flat
+form and an array of `ColorOption` objects are accepted:
+
+```typescript
+const editor = new HTMLEditor(container, {
+  // TinyMCE flat form: alternating value and label
+  color_map_foreground: [
+    '#000000', 'Black',
+    '#1155CC', 'Dark Blue',
+    '#38761D', 'Dark Green',
+  ],
+  // ColorOption[] form
+  color_map_background: [
+    { value: '#FFF2CC', label: 'Light Yellow' },
+    { value: '#D9EAD3', label: 'Light Green' },
+  ],
+});
+```
+
+Colors can also be set programmatically, including clearing them:
+
+```typescript
+editor.execCommand('forecolor', false, '#1155CC');
+editor.execCommand('forecolor', false, '');       // clear the text color
+editor.execCommand('backcolor', false, 'none');   // clear the highlight
+```
+
+> Note: swatch labels are used verbatim as tooltips and are not run through the
+> translation layer.
 
 ## Font Family & Size
 

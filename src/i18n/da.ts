@@ -14,6 +14,7 @@
   'Justify': 'Lige margener',
   'Text color': 'Tekstfarve',
   'Background color': 'Baggrundsfarve',
+  'Remove color': 'Fjern farve',
   'Remove formatting': 'Fjern formatering',
   'Copy': 'Kopier',
   'Cut': 'Klip',

@@ -339,6 +339,146 @@ describe('Toolbar', () => {
       const btn = backcolorBtn?.querySelector('button');
       expect(btn?.getAttribute('title')).toBe('Background color');
     });
+
+    // The picker menus are portaled to document.body, not the container
+    const swatchValues = (name: string): string[] => {
+      const menu = document.querySelector(`[data-colorpicker-menu="${name}"]`);
+      return Array.from(menu?.querySelectorAll('.md-toolbar-colorpicker-swatch') ?? [])
+        .map(el => el.getAttribute('data-color') ?? '');
+    };
+
+    const rebuild = (config: Record<string, unknown>) => {
+      editor.destroy();
+      editor = new HTMLEditor(container, config);
+    };
+
+    describe('palettes', () => {
+      it('should give text and highlight pickers different default palettes', () => {
+        expect(swatchValues('forecolor')).not.toEqual(swatchValues('backcolor'));
+      });
+
+      it('should render 40 text colors and 26 highlight colors by default', () => {
+        expect(swatchValues('forecolor')).toHaveLength(40);
+        expect(swatchValues('backcolor')).toHaveLength(26);
+      });
+
+      it('should omit the pale highlight tints from the text palette', () => {
+        const fore = swatchValues('forecolor');
+        // These read fine behind text but are illegible as font colors
+        ['#F4CCCC', '#FCE5CD', '#FFF2CC', '#D9EAD3', '#D0E0E3', '#CFE2F3', '#D9D2E9', '#EAD1DC']
+          .forEach(tint => expect(fore).not.toContain(tint));
+      });
+
+      it('should include dark shades in the text palette', () => {
+        const fore = swatchValues('forecolor');
+        ['#980000', '#A61C00', '#38761D', '#1155CC', '#351C75', '#741B47']
+          .forEach(dark => expect(fore).toContain(dark));
+      });
+
+      it('should keep the pale tints in the highlight palette', () => {
+        const back = swatchValues('backcolor');
+        expect(back).toContain('#FFF2CC');
+        expect(back).toContain('#D9EAD3');
+      });
+
+      it('should label swatches with their color name', () => {
+        const menu = document.querySelector('[data-colorpicker-menu="forecolor"]');
+        const swatch = menu?.querySelector('[data-color="#1155CC"]');
+        expect(swatch?.getAttribute('title')).toBe('Dark Cornflower Blue 2');
+      });
+    });
+
+    describe('color_map configuration', () => {
+      it('should let color_map override both pickers', () => {
+        rebuild({ color_map: ['#111111', 'One', '#222222', 'Two'] });
+        expect(swatchValues('forecolor')).toEqual(['#111111', '#222222']);
+        expect(swatchValues('backcolor')).toEqual(['#111111', '#222222']);
+      });
+
+      it('should let color_map_foreground override only the text picker', () => {
+        rebuild({ color_map_foreground: ['#123456', 'My Color'] });
+        expect(swatchValues('forecolor')).toEqual(['#123456']);
+        expect(swatchValues('backcolor')).toHaveLength(26);
+      });
+
+      it('should let color_map_background override only the highlight picker', () => {
+        rebuild({ color_map_background: ['#123456', 'My Color'] });
+        expect(swatchValues('backcolor')).toEqual(['#123456']);
+        expect(swatchValues('forecolor')).toHaveLength(40);
+      });
+
+      it('should let a per-picker key win over the shared color_map', () => {
+        rebuild({
+          color_map: ['#111111', 'Shared'],
+          color_map_foreground: ['#222222', 'Text only'],
+        });
+        expect(swatchValues('forecolor')).toEqual(['#222222']);
+        expect(swatchValues('backcolor')).toEqual(['#111111']);
+      });
+
+      it('should read the TinyMCE flat form as value/label pairs', () => {
+        rebuild({ color_map_foreground: ['#123456', 'My Color'] });
+        const swatch = document.querySelector('[data-colorpicker-menu="forecolor"] [data-color="#123456"]');
+        expect(swatch?.getAttribute('title')).toBe('My Color');
+      });
+
+      it('should use the value as the label when a trailing label is missing', () => {
+        rebuild({ color_map_foreground: ['#123456'] });
+        const swatch = document.querySelector('[data-colorpicker-menu="forecolor"] [data-color="#123456"]');
+        expect(swatch?.getAttribute('title')).toBe('#123456');
+      });
+
+      it('should accept the ColorOption object form', () => {
+        rebuild({ color_map_foreground: [{ value: '#abcdef', label: 'Objecty' }] });
+        const swatch = document.querySelector('[data-colorpicker-menu="forecolor"] [data-color="#abcdef"]');
+        expect(swatch?.getAttribute('title')).toBe('Objecty');
+      });
+    });
+
+    describe('remove color', () => {
+      const removeButton = (name: string) =>
+        document.querySelector(`[data-colorpicker-menu="${name}"] .md-toolbar-colorpicker-remove`) as HTMLElement | null;
+
+      it('should render a Remove color entry in both pickers', () => {
+        expect(removeButton('forecolor')?.textContent).toBe('Remove color');
+        expect(removeButton('backcolor')?.textContent).toBe('Remove color');
+      });
+
+      it('should unset the text color without touching other marks', () => {
+        editor.setContent('<p><strong><span style="color: #ff0000">Hello</span></strong></p>');
+        const tiptap = editor.getTipTap();
+        tiptap?.commands.selectAll();
+
+        removeButton('forecolor')?.click();
+
+        const html = editor.getContent();
+        expect(html).not.toContain('#ff0000');
+        expect(html).toContain('<strong>');
+      });
+
+      it('should unset the highlight color', () => {
+        editor.setContent('<p><mark data-color="#ffff00" style="background-color: #ffff00">Hello</mark></p>');
+        const tiptap = editor.getTipTap();
+        tiptap?.commands.selectAll();
+
+        removeButton('backcolor')?.click();
+
+        expect(editor.getContent()).not.toContain('background-color');
+      });
+
+      it('should reset the button preview to its default', () => {
+        const menu = document.querySelector('[data-colorpicker-menu="forecolor"]');
+        const preview = container.querySelector(
+          '[data-colorpicker="forecolor"] .md-toolbar-colorpicker-preview'
+        ) as HTMLElement;
+
+        (menu?.querySelector('[data-color="#CC0000"]') as HTMLElement)?.click();
+        expect(preview.style.backgroundColor).not.toBe('rgb(0, 0, 0)');
+
+        removeButton('forecolor')?.click();
+        expect(preview.style.backgroundColor).toBe('rgb(0, 0, 0)');
+      });
+    });
   });
 
   describe('List Buttons', () => {

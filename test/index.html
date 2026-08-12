@@ -324,6 +324,14 @@
             <label>Highlight Color</label>
             <input type="color" id="cmd-backcolor" value="#ffff00" />
           </div>
+          <div class="btn-row">
+            <button class="btn" id="btn-clear-forecolor">Clear Text Color</button>
+            <button class="btn" id="btn-clear-backcolor">Clear Highlight</button>
+          </div>
+          <div class="control-group" style="margin-top:8px;">
+            <label><input type="checkbox" id="cmd-custom-text-palette" /> Custom text palette</label>
+          </div>
+          <p style="font-size:11px;color:#888;margin:4px 0 0;">The text and highlight pickers have separate default palettes (40 readable text colors vs 26 marker colors). Checking the box recreates the editor with a 5-color <code>color_map_foreground</code>; the highlight picker keeps its default.</p>
         </div>
       </div>
 

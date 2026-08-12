@@ -14,6 +14,7 @@
   'Justify': 'Justify',
   'Text color': 'Text color',
   'Background color': 'Background color',
+  'Remove color': 'Remove color',
   'Remove formatting': 'Remove formatting',
   'Copy': 'Copy',
   'Cut': 'Cut',

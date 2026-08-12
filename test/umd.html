@@ -68,6 +68,8 @@
     <button id="btn-roundtrip">Round-trip</button>
     <button id="btn-insert-roundtrip">Insert own output</button>
     <button id="btn-bold">Toggle bold (execCommand)</button>
+    <button id="btn-color">Set text color</button>
+    <button id="btn-clear-color">Clear text color</button>
     <button id="btn-font">Font at cursor</button>
     <button id="btn-clear">Clear</button>
   </div>
@@ -163,6 +165,19 @@
       document.getElementById('btn-bold').addEventListener('click', function () {
         editor.execCommand('bold');
         show("execCommand('bold') called");
+      });
+      document.getElementById('btn-color').addEventListener('click', function () {
+        // One of the dark shades only the text palette has — open the toolbar's
+        // "A" picker and note it offers 40 readable colors, while the highlight
+        // picker next to it keeps its 26 marker colors.
+        editor.execCommand('forecolor', false, '#1155CC');
+        show("execCommand('forecolor', false, '#1155CC')", editor.getContent());
+      });
+      document.getElementById('btn-clear-color').addEventListener('click', function () {
+        // An empty value clears just the color — bold/italic on the same text
+        // survive, unlike removeformat. Same as the picker's "Remove color".
+        editor.execCommand('forecolor', false, '');
+        show("execCommand('forecolor', false, '') — color cleared", editor.getContent());
       });
       document.getElementById('btn-font').addEventListener('click', function () {
         // Either getter returns '' when the selection spans more than one value

@@ -14,6 +14,7 @@
   'Justify': 'Πλήρης στοίχιση',
   'Text color': 'Χρώμα κειμένου',
   'Background color': 'Χρώμα φόντου',
+  'Remove color': 'Αφαίρεση χρώματος',
   'Remove formatting': 'Αφαίρεση μορφοποίησης',
   'Copy': 'Αντιγραφή',
   'Cut': 'Αποκοπή',

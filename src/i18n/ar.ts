@@ -14,6 +14,7 @@
   'Justify': 'ضبط',
   'Text color': 'لون النص',
   'Background color': 'لون الخلفية',
+  'Remove color': 'إزالة اللون',
   'Remove formatting': 'إزالة التنسيق',
   'Copy': 'نسخ',
   'Cut': 'قص',

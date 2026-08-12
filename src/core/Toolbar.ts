@@ -64,8 +64,9 @@ const DEFAULT_STYLE_FORMATS: StyleFormat[] = [
   { title: 'Marker: Green', inline: 'span', styles: { 'background-color': 'Lime' } },
 ];
 
-// Default colors for color picker
-const DEFAULT_COLORS: ColorOption[] = [
+// Default palette for the highlight (backcolor) picker: a grayscale ramp, the
+// saturated hues, and the pale tints. Tuned for what reads well *behind* text.
+const DEFAULT_BACKCOLORS: ColorOption[] = [
   { value: '#000000', label: 'Black' },
   { value: '#434343', label: 'Dark Gray 4' },
   { value: '#666666', label: 'Dark Gray 3' },
@@ -94,6 +95,54 @@ const DEFAULT_COLORS: ColorOption[] = [
   { value: '#EAD1DC', label: 'Light Magenta' },
 ];
 
+// Default palette for the text (forecolor) picker. The pale tints that make good
+// highlights are illegible as font colors, so they are replaced by two rows of
+// darker shades. Four rows of ten, aligned by hue column, so the grid reads as a
+// column per hue: red berry, red, orange, yellow, green, cyan, cornflower blue,
+// blue, purple, magenta.
+const DEFAULT_FORECOLORS: ColorOption[] = [
+  { value: '#000000', label: 'Black' },
+  { value: '#434343', label: 'Dark Gray 4' },
+  { value: '#666666', label: 'Dark Gray 3' },
+  { value: '#999999', label: 'Dark Gray 2' },
+  { value: '#B7B7B7', label: 'Dark Gray 1' },
+  { value: '#CCCCCC', label: 'Gray' },
+  { value: '#D9D9D9', label: 'Light Gray 1' },
+  { value: '#EFEFEF', label: 'Light Gray 2' },
+  { value: '#F3F3F3', label: 'Light Gray 3' },
+  { value: '#FFFFFF', label: 'White' },
+  { value: '#980000', label: 'Red Berry' },
+  { value: '#FF0000', label: 'Red' },
+  { value: '#FF9900', label: 'Orange' },
+  { value: '#FFFF00', label: 'Yellow' },
+  { value: '#00FF00', label: 'Green' },
+  { value: '#00FFFF', label: 'Cyan' },
+  { value: '#4A86E8', label: 'Cornflower Blue' },
+  { value: '#0000FF', label: 'Blue' },
+  { value: '#9900FF', label: 'Purple' },
+  { value: '#FF00FF', label: 'Magenta' },
+  { value: '#A61C00', label: 'Dark Red Berry 1' },
+  { value: '#CC0000', label: 'Dark Red 1' },
+  { value: '#E69138', label: 'Dark Orange 1' },
+  { value: '#F1C232', label: 'Dark Yellow 1' },
+  { value: '#6AA84F', label: 'Dark Green 1' },
+  { value: '#45818E', label: 'Dark Cyan 1' },
+  { value: '#3C78D8', label: 'Dark Cornflower Blue 1' },
+  { value: '#3D85C6', label: 'Dark Blue 1' },
+  { value: '#674EA7', label: 'Dark Purple 1' },
+  { value: '#A64D79', label: 'Dark Magenta 1' },
+  { value: '#85200C', label: 'Dark Red Berry 2' },
+  { value: '#990000', label: 'Dark Red 2' },
+  { value: '#B45F06', label: 'Dark Orange 2' },
+  { value: '#BF9000', label: 'Dark Yellow 2' },
+  { value: '#38761D', label: 'Dark Green 2' },
+  { value: '#134F5C', label: 'Dark Cyan 2' },
+  { value: '#1155CC', label: 'Dark Cornflower Blue 2' },
+  { value: '#0B5394', label: 'Dark Blue 2' },
+  { value: '#351C75', label: 'Dark Purple 2' },
+  { value: '#741B47', label: 'Dark Magenta 2' },
+];
+
 /**
  * Parse font formats string into FontOption array
  */
@@ -112,6 +161,30 @@ function parseFontFormats(formats: string): FontOption[] {
  */
 function parseFontSizes(formats: string): string[] {
   return formats.split(' ').map(s => s.trim()).filter(Boolean);
+}
+
+/**
+ * Normalize a configured color palette into ColorOption[]. Accepts TinyMCE's
+ * flat form (alternating value and label: `['#FF0000', 'Red', ...]`) as well as
+ * a ColorOption[]. A trailing value with no label uses the value as its label.
+ */
+function parseColorMap(map: string[] | ColorOption[]): ColorOption[] {
+  const colors: ColorOption[] = [];
+
+  for (let i = 0; i < map.length; i++) {
+    const entry = map[i];
+
+    if (typeof entry === 'string') {
+      const next = map[i + 1];
+      const label = typeof next === 'string' ? next : undefined;
+      colors.push({ value: entry, label: label ?? entry });
+      if (label !== undefined) i++;
+    } else if (entry && typeof entry.value === 'string') {
+      colors.push(entry);
+    }
+  }
+
+  return colors;
 }
 
 /**
@@ -518,11 +591,15 @@ export class Toolbar {
       case 'forecolor':
         return this.createColorPicker('forecolor', this.trans('Text color'), (color) => {
           this.tiptap?.chain().focus().setColor(color).run();
+        }, () => {
+          this.tiptap?.chain().focus().unsetColor().run();
         });
-        
+
       case 'backcolor':
         return this.createColorPicker('backcolor', this.trans('Background color'), (color) => {
           this.tiptap?.chain().focus().setHighlight({ color }).run();
+        }, () => {
+          this.tiptap?.chain().focus().unsetHighlight().run();
         });
         
       case 'removeformat':
@@ -902,6 +979,22 @@ export class Toolbar {
     return this.options.config.style_formats ?? DEFAULT_STYLE_FORMATS;
   }
 
+  /**
+   * Palette for a color picker. `color_map_foreground` / `color_map_background`
+   * override the shared `color_map`, which in turn overrides the built-in
+   * default for that picker. Text and highlight have different defaults: the
+   * pale tints that work as highlights are unreadable as font colors.
+   */
+  private getColors(name: string): ColorOption[] {
+    const { color_map, color_map_foreground, color_map_background } = this.options.config;
+    const specific = name === 'forecolor' ? color_map_foreground : color_map_background;
+    const map = specific ?? color_map;
+
+    if (map) return parseColorMap(map);
+
+    return name === 'forecolor' ? DEFAULT_FORECOLORS : DEFAULT_BACKCOLORS;
+  }
+
   private createStylesDropdown(): HTMLElement {
     const formats = this.getStyleFormats();
     const options = formats.map((f, i) => ({ label: f.title, value: String(i) }));
@@ -1102,30 +1195,65 @@ export class Toolbar {
   private createColorPicker(
     name: string,
     tooltip: string,
-    onSelect: (color: string) => void
+    onSelect: (color: string) => void,
+    onRemove?: () => void
   ): HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.className = 'md-toolbar-colorpicker';
     wrapper.setAttribute('data-colorpicker', name);
-    
+
+    const defaultPreview = name === 'forecolor' ? '#000' : '#ff0';
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'md-toolbar-btn md-toolbar-colorpicker-btn';
     button.title = tooltip;
     button.innerHTML = `
       <span class="md-toolbar-colorpicker-icon md-icon-${name}">A</span>
-      <span class="md-toolbar-colorpicker-preview" style="background-color: ${name === 'forecolor' ? '#000' : '#ff0'}"></span>
+      <span class="md-toolbar-colorpicker-preview" style="background-color: ${defaultPreview}"></span>
       <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
     `;
-    
+
     const menu = document.createElement('div');
     menu.className = 'md-toolbar-colorpicker-menu';
+    // The menu is portaled to document.body, so tag it to keep it addressable
+    menu.setAttribute('data-colorpicker-menu', name);
     menu.style.display = 'none';
-    
+
+    const closeMenu = () => {
+      menu.style.display = 'none';
+      wrapper.classList.remove('md-toolbar-colorpicker-open');
+    };
+
+    const setPreview = (color: string) => {
+      const preview = button.querySelector('.md-toolbar-colorpicker-preview') as HTMLElement;
+      if (preview) {
+        preview.style.backgroundColor = color;
+      }
+    };
+
+    // "Remove color" clears just this mark, unlike removeformat which strips all
+    if (onRemove) {
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'md-toolbar-colorpicker-remove';
+      removeBtn.textContent = this.trans('Remove color');
+
+      removeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onRemove();
+        setPreview(defaultPreview);
+        closeMenu();
+      });
+
+      menu.appendChild(removeBtn);
+    }
+
     const grid = document.createElement('div');
     grid.className = 'md-toolbar-colorpicker-grid';
-    
-    DEFAULT_COLORS.forEach(color => {
+
+    this.getColors(name).forEach(color => {
       const swatch = document.createElement('button');
       swatch.type = 'button';
       swatch.className = 'md-toolbar-colorpicker-swatch';
@@ -1137,17 +1265,10 @@ export class Toolbar {
         e.preventDefault();
         e.stopPropagation();
         onSelect(color.value);
-        
-        // Update preview
-        const preview = button.querySelector('.md-toolbar-colorpicker-preview') as HTMLElement;
-        if (preview) {
-          preview.style.backgroundColor = color.value;
-        }
-        
-        menu.style.display = 'none';
-        wrapper.classList.remove('md-toolbar-colorpicker-open');
+        setPreview(color.value);
+        closeMenu();
       });
-      
+
       grid.appendChild(swatch);
     });
     
@@ -1166,14 +1287,8 @@ export class Toolbar {
       e.preventDefault();
       e.stopPropagation();
       onSelect(colorInput.value);
-      
-      const preview = button.querySelector('.md-toolbar-colorpicker-preview') as HTMLElement;
-      if (preview) {
-        preview.style.backgroundColor = colorInput.value;
-      }
-      
-      menu.style.display = 'none';
-      wrapper.classList.remove('md-toolbar-colorpicker-open');
+      setPreview(colorInput.value);
+      closeMenu();
     });
     
     menu.appendChild(grid);

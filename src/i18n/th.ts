@@ -14,6 +14,7 @@
   'Justify': 'จัดเต็มบรรทัด',
   'Text color': 'สีตัวอักษร',
   'Background color': 'สีพื้นหลัง',
+  'Remove color': 'ล้างสี',
   'Remove formatting': 'ล้างการจัดรูปแบบ',
   'Copy': 'คัดลอก',
   'Cut': 'ตัด',

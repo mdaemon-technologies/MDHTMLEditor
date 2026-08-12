@@ -31,6 +31,18 @@ let currentSkin: 'oxide' | 'oxide-dark' | 'confab' | 'confab-dark' = 'oxide';
 let currentNarrowBreakpoint = 768;
 let currentPriorityOverrides: Record<string, number> = {};
 let currentForcedRootBlock: 'p' | 'div' = 'p';
+// When on, the text picker uses a custom palette instead of the 40-color default
+// (the highlight picker keeps its own default, showing the keys are independent).
+let useCustomTextPalette = false;
+
+// TinyMCE flat form: alternating value and label
+const CUSTOM_TEXT_PALETTE = [
+  '#000000', 'Black',
+  '#1155CC', 'Brand Blue',
+  '#38761D', 'Brand Green',
+  '#990000', 'Brand Red',
+  '#7F6000', 'Brand Gold',
+];
 
 function getContentCss(skin: string): 'default' | 'dark' | 'confab' | 'confab-dark' {
   if (skin === 'oxide-dark') return 'dark';
@@ -57,6 +69,10 @@ function createEditorInstance(skin: typeof currentSkin) {
   // a font/size from the toolbar still creates inline <span> overrides.
   fontName: 'Arial, Helvetica, sans-serif',
   fontSize: '12pt',
+
+  // Text and highlight pickers have separate default palettes (40 readable text
+  // colors vs 26 marker colors). Overriding one leaves the other on its default.
+  color_map_foreground: useCustomTextPalette ? CUSTOM_TEXT_PALETTE : undefined,
 
   // CKEditor-parity image guard (no upload URL → base64; guard still applies)
   images_file_types: 'jpg,jpeg,png,gif,bmp',
@@ -333,6 +349,31 @@ $<HTMLInputElement>('#cmd-backcolor').addEventListener('input', (e) => {
   const val = (e.target as HTMLInputElement).value;
   editor.execCommand('hilitecolor', false, val);
   log('cmd', `backcolor → ${val}`);
+});
+
+// An empty value clears the color without disturbing other marks, the same as
+// the "Remove color" entry in each picker's dropdown.
+$('#btn-clear-forecolor').addEventListener('click', () => {
+  editor.execCommand('forecolor', false, '');
+  log('cmd', 'forecolor → cleared');
+});
+
+$('#btn-clear-backcolor').addEventListener('click', () => {
+  editor.execCommand('hilitecolor', false, '');
+  log('cmd', 'backcolor → cleared');
+});
+
+$<HTMLInputElement>('#cmd-custom-text-palette').addEventListener('change', (e) => {
+  useCustomTextPalette = (e.target as HTMLInputElement).checked;
+
+  const content = editor.getContent();
+  editor.destroy();
+  editor = createEditorInstance(currentSkin);
+  setTimeout(() => {
+    editor.setContent(content);
+    refreshHtml();
+    log('info', `text palette: ${useCustomTextPalette ? 'custom (5 colors)' : 'default (40 colors)'}`);
+  }, 50);
 });
 
 // ── State controls ───────────────────────────────────

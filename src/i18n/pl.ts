@@ -14,6 +14,7 @@
   'Justify': 'Wyjustuj',
   'Text color': 'Kolor tekstu',
   'Background color': 'Kolor tła',
+  'Remove color': 'Usuń kolor',
   'Remove formatting': 'Usuń formatowanie',
   'Copy': 'Kopiuj',
   'Cut': 'Wytnij',

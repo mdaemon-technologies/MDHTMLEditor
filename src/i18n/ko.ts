@@ -14,6 +14,7 @@
   'Justify': '양쪽 맞춤',
   'Text color': '글자 색',
   'Background color': '배경색',
+  'Remove color': '색 제거',
   'Remove formatting': '서식 제거',
   'Copy': '복사',
   'Cut': '잘라내기',

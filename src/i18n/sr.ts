@@ -14,6 +14,7 @@
   'Justify': 'Обострано поравнање',
   'Text color': 'Боја текста',
   'Background color': 'Боја позадине',
+  'Remove color': 'Уклони боју',
   'Remove formatting': 'Уклони форматирање',
   'Copy': 'Копирај',
   'Cut': 'Исеци',

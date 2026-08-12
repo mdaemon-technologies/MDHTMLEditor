@@ -14,6 +14,7 @@
   'Justify': 'Aliniere stânga-dreapta',
   'Text color': 'Culoare text',
   'Background color': 'Culoare fundal',
+  'Remove color': 'Eliminare culoare',
   'Remove formatting': 'Eliminare formatare',
   'Copy': 'Copiere',
   'Cut': 'Decupare',

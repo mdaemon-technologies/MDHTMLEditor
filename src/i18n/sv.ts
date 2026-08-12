@@ -14,6 +14,7 @@
   'Justify': 'Marginaljustera',
   'Text color': 'Textfärg',
   'Background color': 'Bakgrundsfärg',
+  'Remove color': 'Ta bort färg',
   'Remove formatting': 'Ta bort formatering',
   'Copy': 'Kopiera',
   'Cut': 'Klipp ut',

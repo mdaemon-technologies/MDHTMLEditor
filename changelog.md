@@ -1,5 +1,19 @@
 # MDHTMLEditor Changelog
 
+## 1.11.0 (August 12, 2026)
+
+### New Features
+- **The text color and highlight color pickers now have separate palettes, and the text palette is built for readable text.** Both pickers previously shared one 26-swatch list chosen for highlighting: a grayscale ramp, the fully-saturated hues, and eight pale tints. Roughly half of it was unusable as a font color — `#FFFF00`, `#00FF00`, `#00FFFF`, `#FF00FF` and every pastel are illegible as text on a white background, and there were no dark shades at all.
+  - **`forecolor` (text)** now offers 40 colors in four rows of ten, aligned by hue column: the grayscale ramp, the saturated hues, and two rows of progressively darker shades (`#CC0000`, `#38761D`, `#1155CC`, `#351C75`, `#741B47`, …). The hue columns are red berry, red, orange, yellow, green, cyan, cornflower blue, blue, purple, magenta.
+  - **`backcolor` (highlight)** keeps the original 26 colors unchanged — the pale tints are exactly what makes a good marker.
+- **Both palettes are now configurable, with TinyMCE-compatible keys.** `color_map_foreground` and `color_map_background` set one picker each; `color_map` sets both and is overridden by either specific key. All three accept TinyMCE's flat form (`['#FF0000', 'Red', ...]`) or an array of `ColorOption` objects. Omitting them keeps the per-picker built-in defaults.
+- **Added a `Remove color` entry to both pickers.** Color could previously only be cleared with `removeformat`, which strips *every* mark on the selection — clearing a font color also lost its bold, italic, and font size. The new entry calls `unsetColor` / `unsetHighlight`, so only the color goes. `execCommand` gained the matching behavior: passing `''` or `'none'` as the value to `forecolor`, `backcolor`, or `hilitecolor` clears instead of setting.
+
+### Bug Fixes
+- The `forecolor`/`backcolor` menus are portaled to `document.body` and carried nothing to identify which picker they belonged to; they now carry a `data-colorpicker-menu` attribute.
+- Removed a duplicated `padding` declaration on `.md-toolbar-colorpicker-menu`.
+- `README.md` claimed both pickers offered 28 preset colors; the actual count was 26 for both.
+
 ## 1.10.1 (July 24, 2026)
 
 ### Bug Fixes

@@ -14,6 +14,7 @@
   'Justify': '两端对齐',
   'Text color': '文字颜色',
   'Background color': '背景颜色',
+  'Remove color': '清除颜色',
   'Remove formatting': '清除格式',
   'Copy': '复制',
   'Cut': '剪切',

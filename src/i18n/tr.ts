@@ -14,6 +14,7 @@
   'Justify': 'İki yana yasla',
   'Text color': 'Metin rengi',
   'Background color': 'Arka plan rengi',
+  'Remove color': 'Rengi kaldır',
   'Remove formatting': 'Biçimlendirmeyi kaldır',
   'Copy': 'Kopyala',
   'Cut': 'Kes',

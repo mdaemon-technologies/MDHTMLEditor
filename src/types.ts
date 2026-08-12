@@ -108,7 +108,18 @@ export interface EditorConfig {
   block_formats?: string;
   /** Named style definitions for the Styles dropdown (CKEditor stylesSet-compatible). */
   style_formats?: StyleFormat[];
-  
+
+  // Color pickers
+  /**
+   * Palette for both color pickers, unless a per-picker key overrides it.
+   * Accepts TinyMCE's flat form (`['#FF0000', 'Red', ...]`) or `ColorOption[]`.
+   */
+  color_map?: string[] | ColorOption[];
+  /** Palette for the `forecolor` (text color) picker. Overrides `color_map`. */
+  color_map_foreground?: string[] | ColorOption[];
+  /** Palette for the `backcolor` (highlight) picker. Overrides `color_map`. */
+  color_map_background?: string[] | ColorOption[];
+
   // Directionality
   directionality?: 'ltr' | 'rtl';
   

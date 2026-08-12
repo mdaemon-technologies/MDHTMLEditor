@@ -14,6 +14,7 @@
   'Justify': 'Zarovnat do bloku',
   'Text color': 'Barva textu',
   'Background color': 'Barva pozadí',
+  'Remove color': 'Odstranit barvu',
   'Remove formatting': 'Odstranit formátování',
   'Copy': 'Kopírovat',
   'Cut': 'Vyjmout',

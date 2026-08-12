@@ -14,6 +14,7 @@
   'Justify': 'Tasaa molemmat reunat',
   'Text color': 'Tekstin väri',
   'Background color': 'Taustaväri',
+  'Remove color': 'Poista väri',
   'Remove formatting': 'Poista muotoilu',
   'Copy': 'Kopioi',
   'Cut': 'Leikkaa',

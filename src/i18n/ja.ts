@@ -14,6 +14,7 @@
   'Justify': '両端揃え',
   'Text color': '文字色',
   'Background color': '背景色',
+  'Remove color': '色のクリア',
   'Remove formatting': '書式のクリア',
   'Copy': 'コピー',
   'Cut': '切り取り',

@@ -14,6 +14,7 @@
   'Justify': 'Sorkizárt',
   'Text color': 'Szöveg színe',
   'Background color': 'Háttérszín',
+  'Remove color': 'Szín eltávolítása',
   'Remove formatting': 'Formázás eltávolítása',
   'Copy': 'Másolás',
   'Cut': 'Kivágás',

@@ -14,6 +14,7 @@
   'Justify': 'Căn đều',
   'Text color': 'Màu chữ',
   'Background color': 'Màu nền',
+  'Remove color': 'Xóa màu',
   'Remove formatting': 'Xóa định dạng',
   'Copy': 'Sao chép',
   'Cut': 'Cắt',

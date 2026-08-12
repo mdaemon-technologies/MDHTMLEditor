@@ -74,6 +74,28 @@ describe('HTMLEditor', () => {
       expect(config.skin).toBe('oxide-dark');
     });
 
+    it('should carry the color picker palettes through normalizeConfig', () => {
+      editor = new HTMLEditor(container, {
+        color_map: ['#111111', 'Shared'],
+        color_map_foreground: ['#222222', 'Text'],
+        color_map_background: [{ value: '#333333', label: 'Highlight' }],
+      });
+
+      const config = editor.getConfig();
+      expect(config.color_map).toEqual(['#111111', 'Shared']);
+      expect(config.color_map_foreground).toEqual(['#222222', 'Text']);
+      expect(config.color_map_background).toEqual([{ value: '#333333', label: 'Highlight' }]);
+    });
+
+    it('should leave the color picker palettes undefined by default', () => {
+      editor = new HTMLEditor(container);
+      const config = editor.getConfig();
+
+      expect(config.color_map).toBeUndefined();
+      expect(config.color_map_foreground).toBeUndefined();
+      expect(config.color_map_background).toBeUndefined();
+    });
+
     it('should apply height from config', () => {
       editor = new HTMLEditor(container, { height: 400 });
       const wrapper = container.querySelector('.md-editor') as HTMLElement;
@@ -244,6 +266,34 @@ describe('HTMLEditor', () => {
     it('should execute backcolor command with value', () => {
       const result = editor.execCommand('backcolor', false, '#ffff00');
       expect(result).toBe(true);
+    });
+
+    it('should clear the text color when forecolor is given an empty value', () => {
+      editor.setContent('<p><strong><span style="color: #ff0000">Hello</span></strong></p>');
+      editor.getTipTap()?.commands.selectAll();
+
+      expect(editor.execCommand('forecolor', false, '')).toBe(true);
+
+      const html = editor.getContent();
+      expect(html).not.toContain('#ff0000');
+      // Unlike removeformat, other marks survive
+      expect(html).toContain('<strong>');
+    });
+
+    it("should clear the highlight when backcolor is given 'none'", () => {
+      editor.setContent('<p><mark data-color="#ffff00" style="background-color: #ffff00">Hello</mark></p>');
+      editor.getTipTap()?.commands.selectAll();
+
+      expect(editor.execCommand('backcolor', false, 'none')).toBe(true);
+      expect(editor.getContent()).not.toContain('background-color');
+    });
+
+    it("should clear the highlight when hilitecolor is given 'none'", () => {
+      editor.setContent('<p><mark data-color="#ffff00" style="background-color: #ffff00">Hello</mark></p>');
+      editor.getTipTap()?.commands.selectAll();
+
+      expect(editor.execCommand('hilitecolor', false, 'none')).toBe(true);
+      expect(editor.getContent()).not.toContain('background-color');
     });
 
     it('should execute justifyleft command', () => {

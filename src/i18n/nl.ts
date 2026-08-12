@@ -14,6 +14,7 @@
   'Justify': 'Uitvullen',
   'Text color': 'Tekstkleur',
   'Background color': 'Achtergrondkleur',
+  'Remove color': 'Kleur verwijderen',
   'Remove formatting': 'Opmaak verwijderen',
   'Copy': 'Kopiëren',
   'Cut': 'Knippen',

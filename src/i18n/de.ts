@@ -14,6 +14,7 @@
   'Justify': 'Blocksatz',
   'Text color': 'Textfarbe',
   'Background color': 'Hintergrundfarbe',
+  'Remove color': 'Farbe entfernen',
   'Remove formatting': 'Formatierung entfernen',
   'Copy': 'Kopieren',
   'Cut': 'Ausschneiden',

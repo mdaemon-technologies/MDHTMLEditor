@@ -14,6 +14,7 @@
   'Justify': 'Rata kiri-kanan',
   'Text color': 'Warna teks',
   'Background color': 'Warna latar belakang',
+  'Remove color': 'Hapus warna',
   'Remove formatting': 'Hapus pemformatan',
   'Copy': 'Salin',
   'Cut': 'Potong',

@@ -182,6 +182,11 @@ export class HTMLEditor implements IMDHTMLEditor {
       font_size_formats: config.font_size_formats ?? config.fontSize_sizes ?? DEFAULT_FONT_SIZES,
       block_formats: config.block_formats,
       style_formats: config.style_formats,
+      // Color picker palettes: left undefined so Toolbar can fall back to the
+      // per-picker built-in defaults (text and highlight palettes differ).
+      color_map: config.color_map,
+      color_map_foreground: config.color_map_foreground,
+      color_map_background: config.color_map_background,
       fontName: config.fontName,
       fontSize: config.fontSize,
       directionality: config.directionality ?? 'ltr',
@@ -781,13 +786,23 @@ export class HTMLEditor implements IMDHTMLEditor {
         return true;
       case 'forecolor':
         if (typeof value === 'string') {
-          chain.setColor(value).run();
+          // An empty value or 'none' clears the color, matching the picker's
+          // "Remove color" without stripping other marks the way removeformat does
+          if (value === '' || value === 'none') {
+            chain.unsetColor().run();
+          } else {
+            chain.setColor(value).run();
+          }
         }
         return true;
       case 'hilitecolor':
       case 'backcolor':
         if (typeof value === 'string') {
-          chain.setHighlight({ color: value }).run();
+          if (value === '' || value === 'none') {
+            chain.unsetHighlight().run();
+          } else {
+            chain.setHighlight({ color: value }).run();
+          }
         }
         return true;
       case 'justifyleft':

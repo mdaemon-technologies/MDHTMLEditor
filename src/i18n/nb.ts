@@ -14,6 +14,7 @@
   'Justify': 'Blokkjuster',
   'Text color': 'Tekstfarge',
   'Background color': 'Bakgrunnsfarge',
+  'Remove color': 'Fjern farge',
   'Remove formatting': 'Fjern formatering',
   'Copy': 'Kopier',
   'Cut': 'Klipp ut',
