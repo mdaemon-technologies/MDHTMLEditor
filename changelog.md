@@ -1,5 +1,10 @@
 # MDHTMLEditor Changelog
 
+## 1.11.1 (August 13, 2026)
+
+### Bug Fixes
+- Replaced the confab skin's `blockquote` toolbar icon. The old icon drew two closing curly quotation marks whose tails made it read as "99"; it is now a quote bar beside indented text lines, matching the other line-based icons in the set.
+
 ## 1.11.0 (August 12, 2026)
 
 ### New Features

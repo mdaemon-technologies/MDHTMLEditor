@@ -99,6 +99,16 @@ describe('Icons', () => {
       }
     });
 
+    it('should use the text-quote shape (not curly double quotes) for blockquote', () => {
+      // Regression: the old icon drew two curly quotation marks with tails
+      // (paths starting "M3 21c..." / "M15 21c..."). The icon is now a quote
+      // bar beside indented text lines.
+      expect(CONFAB_ICONS.blockquote).not.toContain('M3 21c');
+      expect(CONFAB_ICONS.blockquote).not.toContain('M15 21c');
+      expect(CONFAB_ICONS.blockquote).toContain('<path d="M3 12v6"/>');
+      expect(CONFAB_ICONS.blockquote).toContain('<path d="M17 6H3"/>');
+    });
+
     it('should use consistent SVG viewBox', () => {
       for (const [key, value] of Object.entries(CONFAB_ICONS)) {
         if (value.includes('<svg')) {
