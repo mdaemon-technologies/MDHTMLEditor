@@ -36,6 +36,7 @@ export { LinkEditor } from './extensions/LinkEditor';
 export type { LinkEditorOptions } from './extensions/LinkEditor';
 export { PasteFromOffice } from './extensions/PasteFromOffice';
 export type { PasteFromOfficeOptions } from './extensions/PasteFromOffice';
+export { ListPasteNormalizer, normalizePastedLists, stripIndentDeclarations } from './extensions/ListPasteNormalizer';
 export { SpeechToText, isSpeechRecognitionSupported } from './extensions/SpeechToText';
 export type { SpeechToTextOptions } from './extensions/SpeechToText';
 export { Dictation } from './extensions/Dictation';

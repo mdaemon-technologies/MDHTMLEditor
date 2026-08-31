@@ -130,7 +130,16 @@
         // outdent it (the first item at a level does not nest).
         '<p>Try Tab in this list:<\\/p>' +
         '<ul><li>First item<\\/li>' +
-        '<li>Second item — press Tab here<\\/li><\\/ul>'
+        '<li>Second item — press Tab here<\\/li><\\/ul>' +
+        // A lettered list keeps its letters instead of being renumbered 1, 2, 3,
+        // and survives a getContent()/setContent() round trip as <ol type="A">.
+        '<p>A lettered list stays lettered:<\\/p>' +
+        '<ol type="A"><li>Alpha<\\/li><li>Bravo<\\/li><\\/ol>' +
+        // Pasted lists often arrive with the source document's own indentation.
+        // "Decrease indent" pulls this one back (the margin sits on the <li>, so
+        // the number moves with the text); "Increase indent" pushes it out again.
+        '<p>Use Decrease indent on this pre-indented list:<\\/p>' +
+        '<ol><li style="margin-left: 40px">Indented item<\\/li><\\/ol>'
       );
 
       editor.on('change', function (html) {

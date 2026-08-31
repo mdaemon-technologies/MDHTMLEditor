@@ -1,5 +1,19 @@
 # MDHTMLEditor Changelog
 
+## 1.12.0 (August 31, 2026)
+
+### New Features
+- **Ordered lists keep their numbering style.** `<ol type="A">`, `type="a"`, `type="I"`, `type="i"` and `start="N"` now round-trip through `setContent()` / `getContent()` *and render as written* in the editor. They were already preserved in the model, but `.md-editor-body ol { list-style-type: decimal }` overrode them on screen — an HTML `type` attribute is only a presentational hint, which any author CSS outranks — so every lettered or roman list displayed as 1, 2, 3. The nesting defaults are now scoped with `:not([type])` and each `type` value has an explicit rule of its own, so a host-app CSS reset cannot strip the markers off a typed list either. A list that states its style in CSS (`<ol style="list-style-type:upper-alpha">`) is read the same way and exported as `<ol type="A">`.
+- **Increase/Decrease indent work inside lists.** The toolbar buttons, `execCommand('indent' | 'outdent')` and Tab / Shift+Tab now share one context-aware pair of commands (`indentSelection` / `outdentSelection`), so the three can no longer disagree. In a list, indent nests the item where it can and otherwise adds a `margin-left`; outdent takes that margin back first and then un-nests. The margin is written to the `<li>` rather than the paragraph inside it, so the bullet or number moves with the text, and it survives in exported HTML without the editor's stylesheet.
+
+### Bug Fixes
+- **Pasting a numbered list no longer indents it an extra level.** Word and Outlook email HTML often contains a genuine `<ol>` whose `<li>`s *also* carry Word's `MsoListParagraph` class and `mso-list` metadata. The Word-list converter treated those items as fake-list paragraphs and built a second list around them, producing `<ol><ol>…</ol></ol>` — which imported as a phantom empty item plus a list one level too deep. Such items are now cleaned in place instead.
+- **Pasted lists no longer carry the source document's indentation.** Word writes `margin-left:.5in;text-indent:-.25in` on every list paragraph and Google Docs writes `padding-inline-start:48px` on the list; stacked on top of the editor's own list indent, a pasted list sat further right than one built with the toolbar. A new `ListPasteNormalizer` extension strips inline left-indentation from pasted `<ol>`/`<ul>`/`<li>` — nesting is structural, so nothing is lost — for every paste, not just Office content. Indentation on pasted paragraphs and blockquotes is untouched.
+- **Pasting a lettered list from Word no longer renumbers it.** The converter reduced Word's `mso-level-number-format` to a single ordered/unordered boolean, discarding `alpha-upper`, `alpha-lower`, `roman-upper` and `roman-lower`. It now maps them to the list's `type`, and reads `mso-level-start-at` into `start`.
+- **A Word list pasted without `@list` rules is no longer turned into a bullet list.** Many clipboards carry no `@list` block at all, and the missing rule defaulted to unordered. The numbering is now inferred from the marker text Word inlines in its `mso-list:Ignore` spans (`1.`, `A.`, `iv.`, `·`), including the starting number; an explicit `@list` rule still wins.
+- Decrease indent was a silent no-op on the first item of a list (it only tried `liftListItem`, with no fallback), as was Increase indent (`sinkListItem` only) — the Tab key already had the fallback the buttons lacked.
+- `indentBlock` could apply two steps for one press once list items became indentable, by indenting both a node and its descendants; it now adjusts only the outermost indentable node in each branch.
+
 ## 1.11.1 (August 13, 2026)
 
 ### Bug Fixes

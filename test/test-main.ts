@@ -118,6 +118,19 @@ function createEditorInstance(skin: typeof currentSkin) {
         '<li>Fixed the following<ul><li>sub task<\\/li><\\/ul><\\/li><\\/ul>' +
         '<p>This Week<\\/p><ul><li>Ship the release<\\/li><\\/ul>',
     },
+    {
+      // Lists that state their own numbering style. Each keeps its letters /
+      // numerals instead of being renumbered 1, 2, 3, and Increase/Decrease
+      // indent shift the items (margin on the <li>, so the marker moves too).
+      id: 5,
+      title: 'Numbered list styles',
+      description: 'Lettered, roman and offset lists + indent behavior',
+      content: '<p>Lettered:</p><ol type="A"><li>Alpha</li><li>Bravo</li></ol>' +
+        '<p>Roman:</p><ol type="i"><li>First</li><li>Second</li></ol>' +
+        '<p>Starting at 5:</p><ol start="5"><li>Five</li><li>Six</li></ol>' +
+        '<p>Already indented (use Decrease indent to pull it back):</p>' +
+        '<ol><li style="margin-left: 40px">Indented item</li></ol>',
+    },
   ],
 
   // Include custom button names in the toolbar string

@@ -479,12 +479,27 @@ $md-dark-hover: #2d3e50;
     padding-left: 2em;
   }
 
-  ul { list-style-type: disc; }
-  ol { list-style-type: decimal; }
-  ul ul { list-style-type: circle; }
-  ul ul ul { list-style-type: square; }
-  ol ol { list-style-type: lower-alpha; }
-  ol ol ol { list-style-type: lower-roman; }
+  // Nesting defaults, scoped with :not([type]) so they never override a list
+  // that states its own numbering. An HTML `type` attribute is only a
+  // presentational hint, which any author CSS outranks — without the guard,
+  // `ol { list-style-type: decimal }` renumbers a pasted <ol type="A"> 1, 2, 3.
+  ul:not([type]) { list-style-type: disc; }
+  ol:not([type]) { list-style-type: decimal; }
+  ul ul:not([type]) { list-style-type: circle; }
+  ul ul ul:not([type]) { list-style-type: square; }
+  ol ol:not([type]) { list-style-type: lower-alpha; }
+  ol ol ol:not([type]) { list-style-type: lower-roman; }
+
+  // Restate the attribute's own meaning, so a host-app reset (`ol { list-style:
+  // none }`) cannot strip the markers from a typed list either. The `s` flag
+  // forces case-sensitive matching — `type` is one of the HTML attributes
+  // selectors match case-insensitively by default, which would make
+  // [type="A"] and [type="a"] the same rule.
+  ol[type="1" s] { list-style-type: decimal; }
+  ol[type="a" s] { list-style-type: lower-alpha; }
+  ol[type="A" s] { list-style-type: upper-alpha; }
+  ol[type="i" s] { list-style-type: lower-roman; }
+  ol[type="I" s] { list-style-type: upper-roman; }
   
   blockquote {
     margin: 0 0 1em;

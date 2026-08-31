@@ -538,20 +538,12 @@ export class Toolbar {
         
       case 'outdent':
         return this.createActionButton('outdent', this.icon('outdent'), this.trans('Decrease indent'), () => {
-          if (this.tiptap?.isActive('listItem')) {
-            this.tiptap?.chain().focus().liftListItem('listItem').run();
-          } else {
-            this.tiptap?.chain().focus().outdentBlock().run();
-          }
+          this.tiptap?.chain().focus().outdentSelection().run();
         });
 
       case 'indent':
         return this.createActionButton('indent', this.icon('indent'), this.trans('Increase indent'), () => {
-          if (this.tiptap?.isActive('listItem')) {
-            this.tiptap?.chain().focus().sinkListItem('listItem').run();
-          } else {
-            this.tiptap?.chain().focus().indentBlock().run();
-          }
+          this.tiptap?.chain().focus().indentSelection().run();
         });
         
       case 'blockquote':

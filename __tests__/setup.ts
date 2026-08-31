@@ -52,6 +52,20 @@ class IntersectionObserver {
 }
 window.IntersectionObserver = IntersectionObserver as any;
 
+// Mock ClipboardEvent (jsdom does not implement it; ProseMirror's
+// view.pasteHTML() constructs one, which is how tests exercise the real paste
+// pipeline — transformPastedHTML included)
+if (typeof (globalThis as any).ClipboardEvent === 'undefined') {
+  class ClipboardEventPolyfill extends Event {
+    clipboardData: DataTransfer | null;
+    constructor(type: string, init: { clipboardData?: DataTransfer | null } & EventInit = {}) {
+      super(type, init);
+      this.clipboardData = init.clipboardData ?? null;
+    }
+  }
+  (globalThis as any).ClipboardEvent = ClipboardEventPolyfill;
+}
+
 // Mock clipboard API
 Object.defineProperty(navigator, 'clipboard', {
   value: {

@@ -20,29 +20,48 @@ const css = result.css;
 describe('CSS Reset Protection', () => {
   describe('Layer 2 — Content area defensive defaults', () => {
     describe('list styles', () => {
+      // The defaults are scoped with :not([type]) so that an explicit HTML
+      // `type` attribute (e.g. pasted <ol type="A">) is not overridden — author
+      // CSS beats the attribute's presentational hint.
       it('should set list-style-type: disc on ul', () => {
-        expect(css).toMatch(/\.md-editor-body\s+ul\s*\{[^}]*list-style-type:\s*disc/);
+        expect(css).toMatch(/\.md-editor-body\s+ul:not\(\[type\]\)\s*\{[^}]*list-style-type:\s*disc/);
       });
 
       it('should set list-style-type: decimal on ol', () => {
-        expect(css).toMatch(/\.md-editor-body\s+ol\s*\{[^}]*list-style-type:\s*decimal/);
+        expect(css).toMatch(/\.md-editor-body\s+ol:not\(\[type\]\)\s*\{[^}]*list-style-type:\s*decimal/);
       });
 
       it('should set list-style-type: circle on nested ul ul', () => {
-        expect(css).toMatch(/\.md-editor-body\s+ul\s+ul\s*\{[^}]*list-style-type:\s*circle/);
+        expect(css).toMatch(/\.md-editor-body\s+ul\s+ul:not\(\[type\]\)\s*\{[^}]*list-style-type:\s*circle/);
       });
 
       it('should set list-style-type: square on deeply nested ul ul ul', () => {
-        expect(css).toMatch(/\.md-editor-body\s+ul\s+ul\s+ul\s*\{[^}]*list-style-type:\s*square/);
+        expect(css).toMatch(/\.md-editor-body\s+ul\s+ul\s+ul:not\(\[type\]\)\s*\{[^}]*list-style-type:\s*square/);
       });
 
       it('should set list-style-type: lower-alpha on nested ol ol', () => {
-        expect(css).toMatch(/\.md-editor-body\s+ol\s+ol\s*\{[^}]*list-style-type:\s*lower-alpha/);
+        expect(css).toMatch(/\.md-editor-body\s+ol\s+ol:not\(\[type\]\)\s*\{[^}]*list-style-type:\s*lower-alpha/);
       });
 
       it('should set list-style-type: lower-roman on deeply nested ol ol ol', () => {
-        expect(css).toMatch(/\.md-editor-body\s+ol\s+ol\s+ol\s*\{[^}]*list-style-type:\s*lower-roman/);
+        expect(css).toMatch(/\.md-editor-body\s+ol\s+ol\s+ol:not\(\[type\]\)\s*\{[^}]*list-style-type:\s*lower-roman/);
       });
+
+      it.each([
+        ['A', 'upper-alpha'],
+        ['a', 'lower-alpha'],
+        ['I', 'upper-roman'],
+        ['i', 'lower-roman'],
+        ['1', 'decimal'],
+      ])('should map ol[type="%s"] to list-style-type: %s', (type, style) => {
+        expect(css).toMatch(
+          // Sass drops the quotes around values that are valid CSS identifiers.
+          new RegExp(`\\.md-editor-body\\s+ol\\[type="?${type}"? s\\]\\s*\\{[^}]*list-style-type:\\s*${style}`),
+        );
+      });
+
+      // No ul[type] rules: TipTap's BulletList carries no attributes, so a
+      // <ul type="square"> cannot exist in the editor's DOM to style.
 
       it('should set margin and padding-left on ul and ol', () => {
         expect(css).toMatch(/\.md-editor-body\s+ul,\s*\.md-editor-body\s+ol\s*\{[^}]*margin:/);

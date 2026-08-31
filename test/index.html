@@ -162,6 +162,13 @@
           <p style="font-size:11px;color:#888;margin:6px 0 0;">Type a few blank lines (press Enter on empty lines) between paragraphs, then Refresh: <code>format_empty_lines</code> fills each empty block with <code>&lt;br&gt;</code> so the blank lines survive outside the editor. <strong>Round-trip</strong> runs <code>setContent(getContent())</code> — with the flag on, blank lines stay put instead of doubling each time. Every other content path shares that same pair: the <code>change</code> event logs whether its payload matches <code>getContent()</code>, <code>insertContent()</code> / the <strong>Templates</strong> dropdown run the import half (paste this panel's HTML into the box below and click <strong>Insert content</strong>), and the toolbar's <strong>Source code</strong> and <strong>Preview</strong> buttons show the same output <code>getContent()</code> returns.</p>
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-header">Pasted lists</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0;">Copy a numbered or lettered list out of Word, Outlook, Google Docs or a web page and paste it into the body. It lands at the editor's own list indent — the source document's <code>margin-left</code>/<code>text-indent</code> is dropped, so the list is not pushed a level further right than one built with the toolbar — and a lettered (A, B, C) or roman (i, ii, iii) list keeps its numbering instead of being renumbered 1, 2, 3. Check the HTML Output panel for the <code>&lt;ol type="A"&gt;</code> that carries it. <strong>Increase</strong>/<strong>Decrease indent</strong> (and Tab / Shift+Tab) then move the items: nesting where an item can nest, otherwise a <code>margin-left</code> on the <code>&lt;li&gt;</code> so the number travels with the text. The <strong>Templates</strong> dropdown's <em>Numbered list styles</em> entry loads the same cases without a clipboard.</p>
+        </div>
+      </div>
     </div>
 
     <!-- Sidebar controls -->

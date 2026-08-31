@@ -201,7 +201,7 @@ The following TinyMCE-compatible commands are supported:
 - `forecolor`, `hilitecolor`, `backcolor` — pass `''` or `'none'` as the value to clear the color instead of setting one
 - `justifyleft`, `justifycenter`, `justifyright`, `justifyfull`
 - `insertunorderedlist`, `insertorderedlist`
-- `indent`, `outdent`
+- `indent`, `outdent` — context-aware, see [Lists & Indentation](#lists--indentation)
 - `undo`, `redo`
 - `removeformat`
 - `mceremoveeditor` - Destroys the editor instance
@@ -273,8 +273,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `superscript` | Toggle superscript |
 | `bullist` | Toggle bullet list |
 | `numlist` | Toggle numbered list |
-| `outdent` | Decrease indent (lifts a list item, or reduces a block's left margin) |
-| `indent` | Increase indent (nests a list item, or adds a left margin to a block) |
+| `outdent` | Decrease indent (see [Lists & Indentation](#lists--indentation)) |
+| `indent` | Increase indent (see [Lists & Indentation](#lists--indentation)) |
 | `blockquote` | Toggle block quote |
 | `fontfamily` | Font family dropdown (button shows the family at the cursor) |
 | `fontsize` | Font size dropdown (button shows the size at the cursor) |
@@ -404,6 +404,37 @@ The `table` toolbar button is a dropdown that inserts a table and edits the one 
 - **Insert/delete row**, **Insert/delete column**, **Merge cells**, **Split cell**, **Toggle header row**, **Delete table**.
 
 Tables are resizable by dragging column borders.
+
+## Lists & Indentation
+
+### Increase / decrease indent
+
+`indent` and `outdent` — the toolbar's **Increase indent** / **Decrease indent** buttons, `execCommand('indent' | 'outdent')`, and the <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> keys — all resolve to the same behavior, chosen by what is under the cursor:
+
+| Context | Increase indent | Decrease indent |
+| --- | --- | --- |
+| Code block | Inserts a literal tab | Nothing |
+| List item with a previous sibling | Nests it one level deeper | Reduces its own indent, then un-nests it one level |
+| First list item at its level | Adds a `margin-left` to the `<li>` | Reduces that margin, then lifts the item out of the list |
+| Paragraph, heading | Adds a `margin-left` in 40px steps (max 400px) | Removes one step |
+
+Inside a list the indent is written to the `<li>` rather than to the paragraph inside it, so the bullet or number moves with the text. Because it is an inline `margin-left`, it survives in exported HTML — in a mail client, say — without the editor's stylesheet. In a table, <kbd>Tab</kbd> still moves between cells; the toolbar buttons indent the paragraph in the cell.
+
+### Ordered list numbering
+
+An ordered list's numbering style is preserved rather than normalized to `1, 2, 3`. `<ol type="A">`, `type="a"`, `type="I"`, `type="i"` and `start="5"` round-trip through `setContent()` / `getContent()` and render as written. A list that states its style with CSS instead (`<ol style="list-style-type:upper-alpha">`) is read the same way and exported as `<ol type="A">`.
+
+Lists that say nothing keep the editor's nesting defaults: decimal, then lower-alpha, then lower-roman for ordered lists; disc, circle, then square for bullets.
+
+### Pasting a list
+
+Lists pasted from Word, Outlook, Google Docs, another editor or a web page are normalized on the way in:
+
+- **Indentation is dropped.** Those sources position a list with inline `margin-left` / `padding-left` / `text-indent` from their own page layout. Carried over, that stacks on top of the editor's list indent, so a pasted list sits a level further right than one built with the toolbar. Nesting is structural (`<ol><li><ol>`), so nothing is lost by dropping it. Indentation on non-list blocks (paragraphs, blockquotes) is left alone.
+- **A list that is already a real `<ol>`/`<ul>` stays one list.** Word and Outlook email HTML often marks up a genuine list whose `<li>`s also carry Word's `MsoListParagraph` class and `mso-list` metadata; those items are cleaned in place instead of being wrapped in a second list.
+- **Word's numbering style is kept.** `mso-level-number-format` (and `mso-level-start-at`) become the list's `type` and `start`, so a lettered or roman Word list is not renumbered. When the clipboard carries no `@list` rules at all — common — the style is inferred from the marker text Word inlines (`A.`, `iv.`, `1.`, `·`), which also keeps a numbered list from arriving as a bullet list.
+
+Word/Excel cleaning as a whole can be turned off with `paste_from_office: false`; list indentation is normalized either way.
 
 ## Block & Style Formats
 

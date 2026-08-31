@@ -2,7 +2,14 @@
  * Block indentation (CKEditor-style Tab) tests.
  */
 
+import { Editor } from '@tiptap/core';
+import { Document } from '@tiptap/extension-document';
+import { Paragraph } from '@tiptap/extension-paragraph';
+import { Text } from '@tiptap/extension-text';
+import { CodeBlock } from '@tiptap/extension-code-block';
+
 import { HTMLEditor } from '../../src/core/HTMLEditor';
+import { BlockIndent } from '../../src/extensions/BlockIndent';
 
 function pressKey(tt: any, key: string, shift = false): KeyboardEvent {
   const event = new KeyboardEvent('keydown', {
@@ -128,14 +135,16 @@ describe('BlockIndent', () => {
       expect(ev.defaultPrevented).toBe(true);
     });
 
-    it('Tab in the first list item indents its content instead of nesting', () => {
+    it('Tab in the first list item indents the item instead of nesting', () => {
       const tt = editor.getTipTap()!;
       editor.setContent('<ul><li><p>one</p></li><li><p>two</p></li></ul>');
       caretIn('one');
       const ev = pressTab(tt);
-      // No new nested list; the item's own paragraph gets the indent.
+      // No new nested list; the <li> itself gets the indent, so the marker
+      // moves with the text (the inner paragraph must not be indented too).
       expect(editor.getContent()).not.toMatch(/<li><ul>/);
-      expect(editor.getContent()).toMatch(/<li><p[^>]*margin-left: 40px/);
+      expect(editor.getContent()).toMatch(/<li[^>]*margin-left: 40px/);
+      expect(editor.getContent()).not.toMatch(/<p[^>]*margin-left/);
       expect(ev.defaultPrevented).toBe(true);
     });
 
@@ -150,6 +159,138 @@ describe('BlockIndent', () => {
       expect(editor.getContent()).toContain('<li>');
       pressTab(tt, true);                 // lift the item out of the list
       expect(editor.getContent()).not.toContain('<li>');
+    });
+  });
+
+  describe('list indentation', () => {
+    it('indents the <li> so the list marker moves with the text', () => {
+      editor.setContent('<ol><li><p>one</p></li></ol>');
+      caretIn('one');
+      editor.getTipTap()!.commands.indentBlock();
+      expect(editor.getContent()).toMatch(/<li[^>]*margin-left: 40px/);
+    });
+
+    it('indents a list item exactly one step (not the item and its paragraph)', () => {
+      editor.setContent('<ol><li><p>one</p></li></ol>');
+      caretIn('one');
+      editor.getTipTap()!.commands.indentBlock();
+      expect((editor.getContent().match(/margin-left/g) ?? []).length).toBe(1);
+    });
+
+    it('parses an incoming <li> margin-left as an existing indent', () => {
+      editor.setContent('<ol><li style="margin-left: 80px"><p>one</p></li></ol>');
+      caretIn('one');
+      editor.getTipTap()!.commands.outdentBlock();
+      expect(editor.getContent()).toMatch(/<li[^>]*margin-left: 40px/);
+    });
+
+    it('round-trips a list indent through set/getContent', () => {
+      editor.setContent('<ol><li><p>one</p></li></ol>');
+      caretIn('one');
+      editor.getTipTap()!.commands.indentBlock();
+      const html = editor.getContent();
+      editor.setContent(html);
+      expect(editor.getContent()).toBe(html);
+    });
+
+    it('outdents every selected item when the whole list is selected', () => {
+      const tt = editor.getTipTap()!;
+      editor.setContent(
+        '<ol><li style="margin-left: 40px"><p>one</p></li>' +
+        '<li style="margin-left: 40px"><p>two</p></li></ol>',
+      );
+      tt.commands.focus();
+      tt.commands.selectAll();
+      tt.commands.outdentBlock();
+      expect(editor.getContent()).not.toContain('margin-left');
+    });
+
+    it('does not indent an ordinary paragraph twice via its ancestors', () => {
+      editor.setContent('<blockquote><p>quoted</p></blockquote>');
+      caretIn('quoted');
+      editor.getTipTap()!.commands.indentBlock();
+      expect((editor.getContent().match(/margin-left/g) ?? []).length).toBe(1);
+      expect(editor.getContent()).toMatch(/<p[^>]*margin-left: 40px/);
+    });
+  });
+
+  describe('indent / outdent selection commands', () => {
+    it('indentSelection nests a non-first list item', () => {
+      editor.setContent('<ul><li><p>one</p></li><li><p>two</p></li></ul>');
+      caretIn('two');
+      expect(editor.getTipTap()!.commands.indentSelection()).toBe(true);
+      expect(editor.getContent()).toMatch(/one<\/p><ul>/);
+      expect(editor.getContent()).not.toContain('margin-left');
+    });
+
+    it('indentSelection falls back to a margin on the first list item', () => {
+      editor.setContent('<ul><li><p>one</p></li><li><p>two</p></li></ul>');
+      caretIn('one');
+      expect(editor.getTipTap()!.commands.indentSelection()).toBe(true);
+      expect(editor.getContent()).not.toMatch(/<li><ul>/);
+      expect(editor.getContent()).toMatch(/<li[^>]*margin-left: 40px/);
+    });
+
+    it('outdentSelection reduces a list item margin before lifting', () => {
+      editor.setContent('<ol><li style="margin-left: 40px"><p>one</p></li></ol>');
+      caretIn('one');
+      expect(editor.getTipTap()!.commands.outdentSelection()).toBe(true);
+      expect(editor.getContent()).not.toContain('margin-left');
+      expect(editor.getContent()).toContain('<li>');
+    });
+
+    it('outdentSelection un-nests a nested item once the margin is gone', () => {
+      editor.setContent('<ul><li><p>one</p><ul><li><p>two</p></li></ul></li></ul>');
+      caretIn('two');
+      expect(editor.getTipTap()!.commands.outdentSelection()).toBe(true);
+      expect((editor.getContent().match(/<ul>/g) ?? []).length).toBe(1);
+    });
+
+    it('outdentSelection lifts a top-level item out of the list (TinyMCE parity)', () => {
+      editor.setContent('<ol><li><p>one</p></li></ol>');
+      caretIn('one');
+      expect(editor.getTipTap()!.commands.outdentSelection()).toBe(true);
+      expect(editor.getContent()).not.toContain('<li>');
+      expect(editor.getContent()).toContain('one');
+    });
+
+    it('indentSelection indents a plain paragraph', () => {
+      editor.setContent('<p>hello</p>');
+      caretIn('hello');
+      expect(editor.getTipTap()!.commands.indentSelection()).toBe(true);
+      expect(editor.getContent()).toContain('margin-left: 40px');
+    });
+
+    it('outdentSelection is a no-op on an un-indented paragraph', () => {
+      editor.setContent('<p>hello</p>');
+      caretIn('hello');
+      expect(editor.getTipTap()!.commands.outdentSelection()).toBe(false);
+      expect(editor.getContent()).not.toContain('margin-left');
+    });
+
+    // HTMLEditor swaps CodeBlock for CodeBlockLowlight, which is mocked away in
+    // Jest, so the code-block branch is exercised on a bare TipTap editor.
+    it('indentSelection inserts a tab inside a code block', () => {
+      const tt = new Editor({
+        extensions: [Document, Paragraph, Text, CodeBlock, BlockIndent],
+        content: '<pre><code>code</code></pre>',
+      });
+      tt.commands.setTextSelection(3);
+      expect(tt.isActive('codeBlock')).toBe(true);
+      expect(tt.commands.indentSelection()).toBe(true);
+      expect(tt.getText()).toContain('\t');
+      tt.destroy();
+    });
+
+    it('outdentSelection does nothing inside a code block', () => {
+      const tt = new Editor({
+        extensions: [Document, Paragraph, Text, CodeBlock, BlockIndent],
+        content: '<pre><code>code</code></pre>',
+      });
+      tt.commands.setTextSelection(3);
+      expect(tt.commands.outdentSelection()).toBe(false);
+      expect(tt.getHTML()).not.toContain('margin-left');
+      tt.destroy();
     });
 
     it('Tab inside a table does not indent (leaves cell navigation to Table)', () => {
@@ -224,6 +365,65 @@ describe('BlockIndent', () => {
       editor.setContent('<p style="margin-left: 40px">hello</p>');
       caretIn('hello');
       editor.execCommand('outdent');
+      expect(editor.getContent()).not.toContain('margin-left');
+    });
+
+    it("execCommand('indent') falls back to a margin on the first list item", () => {
+      editor.setContent('<ol><li><p>one</p></li></ol>');
+      caretIn('one');
+      editor.execCommand('indent');
+      expect(editor.getContent()).toMatch(/<li[^>]*margin-left: 40px/);
+    });
+
+    it("execCommand('outdent') reduces a list item indent before lifting", () => {
+      editor.setContent('<ol><li style="margin-left: 40px"><p>one</p></li></ol>');
+      caretIn('one');
+      editor.execCommand('outdent');
+      expect(editor.getContent()).not.toContain('margin-left');
+      expect(editor.getContent()).toContain('<li>');
+    });
+  });
+
+  describe('toolbar buttons', () => {
+    function clickButton(label: string): void {
+      const btn = container.querySelector<HTMLElement>(`[data-button="${label}"]`);
+      expect(btn).not.toBeNull();
+      btn!.click();
+    }
+
+    it('Increase indent indents the first list item instead of doing nothing', () => {
+      editor.setContent('<ol><li><p>one</p></li></ol>');
+      caretIn('one');
+      clickButton('indent');
+      expect(editor.getContent()).toMatch(/<li[^>]*margin-left: 40px/);
+    });
+
+    it('Increase indent still nests a non-first list item', () => {
+      editor.setContent('<ul><li><p>one</p></li><li><p>two</p></li></ul>');
+      caretIn('two');
+      clickButton('indent');
+      expect(editor.getContent()).toMatch(/one<\/p><ul>/);
+    });
+
+    it('Decrease indent reduces a pasted list indent', () => {
+      editor.setContent('<ol><li style="margin-left: 40px"><p>one</p></li></ol>');
+      caretIn('one');
+      clickButton('outdent');
+      expect(editor.getContent()).not.toContain('margin-left');
+      expect(editor.getContent()).toContain('<li>');
+    });
+
+    it('Decrease indent un-nests a nested list item', () => {
+      editor.setContent('<ul><li><p>one</p><ul><li><p>two</p></li></ul></li></ul>');
+      caretIn('two');
+      clickButton('outdent');
+      expect((editor.getContent().match(/<ul>/g) ?? []).length).toBe(1);
+    });
+
+    it('Decrease indent still outdents a plain paragraph', () => {
+      editor.setContent('<p style="margin-left: 40px">hello</p>');
+      caretIn('hello');
+      clickButton('outdent');
       expect(editor.getContent()).not.toContain('margin-left');
     });
   });

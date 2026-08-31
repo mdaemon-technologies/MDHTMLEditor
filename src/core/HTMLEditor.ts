@@ -39,6 +39,7 @@ import { Mention } from '../extensions/Mention';
 import { Anchor } from '../extensions/Anchor';
 import { InlineStyle } from '../extensions/InlineStyle';
 import { PasteFromOffice } from '../extensions/PasteFromOffice';
+import { ListPasteNormalizer } from '../extensions/ListPasteNormalizer';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { ImageUpload } from '../extensions/ImageUpload';
@@ -526,7 +527,13 @@ export class HTMLEditor implements IMDHTMLEditor {
     if (this.config.paste_from_office !== false) {
       extensions.push(PasteFromOffice);
     }
-    
+
+    // Drop the page indentation pasted lists carry from their source document
+    // (Word, Outlook, Google Docs, another editor) so they land at the editor's
+    // own list indent. Registered after PasteFromOffice so the Office cleaner
+    // has already turned Word's fake lists into real ones.
+    extensions.push(ListPasteNormalizer);
+
     // Add image extension for full editor
     if (!this.config.basicEditor) {
       extensions.push(
@@ -825,18 +832,10 @@ export class HTMLEditor implements IMDHTMLEditor {
         return true;
       case 'indent':
         // In a list, indent nests the item; elsewhere it adds a block margin.
-        if (this.tiptap.isActive('listItem')) {
-          chain.sinkListItem('listItem').run();
-        } else {
-          chain.indentBlock().run();
-        }
+        chain.indentSelection().run();
         return true;
       case 'outdent':
-        if (this.tiptap.isActive('listItem')) {
-          chain.liftListItem('listItem').run();
-        } else {
-          chain.outdentBlock().run();
-        }
+        chain.outdentSelection().run();
         return true;
       case 'undo':
         chain.undo().run();
