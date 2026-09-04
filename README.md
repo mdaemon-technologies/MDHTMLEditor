@@ -10,6 +10,12 @@ A TinyMCE-compatible HTML editor built on TipTap. This is the core vanilla TypeS
 npm install @mdaemon/html-editor
 ```
 
+TipTap and ProseMirror are **bundled into the published output** (currently TipTap `3.31.x`) —
+there are no peer dependencies to install and no TipTap version for the host app to match. If
+your app uses TipTap directly as well, note that the copy inside this package is separate from
+yours; pass content across the boundary as HTML (`getContent()` / `setContent()`) rather than
+sharing ProseMirror nodes or extension instances between the two.
+
 ## Usage
 
 ### Vanilla JavaScript/TypeScript

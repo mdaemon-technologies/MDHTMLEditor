@@ -1,5 +1,11 @@
 # MDHTMLEditor Changelog
 
+## 1.12.1 (September 4, 2026)
+
+### Build / Tooling
+- **Upgraded TipTap from 3.27.4 to 3.31.3.** All 21 `@tiptap/*` dependencies (`core`, `pm`, `starter-kit` and the 18 individual extensions) were bumped together, so the whole ProseMirror stack resolves to a single 3.31.3 version and no duplicate copies end up in the bundle. This is a patch-level move inside TipTap 3.x: no public API, config, or runtime behavior changes on this package's surface, and the TinyMCE-compatible facade is untouched. The full Jest suite (807 tests), `tsc --noEmit`, the production build, and the built-UMD smoke tests all pass against the new versions.
+- The `npm run update:tiptap` helper script already covers every one of these packages, so a future bump stays a one-command operation.
+
 ## 1.12.0 (August 31, 2026)
 
 ### New Features
