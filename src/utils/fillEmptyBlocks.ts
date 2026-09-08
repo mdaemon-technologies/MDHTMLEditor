@@ -14,7 +14,24 @@ const CONTENT_BEARING =
   'br, img, hr, input, video, audio, iframe, object, embed, canvas, svg, table, picture, source';
 
 /**
- * A block is a "blank line" when it has no visible text, contains no
+ * Whitespace that collapses to nothing when HTML is rendered: the ASCII set the
+ * HTML spec calls "space characters". Deliberately NOT `\s` and NOT
+ * `String#trim()` — both of those also match U+00A0, the non-breaking space,
+ * which is the one whitespace character that does *not* collapse. A block
+ * holding only `&nbsp;` is a blank the author typed on purpose: it already has
+ * height, so it must not be treated as an empty line by either pass below.
+ * Reading it as empty is how `<div>&nbsp;</div>` used to acquire a filler <br>
+ * and render at double height in a sent message.
+ */
+const COLLAPSIBLE_WHITESPACE = /[ \t\n\r\f\v]+/g;
+
+/** True when the element renders any text at all, `&nbsp;` included. */
+function hasVisibleText(el: Element): boolean {
+  return (el.textContent ?? '').replace(COLLAPSIBLE_WHITESPACE, '') !== '';
+}
+
+/**
+ * A block is a "blank line" when it renders no text, contains no
  * content-bearing/void element, and is a leaf (no nested block). Empty inline
  * wrappers are allowed — e.g. a <span> carrying a font the user set on an empty
  * line, or the block's own inlined default font (BlockFontStyle renders the
@@ -24,7 +41,7 @@ const CONTENT_BEARING =
  * style does not hide them.
  */
 function isBlankLine(el: Element): boolean {
-  if ((el.textContent ?? '').trim() !== '') return false;
+  if (hasVisibleText(el)) return false;
   if (el.querySelector(CONTENT_BEARING)) return false;
   if (el.querySelector(BLOCK_SELECTOR)) return false; // container of blocks, not a line
   return true;
@@ -60,15 +77,18 @@ export function fillEmptyBlocks(html: string): string {
 
 /**
  * A block is a "filled blank line" — the exact shape `fillEmptyBlocks` emits —
- * when it has no visible text, no nested block, and its only content-bearing
+ * when it renders no text, has no nested block, and its only content-bearing
  * element is a single `<br>`. That lone `<br>` is the export artifact standing
  * in for a blank line; empty inline wrappers around it (a `<span>` carrying a
  * font, say) are ignored, mirroring `isBlankLine`. A block with real content
  * (`<div>hello<br></div>` — a user's Shift+Enter) has text, so it fails here
- * and is left alone.
+ * and is left alone. It shares `hasVisibleText` with `isBlankLine` for the same
+ * reason it shares the selectors: if the two ever disagreed on what "empty"
+ * means, a block this pass strips but that pass declines to refill would lose a
+ * line break on every round-trip. `<div>&nbsp;<br></div>` is exactly that case.
  */
 function isFilledBlankLine(el: Element): { br: Element } | null {
-  if ((el.textContent ?? '').trim() !== '') return null;
+  if (hasVisibleText(el)) return null;
   if (el.querySelector(BLOCK_SELECTOR)) return null; // container of blocks, not a line
   const contentBearing = el.querySelectorAll(CONTENT_BEARING);
   if (contentBearing.length === 1 && contentBearing[0].tagName === 'BR') {

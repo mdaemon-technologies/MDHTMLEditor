@@ -75,6 +75,32 @@ const DEFAULT_FONT_SIZES = '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt';
 const DEFAULT_FONT_FAMILY = 'arial, helvetica, sans-serif';
 const DEFAULT_FONT_SIZE = '12pt';
 
+/**
+ * How ProseMirror must parse HTML handed to the editor through setContent() /
+ * insertContent(). `preserveWhitespace: false` is its "collapse per the HTML
+ * spec" mode — what a browser, and what CKEditor in the legacy LookOut theme,
+ * does with the insignificant whitespace between block elements.
+ *
+ * This has to be stated explicitly because TipTap's two import commands do NOT
+ * agree by default: `insertContentAt` hard-defaults to `preserveWhitespace:
+ * 'full'`, while `setContent` takes a collapsing branch whenever the option is
+ * anything other than `'full'`. A pretty-printed email template — real newlines
+ * and tabs between the blocks, including as direct children of a <ul> — was
+ * therefore imported correctly by setContent and mangled by insertContent (the
+ * path the Templates dropdown uses): a whitespace text node cannot sit inside
+ * `bullet_list`, whose content expression is `list_item+`, so the parser wrapped
+ * each run in a list_item of its own and a 2-bullet list arrived as 4 bullets.
+ *
+ * Pinning both commands here also stops a future TipTap release from silently
+ * changing which branch setContent takes.
+ *
+ * A node that declares `preserveWhitespace: 'full'` on its own parse rule — as
+ * CodeBlock does — still wins for its own subtree, so <pre> content is safe.
+ * Ctrl+V is unaffected: pasting goes through ProseMirror's clipboard parser,
+ * which is a separate code path with its own whitespace handling.
+ */
+const IMPORT_PARSE_OPTIONS = { preserveWhitespace: false } as const;
+
 let editorIdCounter = 0;
 
 // Global translate function
@@ -617,14 +643,17 @@ export class HTMLEditor implements IMDHTMLEditor {
   }
 
   setContent(html: string): void {
-    this.tiptap?.commands.setContent(this.formatInput(html));
+    this.tiptap?.commands.setContent(this.formatInput(html), { parseOptions: IMPORT_PARSE_OPTIONS });
   }
 
   insertContent(html: string): void {
     // Same import pass as setContent: a fragment produced by getContent() (a
     // template, a saved snippet) carries the export-only <br> in its blank
     // blocks, and inserting that verbatim would grow a blank line into two.
-    this.tiptap?.commands.insertContent(this.formatInput(html));
+    // IMPORT_PARSE_OPTIONS is not optional here — this is the command TipTap
+    // defaults to `preserveWhitespace: 'full'`, and the Templates dropdown is
+    // its highest-traffic caller.
+    this.tiptap?.commands.insertContent(this.formatInput(html), { parseOptions: IMPORT_PARSE_OPTIONS });
   }
   
   /**

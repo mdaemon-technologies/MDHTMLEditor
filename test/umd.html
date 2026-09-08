@@ -67,6 +67,7 @@
     <button id="btn-set">Set content</button>
     <button id="btn-roundtrip">Round-trip</button>
     <button id="btn-insert-roundtrip">Insert own output</button>
+    <button id="btn-insert-template">Insert pretty-printed template</button>
     <button id="btn-bold">Toggle bold (execCommand)</button>
     <button id="btn-color">Set text color</button>
     <button id="btn-clear-color">Clear text color</button>
@@ -170,6 +171,22 @@
         // own output does not double its blank lines either.
         editor.insertContent(editor.getContent());
         show('inserted getContent() at the cursor', editor.getContent());
+      });
+      document.getElementById('btn-insert-template').addEventListener('click', function () {
+        // A stored email template as it is actually authored: pretty-printed,
+        // with real newlines and tabs between the blocks — including as direct
+        // children of the <ul>. That whitespace is insignificant and collapses
+        // on import, so this inserts as TWO bullets. Before the fix each
+        // whitespace run became an empty list item (four bullets), literal tabs
+        // showed in the text, and the trailing &nbsp; line gained a <br> that
+        // doubled its height. Click, then "Get content" to check the output.
+        editor.insertContent(
+          '<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">Last Week</div>\n\n' +
+          '<ul>\n\t<li>\n\t<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">Completed the following</div>\n\t</li>\n' +
+          '\t<li>\n\t<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">Fixed the following</div>\n\t</li>\n</ul>\n\n' +
+          '<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">&nbsp;</div>\n'
+        );
+        show('inserted a pretty-printed template', editor.getContent());
       });
       document.getElementById('btn-bold').addEventListener('click', function () {
         editor.execCommand('bold');

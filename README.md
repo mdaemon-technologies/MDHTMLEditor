@@ -143,7 +143,7 @@ const editor = new HTMLEditor(container, {
 | `browser_spellcheck` | boolean | true | Enable browser spell-check |
 | `entity_encoding` | 'raw' \| 'named' \| 'numeric' | 'raw' | HTML entity encoding mode |
 | `convert_unsafe_embeds` | boolean | true | Sanitize embedded content |
-| `format_empty_lines` | boolean | true | Preserve blank lines in exported content. When `true`, every path that hands HTML *out* of the editor (`getContent()`, the `change` event payload, the source dialog, preview) injects a `<br>` into each empty block so blank lines keep their height in mail clients and other consumers that would otherwise collapse a bare `<div></div>`/`<p></p>` to zero height, and every path that brings HTML *in* (`setContent()`, `insertContent()`, the Templates dropdown, saving the source dialog) runs the exact inverse — stripping that `<br>` back out on import so a blank line is not re-parsed as a doubled line. This keeps `setContent(getContent(x))` stable across round-trips (skin/root-block changes, saved-draft reloads). Set `false` to pass the engine's output through unchanged in both directions. |
+| `format_empty_lines` | boolean | true | Preserve blank lines in exported content. When `true`, every path that hands HTML *out* of the editor (`getContent()`, the `change` event payload, the source dialog, preview) injects a `<br>` into each empty block so blank lines keep their height in mail clients and other consumers that would otherwise collapse a bare `<div></div>`/`<p></p>` to zero height, and every path that brings HTML *in* (`setContent()`, `insertContent()`, the Templates dropdown, saving the source dialog) runs the exact inverse — stripping that `<br>` back out on import so a blank line is not re-parsed as a doubled line. This keeps `setContent(getContent(x))` stable across round-trips (skin/root-block changes, saved-draft reloads). A block holding only a non-breaking space (`<div>&nbsp;</div>`) is *not* a blank line — an `&nbsp;` is visible content that already gives the block height — so it is left exactly as it is by both passes. Set `false` to pass the engine's output through unchanged in both directions. |
 | `paste_from_office` | boolean | true | Clean and preserve formatting when pasting from Microsoft Word and Excel |
 | `speech_to_text` | boolean | true | Enable Speech to Text and Dictate toolbar buttons (requires Web Speech API: Chrome, Edge, Safari) |
 | `setup` | (editor) => void | - | Callback invoked before init — use to register custom buttons |
@@ -168,8 +168,8 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 ### Methods
 
 - `getContent(): string` - Get HTML content (applies the `format_empty_lines` serialization pass; the `change` event payload is identical)
-- `setContent(html: string): void` - Set HTML content. Backslash-escaped closing tags (`<\/p>`, produced by hosts that pass HTML through PHP `json_encode` and similar `/`→`\/` encoders) are repaired to real tags before parsing, matching TinyMCE's lenient parser, and the `format_empty_lines` import pass is applied
-- `insertContent(html: string): void` - Insert HTML at cursor (same `<\/` repair and `format_empty_lines` import pass as `setContent`, so inserting a fragment produced by `getContent()` does not double its blank lines)
+- `setContent(html: string): void` - Set HTML content. Backslash-escaped closing tags (`<\/p>`, produced by hosts that pass HTML through PHP `json_encode` and similar `/`→`\/` encoders) are repaired to real tags before parsing, matching TinyMCE's lenient parser, and the `format_empty_lines` import pass is applied. Insignificant whitespace between block elements is collapsed per the HTML spec, so pretty-printed (indented, multi-line) source imports the same way a browser would render it — see [Importing pretty-printed HTML](#importing-pretty-printed-html)
+- `insertContent(html: string): void` - Insert HTML at cursor (same `<\/` repair, whitespace handling, and `format_empty_lines` import pass as `setContent`, so inserting a fragment produced by `getContent()` does not double its blank lines)
 - `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command
 - `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default). Returns `''` when the selection spans more than one family
 - `getFontSize(): string` - Font size in effect at the cursor (same resolution order). Returns `''` when the selection spans more than one size, and inside a heading with no inline override (headings size by level)
@@ -264,6 +264,25 @@ editor.on('templatechange', (template) => {
 ```
 
 This event fires in addition to the standard `change` event, so consumers can distinguish a template insertion from regular edits and react accordingly (e.g. populate form fields, trigger a save, or log analytics).
+
+### Importing pretty-printed HTML
+
+Template bodies are often stored as they were authored — indented, one block per line — rather than minified. `setContent()` and `insertContent()` collapse the insignificant whitespace between block elements exactly as the HTML spec (and a browser) does, so the source below imports as a two-item list and nothing else:
+
+```html
+<div>Last Week</div>
+
+<ul>
+	<li>
+	<div>Completed the following</div>
+	</li>
+	<li>
+	<div>Fixed the following</div>
+	</li>
+</ul>
+```
+
+The newlines and tabs between `<ul>` and `<li>` are dropped rather than becoming empty list items, and the blank lines between top-level blocks do not become empty blocks. Whitespace that *is* significant is untouched: text inside a block, a non-breaking space (`&nbsp;`), and the contents of a `<pre>`/code block all survive verbatim. Pasting with Ctrl+V goes through a separate clipboard parser and is unaffected either way.
 
 ## Toolbar Buttons
 

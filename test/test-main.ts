@@ -131,6 +131,22 @@ function createEditorInstance(skin: typeof currentSkin) {
         '<p>Already indented (use Decrease indent to pull it back):</p>' +
         '<ol><li style="margin-left: 40px">Indented item</li></ol>',
     },
+    {
+      // A pretty-printed body, the shape a template arrives in when it was
+      // stored as authored rather than minified: real newlines and tabs between
+      // the blocks, including as direct children of the <ul>. That whitespace is
+      // insignificant and must collapse on import. Before the fix this inserted
+      // as FOUR bullets (each whitespace run became an empty list item), with
+      // empty divs between the blocks and literal tabs showing in the text; the
+      // trailing &nbsp; line also picked up a <br> and rendered double-height.
+      id: 6,
+      title: 'Pretty-printed Status (whitespace demo)',
+      description: 'Indented source with tabs/newlines + an &nbsp; blank line',
+      content: '<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">Last Week</div>\n\n' +
+        '<ul>\n\t<li>\n\t<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">Completed the following</div>\n\t</li>\n' +
+        '\t<li>\n\t<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">Fixed the following</div>\n\t</li>\n</ul>\n\n' +
+        '<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">&nbsp;</div>\n',
+    },
   ],
 
   // Include custom button names in the toolbar string

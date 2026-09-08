@@ -49,6 +49,32 @@ describe('fillEmptyBlocks', () => {
     expect(fillEmptyBlocks('<div>   </div>')).toBe('<div>   <br></div>');
   });
 
+  it('leaves an &nbsp;-only block alone (a non-breaking space is visible content)', () => {
+    // U+00A0 does not collapse when rendered — it is a deliberate blank the
+    // author typed, and the block already has height. Adding a filler <br>
+    // would double that height in the sent message. Note that String#trim()
+    // strips U+00A0, so the emptiness test cannot be built on it.
+    expect(fillEmptyBlocks('<div>&nbsp;</div>')).toBe('<div>&nbsp;</div>');
+    expect(fillEmptyBlocks('<p style="font-family:Arial">&nbsp;</p>'))
+      .toBe('<p style="font-family:Arial">&nbsp;</p>');
+  });
+
+  it('leaves an &nbsp; surrounded by collapsible whitespace alone', () => {
+    expect(fillEmptyBlocks('<div> &nbsp; </div>')).toBe('<div> &nbsp; </div>');
+  });
+
+  it('leaves an &nbsp; inside an inline wrapper alone', () => {
+    const out = fillEmptyBlocks('<div><span style="font-family:Arial">&nbsp;</span></div>');
+    expect(out).toBe('<div><span style="font-family:Arial">&nbsp;</span></div>');
+  });
+
+  it('still fills a block holding only newlines and tabs (pretty-printed source)', () => {
+    // Every ASCII space character collapses when rendered, not just U+0020, so
+    // an indented-but-empty block is still a blank line.
+    expect(fillEmptyBlocks('<div>\n\t</div>')).toBe('<div>\n\t<br></div>');
+    expect(fillEmptyBlocks('<div>\r\n</div>')).toBe('<div>\n<br></div>');
+  });
+
   it('does not fill blocks whose only content is a void/embedded element', () => {
     expect(fillEmptyBlocks('<div><img src="cid:x"></div>')).toBe('<div><img src="cid:x"></div>');
   });
@@ -103,6 +129,19 @@ describe('stripEmptyLineBreaks', () => {
 
   it('leaves a hard break between two lines of text alone', () => {
     expect(stripEmptyLineBreaks('<div>a<br>b</div>')).toBe('<div>a<br>b</div>');
+  });
+
+  it('leaves a <br> after an &nbsp; alone (a real Shift+Enter, not a filler)', () => {
+    // The mirror of fillEmptyBlocks' &nbsp; case: the block has visible content,
+    // so its <br> is the user's own hard break. Stripping it here while
+    // fillEmptyBlocks (correctly) declines to add one would make the two passes
+    // disagree, and the block would lose a line on every import.
+    expect(stripEmptyLineBreaks('<div>&nbsp;<br></div>')).toBe('<div>&nbsp;<br></div>');
+  });
+
+  it('round-trips an &nbsp;-only block unchanged through fill then strip', () => {
+    const original = '<div>a</div><div>&nbsp;</div><div></div>';
+    expect(stripEmptyLineBreaks(fillEmptyBlocks(original))).toBe(original);
   });
 
   it('leaves two stacked <br> alone (two intentional breaks, not one filler)', () => {
