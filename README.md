@@ -284,6 +284,30 @@ Template bodies are often stored as they were authored — indented, one block p
 
 The newlines and tabs between `<ul>` and `<li>` are dropped rather than becoming empty list items, and the blank lines between top-level blocks do not become empty blocks. Whitespace that *is* significant is untouched: text inside a block, a non-breaking space (`&nbsp;`), and the contents of a `<pre>`/code block all survive verbatim. Pasting with Ctrl+V goes through a separate clipboard parser and is unaffected either way.
 
+### Importing wrapped HTML
+
+Template bodies also tend to arrive swaddled in container `<div>`s — mail clients and CMSes nest several around the real content. The editor's schema has one block node per line and a block cannot contain a block, so that nesting cannot survive the parse. On import, a `<div>` or `<p>` that contains only block-level children and no text of its own is dissolved and its children hoisted, rather than being left behind as an empty block:
+
+```html
+<!-- imported -->
+<div><div><div>
+  <div>Hello</div>
+  <div>World</div>
+</div></div></div>
+
+<!-- becomes two lines, not two blank lines followed by two lines -->
+<div>Hello</div>
+<div>World</div>
+```
+
+Inherited style on a dissolved wrapper (`font-family`, `font-size`, `font-weight`, `font-style`, `color`, `line-height`, `text-align`, `text-indent`, `direction`) is carried down to the children it wrapped, unless a child already states that property. A body wrapped in a single `<div style="font-family:Georgia;font-size:10pt">` therefore keeps its font on every line. Box properties (border, background, padding, margin) describe the wrapper itself and cannot be re-expressed on *n* children, so they are dropped.
+
+Blocks that own their nesting are never dissolved: a `<blockquote>`, `<li>` or table cell holding blocks is a real node in the schema, and the signature container (`<div id="signature">`) is left intact. A genuinely empty `<div></div>` is a blank line the author typed, not a wrapper, and is preserved.
+
+### Placeholder links
+
+An `<a href="">` — a link whose target the author has not filled in yet, or that an upstream sanitizer has blanked — is preserved as a link on import, matching TinyMCE and CKEditor. URI validation is otherwise unchanged: a `javascript:` or `data:` target is still rejected and its anchor unwrapped to plain text.
+
 ## Toolbar Buttons
 
 All built-in toolbar button names that can be used in the `toolbar` config string:

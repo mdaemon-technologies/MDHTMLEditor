@@ -15,7 +15,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-font-family';
 import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
-import { Link } from '@tiptap/extension-link';
+import { Link, isAllowedUri } from '@tiptap/extension-link';
 import { Image } from '@tiptap/extension-image';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
@@ -42,6 +42,7 @@ import { PasteFromOffice } from '../extensions/PasteFromOffice';
 import { ListPasteNormalizer } from '../extensions/ListPasteNormalizer';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
+import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
 import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
@@ -506,6 +507,42 @@ export class HTMLEditor implements IMDHTMLEditor {
         types: ['heading', 'paragraph'],
       }),
       Link.extend({
+        /**
+         * Keep placeholder links (`<a href="">`) as links.
+         *
+         * TipTap's own rule opens with `if (!href || !isAllowedUri(href))
+         * return false`, so an empty href short-circuits to "not a link"
+         * before validation is ever consulted and the anchor is discarded —
+         * its text survives, the element does not. Stored email templates are
+         * full of such anchors: an author writes the link text first and fills
+         * the target in later, or an upstream sanitizer has already blanked it.
+         * TinyMCE and CKEditor both keep them, and TipTap itself *emits* this
+         * exact shape — `renderHTML` rewrites a URI it rejects to `href=""` —
+         * so refusing to read back what we write is the inconsistency here.
+         *
+         * Only the empty-string case is added. `href` genuinely absent still
+         * fails (that is a named anchor, see the Anchor node), and every
+         * non-empty href is still put through `isAllowedUri`, so
+         * `javascript:`/`data:` targets are rejected exactly as before.
+         */
+        parseHTML() {
+          return [
+            {
+              tag: 'a[href]',
+              getAttrs: (element: HTMLElement) => {
+                const href = element.getAttribute('href');
+                if (href === null) return false;
+                if (href === '') return null;
+                const allowed = this.options.isAllowedUri(href, {
+                  defaultValidate: (url: string) => !!isAllowedUri(url, this.options.protocols),
+                  protocols: this.options.protocols,
+                  defaultProtocol: this.options.defaultProtocol,
+                });
+                return allowed ? null : false;
+              },
+            },
+          ];
+        },
         addAttributes() {
           return {
             ...this.parent?.(),
@@ -627,12 +664,18 @@ export class HTMLEditor implements IMDHTMLEditor {
   /**
    * The single parse pass every path that brings HTML *into* the editor must run
    * — setContent(), insertContent(). Repairs backslash-escaped closing tags
-   * (`<\/p>` → `</p>`, see unescapeTagSlashes) and strips the export-only <br>
-   * from empty blocks so a blank line does not import as a hardBreak (which
-   * would render as two lines). Inverse of formatOutput().
+   * (`<\/p>` → `</p>`, see unescapeTagSlashes), dissolves block-only wrapper
+   * `<div>`s that would otherwise each import as a stray blank line (see
+   * flattenWrapperBlocks), and strips the export-only <br> from empty blocks so
+   * a blank line does not import as a hardBreak (which would render as two
+   * lines). Inverse of formatOutput().
+   *
+   * Order matters: the tag repair has to run first or the wrapper pass parses a
+   * half-broken tree, and flattening has to precede the blank-line strip so the
+   * latter judges the real lines rather than the wrappers around them.
    */
   private formatInput(html: string): string {
-    const normalized = unescapeTagSlashes(html);
+    const normalized = flattenWrapperBlocks(unescapeTagSlashes(html));
     return this.config.format_empty_lines ? stripEmptyLineBreaks(normalized) : normalized;
   }
 

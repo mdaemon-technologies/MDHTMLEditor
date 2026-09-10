@@ -147,6 +147,79 @@ function createEditorInstance(skin: typeof currentSkin) {
         '\t<li>\n\t<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">Fixed the following</div>\n\t</li>\n</ul>\n\n' +
         '<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">&nbsp;</div>\n',
     },
+    {
+      // The other shape a stored template arrives in: swaddled in container
+      // <div>s by the mail client that wrote it, with placeholder <a href="">
+      // links whose targets the author never filled in.
+      //
+      // Before the fix this inserted with FOUR blank lines above it (a block
+      // cannot contain a block, so each wrapper was left behind as an empty
+      // paragraph) and with every anchor deleted down to bare text (an empty
+      // href short-circuited TipTap's link parse rule to "not a link"). The
+      // wrapper's Georgia/10pt font was stranded on the first blank line while
+      // the real lines fell back to the editor default.
+      //
+      // The javascript: link at the end must still lose its anchor — the
+      // empty-href allowance is not a hole in URI validation.
+      id: 7,
+      title: 'Wrapped template (synthetic edge cases)',
+      description: 'Nested container divs, empty-href links, a wrapper font and a rejected URI',
+      content: '<div style="font-family:Georgia;font-size:10pt"><div><div><div>' +
+        '<div>Lorem ipsum dolor sit amet,</div>' +
+        '<div>&nbsp;</div>' +
+        '<div><span>Consectetur adipiscing elit at </span>' +
+        '<a href="">https://example.com/elit</a>' +
+        '<span> sed do eiusmod tempor incididunt.</span></div>' +
+        '<div>&nbsp;</div>' +
+        '<div><span>Ut enim ad <a href="">lorem@example.com</a> minim veniam, ' +
+        'quis nostrud <a href="">exercitation ullamco</a>.</span></div>' +
+        '<div>Rejected target (stays plain text): <a href="javascript:alert(1)">do not click</a></div>' +
+        '</div></div></div></div>',
+    },
+    {
+      // A full-length body in the exact shape a stored standard response
+      // arrives in — the structure of the one that was reported mangled, with
+      // lorem ipsum in place of its (private) text. It stacks every import
+      // hazard at once: five nested container <div>s, eight placeholder
+      // <a href=""> links (four of them inside a <span>), four &nbsp;-only
+      // spacer lines, blank lines between the top-level blocks, and a run of
+      // unmatched closing tags at the end that the HTML parser discards.
+      //
+      // Before the fixes a body like this inserted with FOUR blank lines above
+      // it and with ALL EIGHT anchors deleted down to bare text, so every link
+      // in the mail was silently lost on the way out. Insert it and read the
+      // HTML Output panel: eight <a> elements, nine lines, no leading blank
+      // lines, the &nbsp; spacers still bare (no filler <br>).
+      id: 8,
+      title: 'Long wrapped body (full-scale shape)',
+      description: 'Lorem ipsum in the reported shape — 5 wrappers, 8 placeholder links',
+      content: `<div>
+<div>
+<div>
+<div>
+<div>Lorem ipsum dolor sit amet,</div>
+
+<div>&nbsp;</div>
+
+<div>consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+
+<div>&nbsp;</div>
+
+<div><span>Duis aute irure dolor in reprehenderit in </span><a href="">https://example.com/voluptate</a><span> velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum, aut </span><a href="">https://example.com/laborum</a><span> perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. </span></div>
+
+<div>&nbsp;</div>
+
+<div><span>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, scribe ad <a href="">lorem@example.com</a> sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt, neque porro quisquam est <a href="">qui dolorem ipsum</a>.</span></div>
+
+<div>&nbsp;</div>
+
+<div>At vero eos et accusamus et iusto odio dignissimos ducimus (<a href="">qui blanditiis praesentium</a>). Voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint <a href="">occaecati cupiditate</a> non provident, similique sunt in culpa qui officia deserunt mollitia animi, <a href="">id est laborum</a>. Et harum quidem rerum facilis est et expedita distinctio, nam libero tempore <a href="">cum soluta nobis</a>.</div>
+</div>
+</div>
+</div>
+</div>
+</a></a></a></a></div></div></a></a></span></div></div></span></a></span></a></span></div></div></div></div></div></div></div></div></div>`,
+    },
   ],
 
   // Include custom button names in the toolbar string

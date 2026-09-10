@@ -68,6 +68,7 @@
     <button id="btn-roundtrip">Round-trip</button>
     <button id="btn-insert-roundtrip">Insert own output</button>
     <button id="btn-insert-template">Insert pretty-printed template</button>
+    <button id="btn-insert-wrapped">Insert wrapped template</button>
     <button id="btn-bold">Toggle bold (execCommand)</button>
     <button id="btn-color">Set text color</button>
     <button id="btn-clear-color">Clear text color</button>
@@ -187,6 +188,35 @@
           '<div style="font-family:arial, helvetica, sans-serif;font-size:12pt">&nbsp;</div>\n'
         );
         show('inserted a pretty-printed template', editor.getContent());
+      });
+      document.getElementById('btn-insert-wrapped').addEventListener('click', function () {
+        // The other shape a stored template arrives in: wrapped in container
+        // <div>s by the mail client that wrote it, with placeholder <a href="">
+        // links whose targets were never filled in.
+        //
+        // A block cannot contain a block in the schema, so each wrapper used to
+        // be left behind as an EMPTY paragraph — four blank lines above the
+        // content — and every empty-href anchor was deleted down to bare text.
+        // The wrapper's Georgia/10pt font was stranded on the first blank line
+        // while the real lines fell back to the editor default.
+        //
+        // Now: no blank lines, three links kept, Georgia/10pt on every line —
+        // and the javascript: target still loses its anchor. Click, then
+        // "Get content" to check the output.
+        editor.insertContent(
+          '<div style="font-family:Georgia;font-size:10pt"><div><div><div>' +
+          '<div>Lorem ipsum dolor sit amet,</div>' +
+          '<div>&nbsp;</div>' +
+          '<div><span>Consectetur adipiscing elit at </span>' +
+          '<a href="">https://example.com/elit</a>' +
+          '<span> sed do eiusmod tempor incididunt.</span></div>' +
+          '<div>&nbsp;</div>' +
+          '<div><span>Ut enim ad <a href="">lorem@example.com</a> minim veniam, ' +
+          'quis nostrud <a href="">exercitation ullamco</a>.</span></div>' +
+          '<div>Rejected target (stays plain text): <a href="javascript:alert(1)">do not click</a></div>' +
+          '</div></div></div></div>'
+        );
+        show('inserted a wrapped template', editor.getContent());
       });
       document.getElementById('btn-bold').addEventListener('click', function () {
         editor.execCommand('bold');

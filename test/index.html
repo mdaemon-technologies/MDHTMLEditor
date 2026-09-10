@@ -164,6 +164,13 @@
       </div>
 
       <div class="card">
+        <div class="card-header">Stored template import</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0;">The <strong>Templates</strong> dropdown carries the two shapes a stored email template actually arrives in. <em>Pretty-printed Status</em> is one stored as authored — real newlines and tabs between the blocks, including inside the <code>&lt;ul&gt;</code> — and inserts as <strong>two</strong> bullets, not four, with no literal tabs and no <code>&lt;br&gt;</code> on the <code>&amp;nbsp;</code> line. <em>Wrapped template</em> is one swaddled in container <code>&lt;div&gt;</code>s with placeholder <code>&lt;a href=""&gt;</code> links: a block cannot contain a block in the schema, so each wrapper used to be left behind as an empty paragraph (four blank lines above the content) and every empty-href anchor was deleted down to bare text. It now inserts flush with no blank lines, keeps all three links, and carries the wrapper's Georgia/10pt onto every line instead of stranding it on a blank. The <code>javascript:</code> target at the end must still arrive as plain text. <em>Long wrapped body</em> is the same shape at full scale — five nested wrappers, eight placeholder links, four <code>&amp;nbsp;</code> spacers and a run of unmatched closing tags — and should insert as nine lines with all eight <code>&lt;a&gt;</code> elements intact. Check the HTML Output panel for all of it.</p>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Pasted lists</div>
         <div class="card-body">
           <p style="font-size:11px;color:#888;margin:0;">Copy a numbered or lettered list out of Word, Outlook, Google Docs or a web page and paste it into the body. It lands at the editor's own list indent — the source document's <code>margin-left</code>/<code>text-indent</code> is dropped, so the list is not pushed a level further right than one built with the toolbar — and a lettered (A, B, C) or roman (i, ii, iii) list keeps its numbering instead of being renumbered 1, 2, 3. Check the HTML Output panel for the <code>&lt;ol type="A"&gt;</code> that carries it. <strong>Increase</strong>/<strong>Decrease indent</strong> (and Tab / Shift+Tab) then move the items: nesting where an item can nest, otherwise a <code>margin-left</code> on the <code>&lt;li&gt;</code> so the number travels with the text. The <strong>Templates</strong> dropdown's <em>Numbered list styles</em> entry loads the same cases without a clipboard.</p>
