@@ -1,10 +1,16 @@
-[![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmdaemon-technologies%2FMDHTMLEditor%2Fmaster%2Fpackage.json&query=%24.version&prefix=v&label=npm&color=blue)](https://www.npmjs.com/package/@mdaemon/html-editor) [![install size](https://packagephobia.com/badge?p=@mdaemon/html-editor)](https://packagephobia.com/result?p=@mdaemon/html-editor) [![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmdaemon-technologies%2FMDHTMLEditor%2Fmaster%2Fpackage.json&query=%24.license&prefix=v&label=license&color=green)](https://github.com/mdaemon-technologies/MDHTMLEditor/blob/master/LICENSE) [![Node.js CI](https://github.com/mdaemon-technologies/MDHTMLEditor/actions/workflows/ci.yml/badge.svg)](https://github.com/mdaemon-technologies/MDHTMLEditor/actions/workflows/ci.yml)
+# @mdaemon/html-editor
 
-# MDHTMLEditor
+[![npm](https://img.shields.io/npm/v/@mdaemon/html-editor?color=blue)](https://www.npmjs.com/package/@mdaemon/html-editor)
+[![license](https://img.shields.io/npm/l/@mdaemon/html-editor?color=green)](LICENSE)
+[![node](https://img.shields.io/node/v/@mdaemon/html-editor)](https://nodejs.org)
+[![install size](https://packagephobia.com/badge?p=@mdaemon/html-editor)](https://packagephobia.com/result?p=@mdaemon/html-editor)
+[![CI](https://github.com/mdaemon-technologies/MDHTMLEditor/actions/workflows/ci.yml/badge.svg)](https://github.com/mdaemon-technologies/MDHTMLEditor/actions/workflows/ci.yml)
 
-A TinyMCE-compatible HTML editor built on TipTap. This is the core vanilla TypeScript package - for React usage, see `@mdaemon/html-editor-react`.
+A TinyMCE-compatible HTML editor built on TipTap
 
-## Installation
+MDHTMLEditor is the core vanilla TypeScript package - for React usage, see `@mdaemon/html-editor-react`.
+
+## Install
 
 ```bash
 npm install @mdaemon/html-editor
@@ -18,9 +24,9 @@ sharing ProseMirror nodes or extension instances between the two.
 
 ## Usage
 
-### Vanilla JavaScript/TypeScript
+### Basic usage
 
-```typescript
+```ts
 import { HTMLEditor } from '@mdaemon/html-editor';
 import '@mdaemon/html-editor/styles';
 
@@ -62,7 +68,7 @@ editor.on('dirty', (isDirty) => {
 editor.destroy();
 ```
 
-### Browser (CDN / script tag)
+### Browser (UMD)
 
 For static pages without a bundler, load the self-contained UMD bundle via a `<script>` tag.
 It exposes the entire public API under the `MDHTMLEditor` global. Styles must be loaded
@@ -84,7 +90,7 @@ separately — the UMD bundle contains JavaScript only.
 
 ### Custom Toolbar Buttons
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   setup: (ed) => {
     ed.ui.registry.addButton('myButton', {
@@ -152,7 +158,7 @@ const editor = new HTMLEditor(container, {
 
 The toolbar supports a `||` (double pipe) separator to split buttons into a **primary row** and **collapsible overflow rows**. When `||` is present, a toggle button (`…`) appears at the far right of the primary row. Clicking it shows or hides the overflow buttons.
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   // Buttons before || are always visible; buttons after || are toggled
   toolbar: 'bold italic underline strikethrough | fontfamily fontsize || alignleft aligncenter alignright | forecolor backcolor | undo redo',
@@ -218,7 +224,7 @@ The editor supports a template dropdown that lets users insert predefined HTML s
 
 ### Template interface
 
-```typescript
+```ts
 interface Template {
   id?: number | string;  // Optional identifier
   title: string;         // Display name in the dropdown
@@ -229,7 +235,7 @@ interface Template {
 
 ### Configuration
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   includeTemplates: true,
   templates: [
@@ -255,7 +261,7 @@ const editor = new HTMLEditor(container, {
 
 When a user selects a template, the `templatechange` event fires with the full `Template` object:
 
-```typescript
+```ts
 editor.on('templatechange', (template) => {
   console.log('Applied template:', template.title);
   console.log('Template ID:', template.id);
@@ -365,13 +371,13 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 
 **Full toolbar** (default when `basicEditor: false`):
 
-```
+```text
 bold italic underline strikethrough subscript superscript | blocks styles | bullist numlist outdent indent blockquote | fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image table charmap emoticons hr | fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace
 ```
 
 **Basic toolbar** (when `basicEditor: true`):
 
-```
+```text
 bold italic underline strikethrough subscript superscript | bullist numlist outdent indent | fontfamily fontsize blockquote | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link unlink | ltr rtl | searchreplace
 ```
 
@@ -386,7 +392,7 @@ If `images_upload_url` is configured, files are sent as `multipart/form-data` to
 
 SVG files are automatically sanitized — dangerous elements (`<script>`, `<foreignObject>`, `<animate*>`) and event-handler attributes are stripped before insertion.
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   images_upload_url: '/api/upload',
   images_upload_credentials: true, // send cookies with CORS requests
@@ -407,7 +413,7 @@ reject the file. For drag-drop and clipboard-paste uploads there is no dialog to
 show the message in, so rejections and failures are routed to `images_upload_error`
 (supply your own alert/notification — the CKEditor `simpleuploads` `newAlert` flow).
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   images_upload_url: '/api/upload',
   images_file_types: 'jpg,jpeg,png,gif,bmp', // CKEditor simpleuploads parity
@@ -440,7 +446,7 @@ When editing an existing link, all fields are pre-populated from the current lin
 
 The `anchor` toolbar button opens a dialog to insert a named anchor — an `<a id="name">` target for in-page linking. The anchor name is required and may not contain spaces. Existing anchors in loaded content (`<a id>` with no `href`) are preserved through the editor's parse/serialize cycle.
 
-```typescript
+```ts
 // Programmatic insertion via the TipTap command:
 editor.getTipTap()?.commands.setAnchor('section-1');
 ```
@@ -489,7 +495,7 @@ Word/Excel cleaning as a whole can be turned off with `paste_from_office: false`
 
 - The `blocks` button (alias `formatselect`) is a block-format dropdown — Paragraph and Heading 1–6 by default. Customize it with `block_formats` (TinyMCE syntax):
 
-  ```typescript
+  ```ts
   const editor = new HTMLEditor(container, {
     block_formats: 'Paragraph=p;Title=h1;Subtitle=h2',
   });
@@ -497,7 +503,7 @@ Word/Excel cleaning as a whole can be turned off with `paste_from_office: false`
 
 - The `styles` button is a named-styles dropdown driven by `style_formats` (CKEditor `stylesSet`-compatible). Each entry applies a block element and/or inline color/background/class to the selection:
 
-  ```typescript
+  ```ts
   const editor = new HTMLEditor(container, {
     style_formats: [
       { title: 'Blue Title', block: 'h3', styles: { color: 'Blue' } },
@@ -529,7 +535,7 @@ Override either palette with `color_map_foreground` / `color_map_background`, or
 at once with `color_map`. A per-picker key wins over `color_map`. Both TinyMCE's flat
 form and an array of `ColorOption` objects are accepted:
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   // TinyMCE flat form: alternating value and label
   color_map_foreground: [
@@ -547,7 +553,7 @@ const editor = new HTMLEditor(container, {
 
 Colors can also be set programmatically, including clearing them:
 
-```typescript
+```ts
 editor.execCommand('forecolor', false, '#1155CC');
 editor.execCommand('forecolor', false, '');       // clear the text color
 editor.execCommand('backcolor', false, 'none');   // clear the highlight
@@ -563,7 +569,7 @@ exported HTML so content keeps its font when rendered outside the editor (for
 example, an email body opened in another client that doesn't load the editor's
 CSS). Set the base font with `fontName` / `fontSize`:
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   fontName: 'Georgia, serif',
   fontSize: '14pt',
@@ -636,7 +642,7 @@ This is handled by the exported `BlockFontStyle` extension (block defaults and t
 
 Start the editor read-only with `readonly: true`, or toggle it at runtime. Read-only mode disables editing and dims/blocks the toolbar.
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, { readonly: true });
 
 editor.setReadOnly(false); // make editable
@@ -648,7 +654,7 @@ console.log(editor.isReadOnly());
 
 By default, pressing Enter creates a new `<p>` block. Set `forced_root_block: 'div'` for CKEditor `ENTER_DIV` parity, so new blocks (and the serialized output) use `<div>` instead. The `<div id="signature">` signature block is still preserved in either mode.
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, { forced_root_block: 'div' });
 ```
 
@@ -684,7 +690,7 @@ The editor ships with built-in translations for 31 languages. Set the language a
 
 ### Setting the language
 
-```typescript
+```ts
 // At construction
 const editor = new HTMLEditor(container, { language: 'fr' });
 
@@ -701,7 +707,7 @@ editor.on('languagechange', (code) => {
 
 If you need translations the built-in locales don't cover, you can provide your own function. A custom `setTranslate()` call takes priority over the built-in locale at construction time.
 
-```typescript
+```ts
 import { setTranslate, TRANSLATION_KEYS } from '@mdaemon/html-editor';
 
 // See all keys that need translating
@@ -735,7 +741,7 @@ setTranslate((key) => myCustomLookup(key));
 
 ### Discovering available locales
 
-```typescript
+```ts
 import { availableLocales, getLocale } from '@mdaemon/html-editor';
 
 console.log(availableLocales); // ['en', 'ar', 'ca', ...]
@@ -748,7 +754,7 @@ These functions are exported from the package and operate globally (affecting al
 
 ### Translation
 
-```typescript
+```ts
 import { setTranslate, getTranslate, resetTranslate, createTranslateFunction } from '@mdaemon/html-editor';
 
 // Override translations for all editors
@@ -769,7 +775,7 @@ console.log(translateDe('Bold')); // 'Fett'
 
 The file source resolver lets you transform image `src` attributes (e.g. to prepend a CDN URL or resolve relative paths).
 
-```typescript
+```ts
 import { setGetFileSrc, getGetFileSrc } from '@mdaemon/html-editor';
 
 setGetFileSrc((path) => `https://cdn.example.com${path}`);
@@ -780,7 +786,7 @@ console.log(resolver('/img/photo.jpg')); // 'https://cdn.example.com/img/photo.j
 
 ### Exported constants
 
-```typescript
+```ts
 import { fontNames, CHAR_MAP, EMOJI_CATEGORIES, TRANSLATION_KEYS } from '@mdaemon/html-editor';
 
 // fontNames — default semicolon-separated font family string
@@ -793,7 +799,7 @@ import { fontNames, CHAR_MAP, EMOJI_CATEGORIES, TRANSLATION_KEYS } from '@mdaemo
 
 The `setup` callback receives a TinyMCE-compatible editor API. Use `ui.registry.addButton()` to register custom buttons.
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   toolbar: 'bold italic | myButton | undo redo',
   setup: (ed) => {
@@ -834,7 +840,7 @@ The `api` object passed to `onSetup` and `onAction`:
 
 Set `skin` to switch between light and dark chrome:
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   skin: 'oxide-dark', // dark toolbar and dialogs
   content_css: 'dark', // dark content area
@@ -847,7 +853,7 @@ The `confab` and `confab-dark` skins integrate with the WorldClient theming syst
 
 The confab skins also replace the default text/emoji toolbar icons with clean SVG line icons for a more polished look.
 
-```typescript
+```ts
 // Light mode
 const editor = new HTMLEditor(container, {
   skin: 'confab',
@@ -884,7 +890,7 @@ All variables include fallback values so the editor remains usable without the h
 
 Inject additional CSS into the editor content area:
 
-```typescript
+```ts
 const editor = new HTMLEditor(container, {
   content_style: 'body { font-family: Georgia, serif; font-size: 16px; }',
 });
@@ -940,6 +946,14 @@ npm run demo:umd     # build, then serve the UMD/script-tag demo as static files
   exactly the way a CDN / `<script>`-tag consumer would. Use this to verify the UMD bundle and
   the `MDHTMLEditor` global.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
-LGPL 3.0 or later - MDaemon Technologies
+Published under the [LGPL-3.0-or-later](LICENSE) license.
+
+Published by **MDaemon Technologies, Ltd.**  
+Simple Secure Email  
+[https://www.mdaemon.com](https://www.mdaemon.com)
