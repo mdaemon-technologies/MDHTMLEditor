@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.5] - 2026-09-22
+
+### Security
+
+- **The Preview window now carries a Content Security Policy that blocks script.** `preview` opens a blank window and writes `getContent()` into it with `document.write`, and that window inherits the host page's origin — so anything script-like that ever reached the written HTML would run with the host application's privileges, including access back through `window.opener`. Nothing the editor's schema renders can do that: `script` elements, `on*` handlers and raw-text/foreign elements are all dropped on the way in. But Preview is the one place where editor content is re-parsed as HTML in a live, same-origin document, and that should not depend on the schema staying airtight. This is defense in depth, not a fix for a reachable hole.
+- The written `<head>` now opens with `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src * data: blob: cid:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">`. It is the first element because a meta policy does not apply to markup parsed before it, and is ignored altogether if it ends up in the body. Verified in Chromium: with the meta, an inline `<script>`, an `<img onerror>` and a `javascript:` URL in the previewed markup all stay inert; with it removed, the script and the handler both run.
+- `default-src 'none'` covers script, inline event handlers, `javascript:` URLs and eval, along with frames, media, fonts and network requests, none of which the schema can emit. The exceptions are what a preview genuinely needs. Images keep working from every source the editor produces — `*` does not extend to non-network schemes, so `data:` (base64 and pasted images), `blob:` and `cid:` (an email template's inline attachments) are listed explicitly — and `style-src 'unsafe-inline'` keeps both the preview's own `<style>` block and the inline `style` attributes the editor writes for font, color, alignment, indent and direction. `base-uri` and `form-action` are not covered by `default-src`, so they are stated to close the `<base>`-hijack and form-submission paths.
+- Nothing else about Preview changed: the same `getContent()` output, title and stylesheet are written, so previewed content renders exactly as before.
+
 ## [1.12.3] - 2026-09-10
 
 ### Fixed
@@ -314,6 +323,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.12.5]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.12.5
 [1.12.3]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.12.3
 [1.12.2]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.12.2
 [1.12.1]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.12.1

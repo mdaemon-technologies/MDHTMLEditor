@@ -360,7 +360,7 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `anchor` | Insert a named anchor (`<a id>` target) |
 | `codesample` | Toggle code sample block |
 | `fullscreen` | Toggle fullscreen editing mode |
-| `preview` | Open content preview in a new window |
+| `preview` | Open content preview in a new window (the window carries a Content Security Policy that blocks script; images and inline styles still render) |
 | `searchreplace` | Open Find & Replace dialog |
 | `speechtotext` | Open Speech to Text dialog (browser support required) |
 | `dictate` | Toggle inline dictation — inserts speech directly at cursor (browser support required) |

@@ -3,7 +3,7 @@
  */
 
 import { HTMLEditor } from '../../src/core/HTMLEditor';
-import { Toolbar } from '../../src/core/Toolbar';
+import { Toolbar, PREVIEW_CSP } from '../../src/core/Toolbar';
 
 describe('Toolbar', () => {
   let container: HTMLElement;
@@ -907,6 +907,92 @@ describe('Toolbar', () => {
     it('should render toggle button with the default toolbar', () => {
       const toggleBtn = container.querySelector('[data-button="togglemore"]');
       expect(toggleBtn).not.toBeNull();
+    });
+  });
+
+  describe('Preview', () => {
+    let openSpy: jest.Spied<typeof window.open>;
+    let write: jest.Mock;
+    let close: jest.Mock;
+
+    beforeEach(() => {
+      write = jest.fn();
+      close = jest.fn();
+      openSpy = jest
+        .spyOn(window, 'open')
+        .mockReturnValue({ document: { write, close } } as unknown as Window);
+    });
+
+    afterEach(() => {
+      openSpy.mockRestore();
+    });
+
+    /** Click Preview and return the markup written into the popup. */
+    const openPreview = (): string => {
+      const btn = container.querySelector<HTMLElement>('[data-button="preview"]');
+      expect(btn).not.toBeNull();
+      btn!.click();
+      expect(write).toHaveBeenCalledTimes(1);
+      return write.mock.calls[0][0] as string;
+    };
+
+    it('should put the CSP meta first in the head', () => {
+      const doc = new DOMParser().parseFromString(openPreview(), 'text/html');
+      const meta = doc.head.firstElementChild;
+
+      expect(meta?.tagName).toBe('META');
+      expect(meta?.getAttribute('http-equiv')).toBe('Content-Security-Policy');
+      expect(meta?.getAttribute('content')).toBe(PREVIEW_CSP);
+    });
+
+    it('should write the CSP meta before any other element', () => {
+      // A meta CSP governs only what is parsed after it, and one written into
+      // the body is ignored outright. Assert on the raw string, because the
+      // parser hoists a stray meta into <head> and hides that.
+      const written = openPreview();
+      const csp = written.search(/<meta[^>]*Content-Security-Policy/i);
+
+      expect(csp).toBeGreaterThan(-1);
+      expect(csp).toBeLessThan(written.indexOf('<title'));
+      expect(csp).toBeLessThan(written.indexOf('<style'));
+    });
+
+    it('should pin the policy to one that blocks script but keeps images and inline styles', () => {
+      // Pinned whole: a directive dropped from the middle is a silent weakening
+      // that per-directive checks would miss.
+      expect(PREVIEW_CSP).toBe(
+        "default-src 'none'; img-src * data: blob: cid:; " +
+          "style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+      );
+      expect(PREVIEW_CSP).toContain("default-src 'none'");
+      expect(PREVIEW_CSP).not.toContain('script-src');
+      expect(PREVIEW_CSP).not.toContain("'unsafe-eval'");
+      // 'unsafe-inline' is for styles only — the content carries inline style
+      // attributes everywhere (font size, color, alignment).
+      expect(PREVIEW_CSP).toContain("style-src 'unsafe-inline'");
+      expect(PREVIEW_CSP.match(/'unsafe-inline'/g)).toHaveLength(1);
+      expect(PREVIEW_CSP).toContain('img-src * data: blob: cid:');
+      // Neither is covered by default-src, so both have to be stated.
+      expect(PREVIEW_CSP).toContain("base-uri 'none'");
+      expect(PREVIEW_CSP).toContain("form-action 'none'");
+    });
+
+    it('should still write the editor content and close the document', () => {
+      editor.setContent('<p>Hello <strong>world</strong></p>');
+
+      const doc = new DOMParser().parseFromString(openPreview(), 'text/html');
+
+      expect(doc.body.textContent).toContain('Hello world');
+      expect(doc.body.querySelector('strong')).not.toBeNull();
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not throw when the popup is blocked', () => {
+      openSpy.mockReturnValue(null);
+
+      const btn = container.querySelector<HTMLElement>('[data-button="preview"]');
+      expect(() => btn!.click()).not.toThrow();
+      expect(write).not.toHaveBeenCalled();
     });
   });
 });

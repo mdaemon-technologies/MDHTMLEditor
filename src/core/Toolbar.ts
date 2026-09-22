@@ -41,6 +41,37 @@ interface ToolbarState {
   isNarrow: boolean;
 }
 
+/**
+ * Content Security Policy for the preview window.
+ *
+ * Preview is the one place where editor content is re-parsed as HTML in a live,
+ * same-origin document (`window.open` + `document.write`), so anything that ever
+ * slipped through the schema would run there with the host page's privileges.
+ * Nothing the schema renders can do that today; this makes the window unable to
+ * run script whatever the content turns out to hold.
+ *
+ * `default-src 'none'` covers script, inline handlers, `javascript:` URLs and
+ * eval. The exceptions are what the preview genuinely needs: images (`*` does not
+ * cover non-network schemes, so `data:`/`blob:`/`cid:` are listed — `cid:` is how
+ * an email template references an inline attachment) and inline styles, which the
+ * content carries as `style` attributes and the preview uses for its own `<style>`
+ * block. `base-uri`/`form-action` are not covered by `default-src`, so they are
+ * stated to close the `<base>`-hijack and form-submission paths.
+ *
+ * Two things to know before changing it. `base-uri 'none'` means a `<base href>`
+ * written into the preview is ignored, so relative URLs keep resolving against the
+ * opener's document as they do today. And the value is interpolated into the
+ * attribute unescaped, so it has to stay a literal with no double quotes; a
+ * configurable policy would need escaping.
+ *
+ * Exported for the test; `src/index.ts` re-exports `Toolbar` by name, so this does
+ * not reach the public `.d.ts`. Keep it the first element in `<head>`: a meta
+ * policy does not apply to markup parsed before it, and one that ends up in the
+ * body is ignored entirely.
+ */
+export const PREVIEW_CSP =
+  "default-src 'none'; img-src * data: blob: cid:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
+
 // Default button priority tiers: 1 = always visible in narrow mode, 2 = collapsed behind toggle
 const DEFAULT_BUTTON_PRIORITY: Record<string, number> = {
   bold: 1,
@@ -1603,6 +1634,7 @@ export class Toolbar {
         <!DOCTYPE html>
         <html>
         <head>
+          <meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">
           <title>${this.trans('Preview')}</title>
           <style>body { font-family: sans-serif; padding: 20px; }</style>
         </head>
