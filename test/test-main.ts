@@ -227,7 +227,7 @@ function createEditorInstance(skin: typeof currentSkin) {
     'bold italic underline strikethrough subscript superscript | blocks styles | bullist numlist outdent indent blockquote | fontfamily fontsize ' +
     '|| lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste ' +
     '| undo redo | image table charmap emoticons hr | fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace ' +
-    '| template | dictate speechtotext | wordcount timestamp markpen',
+    '| template | pastemarkdown | dictate speechtotext | wordcount timestamp markpen',
 
   setup: (ed) => {
     // ── Custom button 1: Word Count (text label) ──────────
@@ -340,6 +340,12 @@ function createEditorInstance(skin: typeof currentSkin) {
     ed.on('templatechange', (template) => {
       log('info', `template applied: "${template.title}" (id=${template.id})`);
     });
+
+    ed.on('pastemarkdownchange', (enabled) => {
+      log('info', `paste markdown: ${enabled ? 'on' : 'off'}`);
+      const state = document.querySelector('#state-paste-markdown');
+      if (state) state.textContent = enabled ? 'on' : 'off';
+    });
   },
 });
 }
@@ -372,6 +378,20 @@ $('#btn-refresh-html').addEventListener('click', refreshHtml);
 $('#btn-copy-html').addEventListener('click', () => {
   navigator.clipboard.writeText(editor.getContent());
   log('info', 'HTML copied to clipboard');
+});
+
+// ── Paste Markdown ───────────────────────────────────
+// Copy the sample, turn the mode on from the toolbar (or here), and paste into
+// the editor: the raw Markdown arrives as formatting. With the mode off the same
+// paste stays literal.
+$('#btn-copy-markdown').addEventListener('click', () => {
+  const sample = $<HTMLTextAreaElement>('#markdown-sample').value;
+  navigator.clipboard.writeText(sample);
+  log('info', 'sample Markdown copied — now paste into the editor');
+});
+
+$('#btn-toggle-markdown').addEventListener('click', () => {
+  editor.setPasteMarkdown(!editor.isPasteMarkdownEnabled());
 });
 
 // ── Round-trip: setContent(getContent()) ─────────────

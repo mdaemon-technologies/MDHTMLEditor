@@ -37,6 +37,8 @@ export type { LinkEditorOptions } from './extensions/LinkEditor';
 export { PasteFromOffice } from './extensions/PasteFromOffice';
 export type { PasteFromOfficeOptions } from './extensions/PasteFromOffice';
 export { ListPasteNormalizer, normalizePastedLists, stripIndentDeclarations } from './extensions/ListPasteNormalizer';
+export { PasteMarkdown, pasteMarkdownText } from './extensions/PasteMarkdown';
+export type { PasteMarkdownOptions } from './extensions/PasteMarkdown';
 export { SpeechToText, isSpeechRecognitionSupported } from './extensions/SpeechToText';
 export type { SpeechToTextOptions } from './extensions/SpeechToText';
 export { Dictation } from './extensions/Dictation';
@@ -67,6 +69,7 @@ export type {
   TranslateFunction,
   GlobalConfig,
   LanguageChangeCallback,
+  PasteMarkdownChangeCallback,
 } from './types';
 
 // Import styles

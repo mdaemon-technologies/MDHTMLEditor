@@ -22,6 +22,7 @@ import { AnchorDialog } from '../extensions/AnchorDialog';
 import { SpeechToText, isSpeechRecognitionSupported } from '../extensions/SpeechToText';
 import { Dictation } from '../extensions/Dictation';
 import type { StyleFormat } from '../types';
+import { pasteMarkdownText } from '../extensions/PasteMarkdown';
 
 interface ToolbarOptions {
   editor: HTMLEditor;
@@ -645,6 +646,24 @@ export class Toolbar {
           void this.pasteFromClipboard();
         });
         
+      case 'pastemarkdown': {
+        const button = this.createActionButton(
+          'pastemarkdown',
+          this.icon('pastemarkdown'),
+          this.pasteMarkdownTooltip(),
+          () => {
+            this.options.editor.setPasteMarkdown(!this.options.editor.isPasteMarkdownEnabled());
+          },
+          () => this.options.editor.isPasteMarkdownEnabled()
+        );
+        // A mode left on by mistake changes every paste, so say so to assistive
+        // technology as well as visually.
+        button.setAttribute('aria-pressed', String(this.options.editor.isPasteMarkdownEnabled()));
+        // The tooltip states the mode, so give the button a stable name of its own.
+        button.setAttribute('aria-label', this.trans('Paste Markdown'));
+        return button;
+      }
+        
       case 'undo':
         return this.createActionButton('undo', this.icon('undo'), this.trans('Undo'), () => {
           this.tiptap?.chain().focus().undo().run();
@@ -772,6 +791,11 @@ export class Toolbar {
     return button;
   }
 
+  /** Tooltip for the Markdown-paste toggle, which states the mode it is in. */
+  private pasteMarkdownTooltip(enabled = this.options.editor.isPasteMarkdownEnabled()): string {
+    return enabled ? this.trans('Paste Markdown: on') : this.trans('Paste Markdown: off');
+  }
+
   /**
    * Paste clipboard contents into the editor.
    *
@@ -814,7 +838,10 @@ export class Toolbar {
         for (const item of items) {
           if (item.types.includes('text/html')) {
             html = await (await item.getType('text/html')).text();
-          } else if (item.types.includes('text/plain') && text === null) {
+          }
+          // Read the plain text too, not just when HTML is absent: Markdown mode
+          // works from it, and editors put highlighted HTML beside the source.
+          if (item.types.includes('text/plain') && text === null) {
             text = await (await item.getType('text/plain')).text();
           }
         }
@@ -838,6 +865,23 @@ export class Toolbar {
         console.warn('[html-editor] Paste button: clipboard read was blocked by the browser. Use Ctrl/Cmd+V instead.', err);
         return;
       }
+    }
+
+    // In Markdown mode the button behaves like Ctrl+V does: the plain text is
+    // the Markdown, and the clipboard's HTML is ignored.
+    // `text.trim()`, so whitespace-only plain text is not treated as Markdown
+    // and the clipboard's HTML is still used — as it is for Ctrl+V.
+    if (this.options.editor.isPasteMarkdownEnabled() && text?.trim()) {
+      if (pasteMarkdownText(this.tiptap.view, text)) {
+        this.updateButtonStates();
+        return;
+      }
+      // Not converted (a code block, or too expensive): paste it as plain text.
+      // ProseMirror's own path splits lines into blocks and keeps the text
+      // literal, which `insertContent` would not — it reads a string as HTML.
+      this.tiptap.view.pasteText(text);
+      this.updateButtonStates();
+      return;
     }
 
     // Clipboard HTML is wrapped in document scaffolding (a <meta charset> tag
@@ -1473,6 +1517,14 @@ export class Toolbar {
           break;
         case 'fullscreen':
           isActive = this.state.isFullscreen;
+          break;
+        case 'pastemarkdown':
+          isActive = this.options.editor.isPasteMarkdownEnabled();
+          // This runs on a timer, so only touch the DOM when it actually moved.
+          if (button.getAttribute('aria-pressed') !== String(isActive)) {
+            button.setAttribute('aria-pressed', String(isActive));
+            button.title = this.pasteMarkdownTooltip(isActive);
+          }
           break;
       }
       

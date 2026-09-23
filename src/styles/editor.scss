@@ -179,7 +179,25 @@ $md-dark-hover: #2d3e50;
     background: $md-primary;
     color: #fff;
   }
-  
+
+  // Paste-Markdown is a mode, not a one-off action: left on by mistake it
+  // changes every paste, so it carries a dot as well as the active background,
+  // which is subtle on some skins.
+  &[data-button="pastemarkdown"].md-toolbar-btn-active {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+  }
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;

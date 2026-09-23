@@ -66,6 +66,7 @@
     <button id="btn-get">Get content</button>
     <button id="btn-set">Set content</button>
     <button id="btn-roundtrip">Round-trip</button>
+    <button id="btn-copy-markdown">Copy sample Markdown</button>
     <button id="btn-insert-roundtrip">Insert own output</button>
     <button id="btn-insert-template">Insert pretty-printed template</button>
     <button id="btn-insert-wrapped">Insert wrapped template</button>
@@ -100,6 +101,15 @@
       var editor = new HTMLEditor(document.getElementById('editor-container'), {
         height: 360,
         basicEditor: false,
+
+        // `pastemarkdown` is not in the default toolbars, so name the buttons
+        // explicitly to get it. With the mode on, pasted Markdown arrives as
+        // formatting; the button lights up while it is on.
+        toolbar:
+          'bold italic underline strikethrough | blocks styles | bullist numlist outdent indent blockquote | ' +
+          'fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | ' +
+          'removeformat copy cut paste pastemarkdown | undo redo | image table charmap emoticons hr | ' +
+          'fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace',
         skin: 'oxide',
         content_css: 'default',
 
@@ -158,6 +168,30 @@
       document.getElementById('btn-set').addEventListener('click', function () {
         editor.setContent('<p>Content replaced via <em>setContent()</em>.</p>');
         show('setContent() called');
+      });
+      document.getElementById('btn-copy-markdown').addEventListener('click', function () {
+        // Copy, switch the toolbar's Markdown button on, then paste: the raw
+        // Markdown arrives as formatting. Off, it pastes literally.
+        var sample = [
+          '# Release notes',
+          '',
+          'A single newline is a line break,',
+          'like this one.',
+          '',
+          'A blank line starts a paragraph, with **bold**, *italic* and `code`.',
+          '',
+          '- a bullet',
+          '- [ ] a task, which pastes as a plain bullet',
+          '',
+          '| feature | state |',
+          '| --- | --- |',
+          '| tables | yes |',
+        ].join('\n');
+        navigator.clipboard.writeText(sample);
+        show('sample Markdown copied — turn on the Markdown toolbar button, then paste');
+      });
+      editor.on('pastemarkdownchange', function (enabled) {
+        show('paste markdown: ' + (enabled ? 'on' : 'off'));
       });
       document.getElementById('btn-roundtrip').addEventListener('click', function () {
         // format_empty_lines symmetry: getContent() fills blank lines with <br>,

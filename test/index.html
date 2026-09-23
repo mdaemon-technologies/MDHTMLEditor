@@ -242,6 +242,48 @@
 
       <!-- Programmatic content -->
       <div class="card">
+        <div class="card-header">Paste Markdown</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Turn the mode on with the <strong>M&darr;</strong> toolbar button (it lights up and gets a dot while on), then copy the sample below and paste it into the editor. Off, the same paste stays literal. The mode ignores the clipboard's HTML, so copying from a code viewer still pastes formatting rather than coloured code.</p>
+          <div class="control-group">
+            <label>Sample Markdown</label>
+            <textarea id="markdown-sample" rows="12"># Release notes
+
+A single newline is a line break,
+like this one.
+
+A blank line starts a new paragraph, with **bold**, *italic*, ~~strike~~, `code` and a [link](https://example.com).
+
+- a bullet
+  - nested
+- [ ] a task, which pastes as a plain bullet
+- [x] a done task
+
+1. first
+2. second
+
+> a quote
+
+| feature | state |
+| --- | --- |
+| tables | yes |
+
+```js
+const x = 1;
+```
+
+Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\* syntax stays literal.
+</textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-copy-markdown">Copy sample</button>
+            <button class="btn" id="btn-toggle-markdown">Toggle mode</button>
+            <span style="align-self:center;font-size:12px;">Mode: <strong id="state-paste-markdown">off</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Content</div>
         <div class="card-body">
           <div class="control-group">

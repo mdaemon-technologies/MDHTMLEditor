@@ -556,6 +556,66 @@ describe('HTMLEditor', () => {
       expect(() => editor.destroy()).not.toThrow();
     });
   });
+
+  describe('Paste Markdown mode', () => {
+    it('should be off by default', () => {
+      editor = new HTMLEditor(container);
+
+      expect(editor.isPasteMarkdownEnabled()).toBe(false);
+    });
+
+    it('should start on when paste_markdown is set', () => {
+      editor = new HTMLEditor(container, { paste_markdown: true });
+
+      expect(editor.isPasteMarkdownEnabled()).toBe(true);
+    });
+
+    it('should toggle with execCommand', () => {
+      editor = new HTMLEditor(container);
+
+      expect(editor.execCommand('mceTogglePasteMarkdown')).toBe(true);
+      expect(editor.isPasteMarkdownEnabled()).toBe(true);
+
+      editor.execCommand('mceTogglePasteMarkdown');
+      expect(editor.isPasteMarkdownEnabled()).toBe(false);
+    });
+
+    it('should fire pastemarkdownchange with the new value', () => {
+      editor = new HTMLEditor(container);
+      const callback = jest.fn();
+      editor.on('pastemarkdownchange', callback);
+
+      editor.setPasteMarkdown(true);
+
+      expect(callback).toHaveBeenCalledWith(true);
+    });
+
+    it('should not fire pastemarkdownchange when the value is unchanged', () => {
+      editor = new HTMLEditor(container, { paste_markdown: true });
+      const callback = jest.fn();
+      editor.on('pastemarkdownchange', callback);
+
+      editor.setPasteMarkdown(true);
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('should keep the setting per editor instance', () => {
+      const other = document.createElement('div');
+      document.body.appendChild(other);
+      editor = new HTMLEditor(container);
+      const second = new HTMLEditor(other, { paste_markdown: true });
+
+      editor.setPasteMarkdown(false);
+
+      expect(editor.isPasteMarkdownEnabled()).toBe(false);
+      expect(second.isPasteMarkdownEnabled()).toBe(true);
+
+      second.destroy();
+      other.remove();
+    });
+  });
+
 });
 
 describe('Global Functions', () => {

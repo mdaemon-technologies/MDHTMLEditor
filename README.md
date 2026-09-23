@@ -151,6 +151,7 @@ const editor = new HTMLEditor(container, {
 | `convert_unsafe_embeds` | boolean | true | Sanitize embedded content |
 | `format_empty_lines` | boolean | true | Preserve blank lines in exported content. When `true`, every path that hands HTML *out* of the editor (`getContent()`, the `change` event payload, the source dialog, preview) injects a `<br>` into each empty block so blank lines keep their height in mail clients and other consumers that would otherwise collapse a bare `<div></div>`/`<p></p>` to zero height, and every path that brings HTML *in* (`setContent()`, `insertContent()`, the Templates dropdown, saving the source dialog) runs the exact inverse — stripping that `<br>` back out on import so a blank line is not re-parsed as a doubled line. This keeps `setContent(getContent(x))` stable across round-trips (skin/root-block changes, saved-draft reloads). A block holding only a non-breaking space (`<div>&nbsp;</div>`) is *not* a blank line — an `&nbsp;` is visible content that already gives the block height — so it is left exactly as it is by both passes. Set `false` to pass the engine's output through unchanged in both directions. |
 | `paste_from_office` | boolean | true | Clean and preserve formatting when pasting from Microsoft Word and Excel |
+| `paste_markdown` | boolean | false | Start with paste-as-Markdown mode on. While on, a paste is read as Markdown and inserted as formatting — see [Pasting Markdown](#pasting-markdown) |
 | `speech_to_text` | boolean | true | Enable Speech to Text and Dictate toolbar buttons (requires Web Speech API: Chrome, Edge, Safari) |
 | `setup` | (editor) => void | - | Callback invoked before init — use to register custom buttons |
 
@@ -177,6 +178,8 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `setContent(html: string): void` - Set HTML content. Backslash-escaped closing tags (`<\/p>`, produced by hosts that pass HTML through PHP `json_encode` and similar `/`→`\/` encoders) are repaired to real tags before parsing, matching TinyMCE's lenient parser, and the `format_empty_lines` import pass is applied. Insignificant whitespace between block elements is collapsed per the HTML spec, so pretty-printed (indented, multi-line) source imports the same way a browser would render it — see [Importing pretty-printed HTML](#importing-pretty-printed-html)
 - `insertContent(html: string): void` - Insert HTML at cursor (same `<\/` repair, whitespace handling, and `format_empty_lines` import pass as `setContent`, so inserting a fragment produced by `getContent()` does not double its blank lines)
 - `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command
+- `isPasteMarkdownEnabled(): boolean` - Whether pastes are currently read as Markdown
+- `setPasteMarkdown(on: boolean): void` - Turn paste-as-Markdown on or off. Per editor instance and not remembered between sessions — see [Pasting Markdown](#pasting-markdown)
 - `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default). Returns `''` when the selection spans more than one family
 - `getFontSize(): string` - Font size in effect at the cursor (same resolution order). Returns `''` when the selection spans more than one size, and inside a heading with no inline override (headings size by level)
 - `isDirty(): boolean` - Check if content has changed
@@ -203,11 +206,13 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `blur` - Editor blurred
 - `languagechange` - UI language changed (receives language code)
 - `templatechange` - A template was applied (receives the `Template` object)
+- `pastemarkdownchange` - Paste-as-Markdown mode was turned on or off (receives the new boolean). Fires only on an actual change, so a host can save the user's choice
 
 ### Supported Commands
 
 The following TinyMCE-compatible commands are supported:
 
+- `mceTogglePasteMarkdown` - turn paste-as-Markdown mode on or off
 - `bold`, `italic`, `underline`, `strikethrough`
 - `fontname`, `fontsize`, `lineheight`
 - `forecolor`, `hilitecolor`, `backcolor` — pass `''` or `'none'` as the value to clear the color instead of setting one
@@ -348,7 +353,8 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `removeformat` | Clear all formatting |
 | `copy` | Copy selection |
 | `cut` | Cut selection |
-| `paste` | Paste from clipboard (async Clipboard API; prefers HTML, falls back to plain text) |
+| `paste` | Paste from clipboard (async Clipboard API; prefers HTML, falls back to plain text). Follows the Markdown mode when it is on |
+| `pastemarkdown` | Toggle paste-as-Markdown mode. Not in the default toolbars — add it to your `toolbar` string |
 | `undo` | Undo last change |
 | `redo` | Redo last undo |
 | `image` | Insert image dialog (upload file or enter URL) |
@@ -490,6 +496,51 @@ Lists pasted from Word, Outlook, Google Docs, another editor or a web page are n
 - **Word's numbering style is kept.** `mso-level-number-format` (and `mso-level-start-at`) become the list's `type` and `start`, so a lettered or roman Word list is not renumbered. When the clipboard carries no `@list` rules at all — common — the style is inferred from the marker text Word inlines (`A.`, `iv.`, `1.`, `·`), which also keeps a numbered list from arriving as a bullet list.
 
 Word/Excel cleaning as a whole can be turned off with `paste_from_office: false`; list indentation is normalized either way.
+
+## Pasting Markdown
+
+Chat apps, AI assistants and README files hand out Markdown, which pastes into an editor as the raw `#`, `*` and `|` characters. Turn on paste-as-Markdown mode and a paste is converted to real formatting instead.
+
+The mode is **off by default** and stays on until it is turned off, like TinyMCE's *Paste as text*. Turn it on with the `pastemarkdown` toolbar button, `paste_markdown: true`, `editor.setPasteMarkdown(true)`, or `editor.execCommand('mceTogglePasteMarkdown')`.
+
+```js
+const editor = new HTMLEditor(el, {
+  toolbar: 'bold italic | bullist numlist | pastemarkdown paste',
+  paste_markdown: false,
+});
+
+// Hosts that want to remember the choice can save it and pass it back:
+editor.on('pastemarkdownchange', (enabled) => localStorage.setItem('md-paste', String(enabled)));
+```
+
+The button is **not** in the default toolbars, so existing toolbars are unchanged; add `pastemarkdown` to your own `toolbar` string. While the mode is on the button is highlighted, carries a dot and reports `aria-pressed="true"`, because a mode left on by mistake quietly changes every paste.
+
+### What is converted
+
+Headings, bold, italic, strikethrough, inline code, links, images, bullet/ordered/nested lists, blockquotes, horizontal rules, fenced code blocks (with their language) and GFM tables.
+
+- **A single newline is a line break.** `line one⏎line two` pastes as two lines, not one run-on paragraph, which matches how chat and AI output is written. A blank line still starts a new paragraph.
+- **Task lists become plain bullets.** `- [ ] item` pastes as a bullet reading `item`; the editor has no checkbox node.
+- **Raw HTML in the Markdown is shown as literal text.** Pasting `<u>x</u>` gives you the visible characters `<u>x</u>`, not an underline. This keeps a paste from injecting markup, including the editor's own mention and signature elements.
+- **Large unlabelled code blocks** are treated as plain text rather than auto-detected, which keeps a big paste from stalling the editor.
+
+### What is left alone
+
+The mode only affects pasting, and even then only some pastes:
+
+- **The clipboard's HTML is ignored while the mode is on.** Code editors and web pages put syntax-highlighted HTML on the clipboard beside the raw text; converting that would paste coloured code instead of formatting.
+- **Copying from a code editor converts too.** VS Code (and editors that copy the way it does) marks the clipboard as code, which the editor would otherwise paste as a code block. While the mode is on, Markdown conversion takes precedence; with the mode off, that code-block behaviour is unchanged.
+- **Images and files** paste and upload exactly as before.
+- **Inside a code block** the Markdown stays literal.
+- **A URL pasted over selected text** still turns that text into a link.
+- **Drag-and-drop is never converted** — only pastes are.
+- **Very large or pathological Markdown** (over 256 KB, or a single paragraph over 5,000 characters) is pasted unconverted rather than risking a frozen tab.
+
+With the mode **off**, pasting is unchanged. Note that TipTap's own paste rules already turn some inline syntax (`**bold**`, `*italic*`) into formatting as you paste — that is not this feature, and it applies either way. Block syntax such as `# Heading` or `- item` only converts while the mode is on.
+
+### Security
+
+Pasted Markdown cannot run script in the editor: raw HTML is escaped to text, the converted HTML is parsed and sanitized in an inert document (never through `innerHTML` on the live page) and links are limited to the schemes TipTap allows, so `javascript:` targets lose the link and keep their text. Images do load from their URLs when pasted, exactly as they do for an HTML paste, so a remote image reveals the reader's IP to that server. There is deliberately no public "Markdown to HTML string" helper, because that invites host code to write it back into a page with `innerHTML`; hosts that need to insert Markdown use `pasteMarkdownText(view, text)`, which inserts through the editor.
 
 ## Block & Style Formats
 

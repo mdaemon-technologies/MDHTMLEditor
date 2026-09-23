@@ -11,7 +11,7 @@ const EXPECTED_BUTTON_NAMES = [
   'bold', 'italic', 'underline', 'strikethrough',
   'bullist', 'numlist', 'outdent', 'indent', 'blockquote',
   'alignleft', 'aligncenter', 'alignright', 'alignjustify',
-  'removeformat', 'copy', 'cut', 'paste',
+  'removeformat', 'copy', 'cut', 'paste', 'pastemarkdown',
   'undo', 'redo',
   'image', 'charmap', 'emoticons',
   'fullscreen', 'preview', 'code', 'link', 'codesample',
@@ -147,6 +147,33 @@ describe('Icons', () => {
 
     it('should share code SVG icon between sets', () => {
       expect(DEFAULT_ICONS.code).toBe(CONFAB_ICONS.code);
+    });
+
+    it('should share the paste-markdown SVG icon between sets', () => {
+      expect(DEFAULT_ICONS.pastemarkdown).toBe(CONFAB_ICONS.pastemarkdown);
+    });
+  });
+
+  describe('Paste Markdown icon', () => {
+    // The first version drew the Markdown mark complete with its surrounding
+    // rounded rectangle. Inside a 16px box that frame left only a few pixels for
+    // the M and the arrow, and nobody could tell what the button was. The glyph
+    // now fills the viewBox instead.
+    const icon = DEFAULT_ICONS.pastemarkdown;
+
+    it('should not be drawn inside a frame', () => {
+      expect(icon).not.toContain('<rect');
+    });
+
+    it('should fill most of the viewBox', () => {
+      // Every coordinate in the artwork, ignoring the attributes around it.
+      const coords = (icon.match(/(?:\sd="|points=")[^"]*"/g) ?? [])
+        .join(' ')
+        .match(/\d+(?:\.\d+)?/g)!
+        .map(Number);
+
+      expect(Math.min(...coords)).toBeLessThanOrEqual(3);
+      expect(Math.max(...coords)).toBeGreaterThanOrEqual(17);
     });
   });
 });

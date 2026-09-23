@@ -6,6 +6,7 @@
 
 import { Extension } from '@tiptap/core';
 import { stripIndentDeclarations } from './ListPasteNormalizer';
+import { sanitizeDocument } from '../utils/sanitizePastedHtml';
 
 export interface PasteFromOfficeOptions {
   /**
@@ -720,61 +721,6 @@ function removeExcelAttributes(el: Element): void {
   }
 }
 
-// --- Security hardening ---
-
-/** Tags to remove entirely (defense-in-depth alongside TipTap schema) */
-const DANGEROUS_TAGS = [
-  'script', 'iframe', 'object', 'embed', 'applet',
-  'form', 'input', 'textarea', 'select', 'button',
-];
-
-const EVENT_ATTR_PATTERN = /^on/i;
-const DANGEROUS_URL_PATTERN = /^\s*(javascript|vbscript|data\s*:(?!image))/i;
-
-/**
- * Remove dangerous elements and attributes.
- * Defense-in-depth: TipTap's schema will also reject these,
- * but we strip them early to be safe.
- */
-function sanitize(doc: Document): void {
-  // Remove dangerous elements
-  for (const tag of DANGEROUS_TAGS) {
-    const elements = Array.from(doc.body.querySelectorAll(tag));
-    for (const el of elements) {
-      el.remove();
-    }
-  }
-
-  // Remove dangerous attributes from all elements
-  const allElements = Array.from(doc.body.querySelectorAll('*'));
-  for (const el of allElements) {
-    const attrs = Array.from(el.attributes);
-    for (const attr of attrs) {
-      // Remove event handlers
-      if (EVENT_ATTR_PATTERN.test(attr.name)) {
-        el.removeAttribute(attr.name);
-        continue;
-      }
-
-      // Remove dangerous URLs
-      if ((attr.name === 'href' || attr.name === 'src' || attr.name === 'action') &&
-        DANGEROUS_URL_PATTERN.test(attr.value)) {
-        el.removeAttribute(attr.name);
-      }
-    }
-
-    // Strip file:// URLs (Word-local image references)
-    const src = el.getAttribute('src');
-    if (src && src.startsWith('file://')) {
-      el.removeAttribute('src');
-    }
-    const href = el.getAttribute('href');
-    if (href && href.startsWith('file://')) {
-      el.removeAttribute('href');
-    }
-  }
-}
-
 // --- Style block removal ---
 
 /**
@@ -848,7 +794,7 @@ export function transformOfficeHTML(html: string): string {
   removeEmptyWrappers(doc);
 
   // Step 10: Security hardening
-  sanitize(doc);
+  sanitizeDocument(doc);
 
   return doc.body.innerHTML;
 }

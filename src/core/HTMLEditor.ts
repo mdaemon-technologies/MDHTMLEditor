@@ -40,6 +40,7 @@ import { Anchor } from '../extensions/Anchor';
 import { InlineStyle } from '../extensions/InlineStyle';
 import { PasteFromOffice } from '../extensions/PasteFromOffice';
 import { ListPasteNormalizer } from '../extensions/ListPasteNormalizer';
+import { PasteMarkdown } from '../extensions/PasteMarkdown';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
@@ -160,6 +161,8 @@ export class HTMLEditor implements IMDHTMLEditor {
   private editorWrapper: HTMLElement | null = null;
   private toolbar: Toolbar | null = null;
   private config: EditorConfig;
+  /** Paste-Markdown mode. Per instance, not persisted; hosts save it via `pastemarkdownchange`. */
+  private pasteMarkdownEnabled = false;
   private dirty = false;
   private customButtons: Map<string, ToolbarButtonSpec> = new Map();
   private eventListeners: Map<keyof EditorEventMap, Set<EditorEventMap[keyof EditorEventMap]>> = new Map();
@@ -170,6 +173,7 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.id = `md-editor-${++editorIdCounter}`;
     this.container = container;
     this.config = this.normalizeConfig(config);
+    this.pasteMarkdownEnabled = this.config.paste_markdown ?? false;
     
     // UI registry for custom buttons
     this.ui = {
@@ -244,6 +248,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       toolbar_narrow_breakpoint: config.toolbar_narrow_breakpoint,
       toolbar_priority: config.toolbar_priority,
       paste_from_office: config.paste_from_office ?? true,
+      paste_markdown: config.paste_markdown ?? false,
       speech_to_text: config.speech_to_text ?? true,
     };
   }
@@ -597,6 +602,14 @@ export class HTMLEditor implements IMDHTMLEditor {
     // has already turned Word's fake lists into real ones.
     extensions.push(ListPasteNormalizer);
 
+    // Markdown paste. Registered whether or not the mode starts on, because it
+    // can be switched at runtime and the engine is only built once.
+    extensions.push(
+      PasteMarkdown.configure({
+        isEnabled: () => this.pasteMarkdownEnabled,
+      })
+    );
+
     // Add image extension for full editor
     if (!this.config.basicEditor) {
       extensions.push(
@@ -924,6 +937,9 @@ export class HTMLEditor implements IMDHTMLEditor {
       case 'inserthorizontalrule':
         chain.setHorizontalRule().run();
         return true;
+      case 'mcetogglepastemarkdown':
+        this.setPasteMarkdown(!this.pasteMarkdownEnabled);
+        return true;
       case 'mceremoveeditor':
         this.destroy();
         return true;
@@ -957,6 +973,26 @@ export class HTMLEditor implements IMDHTMLEditor {
 
   isReadOnly(): boolean {
     return this.config.readonly ?? false;
+  }
+
+  /**
+   * Whether pastes are read as Markdown. Off unless `paste_markdown` says
+   * otherwise, and per editor instance.
+   */
+  isPasteMarkdownEnabled(): boolean {
+    return this.pasteMarkdownEnabled;
+  }
+
+  /**
+   * Turn paste-as-Markdown on or off. The editor does not remember the choice
+   * between sessions; a host that wants to can save it on `pastemarkdownchange`
+   * and pass it back as `paste_markdown`.
+   */
+  setPasteMarkdown(on: boolean): void {
+    if (this.pasteMarkdownEnabled === on) return;
+    this.pasteMarkdownEnabled = on;
+    this.config.paste_markdown = on;
+    this.fire('pastemarkdownchange', on);
   }
   
   focus(): void {

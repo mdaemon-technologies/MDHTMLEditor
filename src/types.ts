@@ -155,6 +155,9 @@ export interface EditorConfig {
   // Paste from Office
   paste_from_office?: boolean;
 
+  // Paste Markdown
+  paste_markdown?: boolean;
+
   // Speech to Text
   speech_to_text?: boolean;
 
@@ -206,11 +209,13 @@ export type FocusCallback = () => void;
 export type BlurCallback = () => void;
 export type LanguageChangeCallback = (code: string) => void;
 export type TemplateChangeCallback = (template: Template) => void;
+export type PasteMarkdownChangeCallback = (enabled: boolean) => void;
 
 export interface EditorEvents {
   init?: InitCallback;
   dirty?: DirtyCallback;
   change?: ChangeCallback;
+  pastemarkdownchange?: PasteMarkdownChangeCallback;
   focus?: FocusCallback;
   blur?: BlurCallback;
 }
@@ -264,6 +269,10 @@ export interface MDHTMLEditor {
   
   // Language
   setLanguage(code: string): void;
+
+  // Paste Markdown mode
+  isPasteMarkdownEnabled(): boolean;
+  setPasteMarkdown(on: boolean): void;
   
   // Internal TipTap editor access
   getTipTap(): TipTapEditor | null;
@@ -277,6 +286,7 @@ export interface EditorEventMap {
   blur: BlurCallback;
   languagechange: LanguageChangeCallback;
   templatechange: TemplateChangeCallback;
+  pastemarkdownchange: PasteMarkdownChangeCallback;
 }
 
 /**

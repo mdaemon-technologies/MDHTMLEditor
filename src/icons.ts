@@ -16,6 +16,12 @@ const SVG_CODE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
 const SVG_HR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/></svg>';
 const SVG_TABLE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>';
 const SVG_ANCHOR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>';
+// The Markdown mark's M and down arrow, drawn edge to edge. The mark's rounded
+// rectangle is deliberately left off: inside a 16px button the frame took most
+// of the room and squeezed the glyph down to a few unreadable pixels. Slightly
+// heavier strokes than the rest of the set, because the M's diagonals thin out
+// at this size. The arrow also reads as "bring this in", which suits a paste.
+const SVG_PASTE_MARKDOWN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17.5V6.5l4.5 5.5 4.5-5.5v11"/><path d="M17.5 6.5v8.5"/><polyline points="14 11.5 17.5 15 21 11.5"/></svg>';
 const SVG_UNLINK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.84 12.25l1.72-1.71a4 4 0 0 0-5.66-5.66l-1.71 1.72"/><path d="M5.17 11.75l-1.71 1.71a4 4 0 0 0 5.66 5.66l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
 
 /**
@@ -40,6 +46,7 @@ export const DEFAULT_ICONS: IconSet = {
   copy: '📋',
   cut: '✂',
   paste: '📄',
+  pastemarkdown: SVG_PASTE_MARKDOWN,
   undo: '↩',
   redo: '↪',
   image: SVG_IMAGE,
@@ -88,6 +95,7 @@ export const CONFAB_ICONS: IconSet = {
   removeformat: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="2.7 16.8 7 21 13 21 14 20 5 11" fill="currentColor" fill-opacity="0.3" stroke="none"/><path d="m7 21-4.3-4.3a2 2 0 0 1 0-2.8l9.6-9.6a2 2 0 0 1 2.8 0l5.6 5.6a2 2 0 0 1 0 2.8L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>',
   copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
   cut: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.1" y2="15.9"/><line x1="14.5" y1="9.5" x2="20" y2="4"/><line x1="8.1" y1="8.1" x2="20" y2="20"/></svg>',
+  pastemarkdown: SVG_PASTE_MARKDOWN,
   paste: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>',
   undo: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.5 14a9 9 0 1 0 2.2-5.8L1 10"/></svg>',
   redo: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 14a9 9 0 1 1-2.2-5.8L23 10"/></svg>',

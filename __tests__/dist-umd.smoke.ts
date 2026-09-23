@@ -25,11 +25,14 @@ describe('dist/index.umd.js (built output)', () => {
     expect(head).toMatch(/MDHTMLEditor/);
   });
 
-  it('is self-contained (no unbundled @tiptap/lowlight imports)', () => {
+  it('is self-contained (no unbundled @tiptap/lowlight/marked imports)', () => {
     const src = readFileSync(UMD_PATH, 'utf8');
     expect(src).not.toMatch(/require\(["']@tiptap/);
     expect(src).not.toMatch(/from\s*["']@tiptap/);
     expect(src).not.toMatch(/require\(["']lowlight["']\)/);
+    // marked is ESM-only, so an unbundled reference would break the <script> build.
+    expect(src).not.toMatch(/require\(["']marked["']\)/);
+    expect(src).not.toMatch(/from\s*["']marked["']/);
   });
 
   it('loads in a sandbox and registers window.MDHTMLEditor.HTMLEditor', () => {
@@ -42,6 +45,49 @@ describe('dist/index.umd.js (built output)', () => {
     new Function(src).call(globalObj);
     expect(globalObj.MDHTMLEditor).toBeDefined();
     expect(typeof globalObj.MDHTMLEditor!.HTMLEditor).toBe('function');
+  });
+
+  it('converts Markdown through the real bundled parser', () => {
+    // marked is bundled (it is ESM-only, so an unbundled reference would break
+    // the <script> build), and `pasteMarkdownText` is the public entry the
+    // toolbar's paste button uses. Driving it directly keeps this test about the
+    // bundle rather than about synthesizing clipboard events in jsdom, which the
+    // Jest suites already cover against the source.
+    const src = readFileSync(UMD_PATH, 'utf8');
+    const globalObj = globalThis as unknown as {
+      MDHTMLEditor?: {
+        HTMLEditor?: new (el: HTMLElement, config?: Record<string, unknown>) => {
+          isPasteMarkdownEnabled(): boolean;
+          setPasteMarkdown(on: boolean): void;
+          getContent(): string;
+          getTipTap(): { view: unknown } | null;
+          destroy(): void;
+        };
+        pasteMarkdownText?: (view: unknown, text: string) => boolean;
+      };
+    };
+    delete globalObj.MDHTMLEditor;
+    // eslint-disable-next-line no-new-func
+    new Function(src).call(globalObj);
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const editor = new globalObj.MDHTMLEditor!.HTMLEditor!(container, { paste_markdown: true });
+
+    expect(editor.isPasteMarkdownEnabled()).toBe(true);
+    expect(typeof globalObj.MDHTMLEditor!.pasteMarkdownText).toBe('function');
+
+    const converted = globalObj.MDHTMLEditor!.pasteMarkdownText!(
+      editor.getTipTap()!.view,
+      '# Heading\n\n- a\n- b'
+    );
+
+    expect(converted).toBe(true);
+    expect(editor.getContent()).toMatch(/<h1[^>]*>Heading<\/h1>/);
+    expect(editor.getContent()).toContain('<ul>');
+
+    editor.destroy();
+    container.remove();
   });
 
   /**

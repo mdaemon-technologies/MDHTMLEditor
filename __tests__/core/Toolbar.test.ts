@@ -910,6 +910,135 @@ describe('Toolbar', () => {
     });
   });
 
+  describe('Paste Markdown button', () => {
+    const withButton = (): HTMLElement => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'bold pastemarkdown paste' });
+      const btn = container.querySelector<HTMLElement>('[data-button="pastemarkdown"]');
+      expect(btn).not.toBeNull();
+      return btn!;
+    };
+
+    it('should not be in the default toolbars', () => {
+      expect(container.querySelector('[data-button="pastemarkdown"]')).toBeNull();
+
+      editor.destroy();
+      editor = new HTMLEditor(container, { basicEditor: true });
+      expect(container.querySelector('[data-button="pastemarkdown"]')).toBeNull();
+    });
+
+    it('should render when the toolbar string asks for it', () => {
+      expect(withButton().getAttribute('title')).toBe('Paste Markdown: off');
+    });
+
+    it('should toggle the mode on click', () => {
+      const btn = withButton();
+
+      btn.click();
+      expect(editor.isPasteMarkdownEnabled()).toBe(true);
+
+      btn.click();
+      expect(editor.isPasteMarkdownEnabled()).toBe(false);
+    });
+
+    it('should show the pressed state while the mode is on', () => {
+      const btn = withButton();
+
+      expect(btn.classList.contains('md-toolbar-btn-active')).toBe(false);
+      expect(btn.getAttribute('aria-pressed')).toBe('false');
+
+      btn.click();
+
+      expect(btn.classList.contains('md-toolbar-btn-active')).toBe(true);
+      expect(btn.getAttribute('aria-pressed')).toBe('true');
+      expect(btn.getAttribute('title')).toBe('Paste Markdown: on');
+    });
+
+    it('should follow a change made through the editor API', () => {
+      const btn = withButton();
+
+      editor.setPasteMarkdown(true);
+      // updateButtonStates runs on an interval; a click on any button also runs
+      // it, so nudge it the way a user interaction would.
+      container.querySelector<HTMLElement>('[data-button="bold"]')!.click();
+
+      expect(btn.getAttribute('aria-pressed')).toBe('true');
+    });
+  });
+
+  describe('Paste button with Markdown mode on', () => {
+    let read: jest.Mock;
+
+    beforeEach(() => {
+      // setup.ts installs a clipboard mock with only writeText/readText, and the
+      // property is not configurable, so add read() to the object it made.
+      read = jest.fn();
+      (navigator.clipboard as unknown as { read: jest.Mock }).read = read;
+    });
+
+    afterEach(() => {
+      delete (navigator.clipboard as unknown as { read?: jest.Mock }).read;
+    });
+
+    /** Clipboard with both flavours, as a code editor would provide. */
+    const clipboardWith = (data: Record<string, string>) => [
+      {
+        types: Object.keys(data),
+        getType: async (type: string) => ({ text: async () => data[type] }),
+      },
+    ];
+
+    const clickPaste = async (): Promise<void> => {
+      container.querySelector<HTMLElement>('[data-button="paste"]')!.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    };
+
+    it('should convert the plain text even when the clipboard also has HTML', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste', paste_markdown: true });
+      read.mockResolvedValue(
+        clipboardWith({ 'text/plain': '# Heading', 'text/html': '<span style="color:#f00"># Heading</span>' })
+      );
+
+      await clickPaste();
+
+      expect(editor.getContent()).toMatch(/<h1[^>]*>Heading<\/h1>/);
+      expect(editor.getContent()).not.toContain('color:');
+    });
+
+    it('should insert literal text when the mode is off', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste' });
+      read.mockResolvedValue(clipboardWith({ 'text/plain': '# Heading' }));
+
+      await clickPaste();
+
+      expect(editor.getContent()).toContain('# Heading');
+      expect(editor.getContent()).not.toContain('<h1');
+    });
+
+    it('should use the clipboard HTML when the plain text is only whitespace', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste', paste_markdown: true });
+      read.mockResolvedValue(clipboardWith({ 'text/plain': '   \n  ', 'text/html': '<p>from html</p>' }));
+
+      await clickPaste();
+
+      expect(editor.getContent()).toContain('from html');
+    });
+
+    it('should fall back to a plain-text paste when the Markdown is too expensive', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste', paste_markdown: true });
+      read.mockResolvedValue(clipboardWith({ 'text/plain': '# ' + 'a'.repeat(5001) }));
+
+      await clickPaste();
+
+      expect(editor.getTipTap()!.getText()).toContain('# aaa');
+      expect(editor.getContent()).not.toContain('<h1');
+    });
+  });
+
   describe('Preview', () => {
     let openSpy: jest.Spied<typeof window.open>;
     let write: jest.Mock;
