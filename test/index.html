@@ -284,6 +284,14 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
       </div>
 
       <div class="card">
+        <div class="card-header">Link edges</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0;">Paste <code>https://example.com</code> (or <code>user@example.com</code>) into the editor and keep typing without pressing Enter: the URL is linked, and the words typed after it stay plain text. The same holds after pasting HTML that ends in a link, and after inserting a link from the <strong>Link</strong> dialog with nothing selected. Clicking at the end of an existing link and typing still extends it, and selecting a link's text and retyping it keeps the link. Check the HTML Output panel: the <code>&lt;/a&gt;</code> should close right after the URL.</p>
+          <p style="font-size:11px;color:#888;margin:8px 0 0;">Pasting a URL over selected text within a paragraph links that text. Press Ctrl+A and paste a URL instead: the content is replaced by the linked URL. Clicking a link places the caret and does not open the link; the <strong>Link</strong> button then edits that link in place.</p>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Content</div>
         <div class="card-body">
           <div class="control-group">

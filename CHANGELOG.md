@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.1] - 2026-09-29
+
+### Fixed
+
+- **Text typed after a pasted or inserted link is no longer added to the link.** Pasting a URL or email address linked it, but everything typed straight afterwards, spaces included, was added to that link until Enter started a new block. The same happened after pasting HTML that ends in a link, after pasting a Markdown link with Paste Markdown on, after `insertContent()` (and so a Templates entry) ending in a link, and after inserting a link from the Link dialog with nothing selected. The link mark is inclusive (TipTap ties that to autolink), so it extends to text typed at its right edge, and each of these leaves the caret exactly there. After them, the caret is now moved out of the link, so the next text is plain. The link itself is untouched and the Link dialog still edits it (see below); the Link toolbar button shows inactive at that caret, the way Bold does when the next keystroke will not be bold. Everything else about typing at a link is deliberately unchanged: putting the caret at the end of a link and typing still extends it, as in the browser's own editing and TinyMCE, and retyping selected link text (for example a template's placeholder link) keeps the link with its title and target.
+- **Pasting a URL after Ctrl+A now replaces the content.** Pasting a URL or email address over a selection turned the selected text into a link and discarded the pasted text, whatever the selection was, so pressing Ctrl+A and pasting a URL linked the whole document instead of replacing it. A pasted URL now links the selection only when the selection lies inside one paragraph (selected text, or a selected inline item such as a mention). Over a larger selection (Ctrl+A, several paragraphs, a table cell selection) it replaces the selection like any other paste, and a URL copied from outside the editor is linked. Pasting anything other than a single URL was never affected.
+- **Clicking a link in the editor no longer opens it.** StarterKit v3 bundles its own Link extension, which ran beside the configured one with TipTap's defaults, so its click handler opened links in a new window despite `openOnClick: false`, and its paste handler linked selections as above. StarterKit's copy is now disabled, which also removes `link` from the "Duplicate extension names" warning logged when an editor is created.
+- **The Link dialog edits the link under the caret instead of inserting a second one.** With the caret on a link and nothing selected (where clicking a link, or pasting one, leaves it), the dialog pre-filled the URL but left the text field empty, and Save inserted a new linked copy of the URL beside the original instead of changing it. The dialog now pre-fills the link's text too, and Save updates that link's URL, text, title and target in place.
+
 ## [1.13.0] - 2026-09-22
 
 ### Added
@@ -348,6 +357,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.13.1]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.13.1
 [1.13.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.13.0
 [1.12.5]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.12.5
 [1.12.3]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.12.3

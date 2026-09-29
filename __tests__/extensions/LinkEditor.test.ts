@@ -212,6 +212,62 @@ describe('LinkEditor', () => {
     });
   });
 
+  describe('Editing a link with nothing selected', () => {
+    beforeEach(() => {
+      editor.setContent('<p>see <a href="https://example.com">site</a> now</p>');
+      // Caret inside the link, nothing selected — where clicking a link puts it.
+      editor.getTipTap()!.commands.setTextSelection(7);
+    });
+
+    it('pre-fills the link text', () => {
+      linkEditor.open();
+
+      const textInput = document.querySelectorAll<HTMLInputElement>('.md-link-editor-input')[1];
+      expect(textInput.value).toBe('site');
+    });
+
+    it('updates the link instead of inserting a second one', () => {
+      linkEditor.open();
+      const inputs = document.querySelectorAll<HTMLInputElement>('.md-link-editor-input');
+      inputs[0].value = 'https://example.org';
+      (document.querySelector('.md-link-editor-save') as HTMLElement).click();
+
+      const html = editor.getContent();
+      expect(editor.getTipTap()!.getText()).toBe('see site now');
+      expect(html).toMatch(/<a [^>]*href="https:\/\/example\.org"[^>]*>site<\/a>/);
+      expect(html).not.toContain('https://example.com');
+    });
+
+    it('replaces the link text when it is changed', () => {
+      linkEditor.open();
+      const inputs = document.querySelectorAll<HTMLInputElement>('.md-link-editor-input');
+      inputs[1].value = 'the site';
+      (document.querySelector('.md-link-editor-save') as HTMLElement).click();
+
+      expect(editor.getTipTap()!.getText()).toBe('see the site now');
+      expect(editor.getContent()).toMatch(/<a [^>]*>the site<\/a>/);
+    });
+  });
+
+  describe('Typing after an inserted link', () => {
+    it('keeps text typed after a link inserted with nothing selected out of the link', () => {
+      linkEditor.open();
+      const urlInput = document.querySelector('.md-link-editor-input') as HTMLInputElement;
+      urlInput.value = 'https://example.com';
+      (document.querySelector('.md-link-editor-save') as HTMLElement).click();
+
+      // Type at the caret the dialog left behind, one keystroke at a time.
+      const view = editor.getTipTap()!.view;
+      for (const ch of ' more') {
+        const at = view.state.selection.from;
+        view.dispatch(view.state.tr.insertText(ch, at, at));
+      }
+
+      const html = editor.getContent();
+      expect(html).toMatch(/<a [^>]*>https:\/\/example\.com<\/a> more/);
+    });
+  });
+
   describe('Destroy', () => {
     it('should remove overlay from DOM on destroy', () => {
       linkEditor.open();

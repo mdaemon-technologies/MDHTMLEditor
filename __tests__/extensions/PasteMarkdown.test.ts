@@ -197,6 +197,19 @@ describe('PasteMarkdown', () => {
       expect(editor.getContent()).toContain('<ul>');
     });
 
+    it('should keep text typed after a pasted link out of the link', () => {
+      paste(editor, { 'text/plain': '[site](https://example.com)' });
+
+      // Type at the caret the paste left behind, one keystroke at a time.
+      const view = editor.getTipTap()!.view;
+      for (const ch of ' more') {
+        const at = view.state.selection.from;
+        view.dispatch(view.state.tr.insertText(ch, at, at));
+      }
+
+      expect(editor.getContent()).toMatch(/<a [^>]*>site<\/a> more/);
+    });
+
     it('should emit TipTap\'s paste event once, with the converted slice', () => {
       const onPaste = jest.fn();
       editor.getTipTap()!.on('paste', onPaste);
@@ -282,6 +295,16 @@ describe('PasteMarkdown', () => {
 
       expect(editor.getContent()).toContain('href="https://example.com"');
       expect(editor.getContent()).toContain('link me');
+    });
+
+    it('should replace all content with a linked URL pasted after select-all', () => {
+      editor.setContent('<p>first</p><p>second</p>');
+      editor.getTipTap()!.commands.selectAll();
+
+      paste(editor, { 'text/plain': 'https://example.com' });
+
+      expect(editor.getTipTap()!.getText()).toBe('https://example.com');
+      expect(editor.getContent()).toContain('href="https://example.com"');
     });
   });
 

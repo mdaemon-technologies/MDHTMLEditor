@@ -5,6 +5,7 @@
 
 import { Editor as TipTapEditor, EditorOptions, AnyExtension, mergeAttributes } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import { AllSelection, Plugin } from '@tiptap/pm/state';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { Subscript } from '@tiptap/extension-subscript';
@@ -34,6 +35,7 @@ import { BlockFontStyle } from '../extensions/BlockFontStyle';
 import { BlockIndent } from '../extensions/BlockIndent';
 import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
+import { LinkEscape, LINK_ESCAPE_META } from '../extensions/LinkEscape';
 import { SignatureBlock } from '../extensions/SignatureBlock';
 import { Mention } from '../extensions/Mention';
 import { Anchor } from '../extensions/Anchor';
@@ -471,6 +473,11 @@ export class HTMLEditor implements IMDHTMLEditor {
     const extensions: AnyExtension[] = [
       StarterKit.configure({
         codeBlock: false, // We use CodeBlockLowlight instead
+        // StarterKit v3 bundles its own Link. Left enabled, its plugins run
+        // beside the configured Link below with TipTap's defaults: its click
+        // handler opened links despite openOnClick: false, and its
+        // link-on-paste handler linked selections the one below declines.
+        link: false,
         // When forced_root_block is 'div', swap StarterKit's <p> paragraph for
         // a custom Paragraph that renders as <div> (CKEditor ENTER_DIV parity).
         // StarterKit enables trailingNode by default; it accepts `false` to
@@ -512,6 +519,40 @@ export class HTMLEditor implements IMDHTMLEditor {
         types: ['heading', 'paragraph'],
       }),
       Link.extend({
+        /**
+         * A URL pasted over a selection links that selection only when it lies
+         * inside one textblock, the way a phrase (or a selected inline node,
+         * such as a mention) is linked.
+         *
+         * TipTap's link-on-paste handler (the only Link plugin with a
+         * handlePaste prop) marks any non-empty selection and never inserts
+         * the pasted text, so Ctrl+A then pasting a URL linked the whole
+         * document instead of replacing it. For an AllSelection, a cell
+         * selection, a selected block node, or a range spanning blocks,
+         * decline so the paste replaces the selection as any other paste
+         * does; a URL from outside the editor is then linked by Link's paste
+         * rule.
+         */
+        addProseMirrorPlugins() {
+          return (this.parent?.() ?? []).map((plugin) => {
+            const handlePaste = plugin.props.handlePaste;
+            if (!handlePaste) return plugin;
+            // Same spec (key, state, every other prop); only handlePaste gated.
+            return new Plugin({
+              ...plugin.spec,
+              props: {
+                ...plugin.spec.props,
+                handlePaste(view, event, slice) {
+                  const { selection } = view.state;
+                  const { $from, $to } = selection;
+                  const inBlock = !(selection instanceof AllSelection)
+                    && $from.sameParent($to) && $from.parent.inlineContent;
+                  return inBlock ? handlePaste.call(plugin, view, event, slice) : false;
+                },
+              },
+            });
+          });
+        },
         /**
          * Keep placeholder links (`<a href="">`) as links.
          *
@@ -567,6 +608,9 @@ export class HTMLEditor implements IMDHTMLEditor {
           rel: 'noopener noreferrer',
         },
       }),
+      // Moves the caret out of a link a paste or the Link dialog has just left
+      // it at the end of, so the next words typed are not added to the link.
+      LinkEscape,
       CharacterCount,
       Placeholder.configure({
         placeholder: '',
@@ -708,8 +752,14 @@ export class HTMLEditor implements IMDHTMLEditor {
     // blocks, and inserting that verbatim would grow a blank line into two.
     // IMPORT_PARSE_OPTIONS is not optional here — this is the command TipTap
     // defaults to `preserveWhitespace: 'full'`, and the Templates dropdown is
-    // its highest-traffic caller.
-    this.tiptap?.commands.insertContent(this.formatInput(html), { parseOptions: IMPORT_PARSE_OPTIONS });
+    // its highest-traffic caller. LINK_ESCAPE_META: content ending in a link
+    // leaves the caret at the link's end, and what is typed next should not
+    // join it.
+    this.tiptap
+      ?.chain()
+      .insertContent(this.formatInput(html), { parseOptions: IMPORT_PARSE_OPTIONS })
+      .setMeta(LINK_ESCAPE_META, true)
+      .run();
   }
   
   /**

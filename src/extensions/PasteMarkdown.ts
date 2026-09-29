@@ -12,6 +12,7 @@ import { DOMParser, Slice } from '@tiptap/pm/model'; // shadows the global DOMPa
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import type { EditorView } from '@tiptap/pm/view';
 import { markdownToDom } from '../utils/markdownToDom';
+import { LINK_ESCAPE_META } from './LinkEscape';
 
 export interface PasteMarkdownOptions {
   /** Read on every paste. HTMLEditor passes `() => this.pasteMarkdownEnabled`. */
@@ -74,7 +75,10 @@ function insertMarkdown(view: EditorView, text: string): Slice | null {
   // selection with that would delete what is selected and put nothing back, so
   // let the paste go through unconverted instead.
   if (!hasContent(slice)) return null;
-  view.dispatch(view.state.tr.replaceSelection(slice).scrollIntoView());
+  // LINK_ESCAPE_META in place of the paste metas: Markdown ending in a link
+  // leaves the caret at the link's end, and what is typed next should not
+  // join it.
+  view.dispatch(view.state.tr.replaceSelection(slice).setMeta(LINK_ESCAPE_META, true).scrollIntoView());
   return slice;
 }
 
@@ -97,7 +101,9 @@ export const PasteMarkdown = Extension.create<PasteMarkdownOptions>({
    * wraps it in a code block, which is exactly what copying Markdown out of an
    * editor looks like — so at equal priority the code block would win and the
    * mode would do nothing for its most common source. Link still goes first, so
-   * a URL pasted over a selection keeps turning that selection into a link.
+   * a URL pasted over a selection within one paragraph keeps turning that
+   * selection into a link. Over a larger selection Link declines, and the URL
+   * converts here like any other Markdown, replacing the selection.
    */
   priority: 500,
 

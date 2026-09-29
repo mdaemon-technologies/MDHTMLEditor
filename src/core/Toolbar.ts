@@ -23,6 +23,7 @@ import { SpeechToText, isSpeechRecognitionSupported } from '../extensions/Speech
 import { Dictation } from '../extensions/Dictation';
 import type { StyleFormat } from '../types';
 import { pasteMarkdownText } from '../extensions/PasteMarkdown';
+import { LINK_ESCAPE_META } from '../extensions/LinkEscape';
 
 interface ToolbarOptions {
   editor: HTMLEditor;
@@ -892,7 +893,9 @@ export class Toolbar {
       return;
     }
 
-    this.tiptap.chain().focus().insertContent(content).run();
+    // LINK_ESCAPE_META: as with Ctrl+V, content ending in a link must not
+    // leave the caret inside it for what is typed next.
+    this.tiptap.chain().focus().insertContent(content).setMeta(LINK_ESCAPE_META, true).run();
     this.updateButtonStates();
   }
 

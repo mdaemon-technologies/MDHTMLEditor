@@ -444,7 +444,12 @@ The `link` toolbar button opens a modal dialog for inserting or editing hyperlin
 - **Title** — the HTML `title` attribute (shown as a tooltip on hover)
 - **Open link in…** — dropdown to choose between _Current window_ or _New window_ (`target="_blank"`)
 
-When editing an existing link, all fields are pre-populated from the current link attributes. Clearing the URL and saving removes the link. The dialog inherits the active skin theme. The separate `unlink` toolbar button removes the link at the cursor without opening the dialog.
+When editing an existing link, all fields are pre-populated from the current link attributes. With the caret on a link and nothing selected, the dialog edits that whole link, text included, and Save updates it in place. Clearing the URL and saving removes the link. The dialog inherits the active skin theme. The separate `unlink` toolbar button removes the link at the cursor without opening the dialog.
+
+**Typing after a link:** after a paste or a link inserted from the dialog leaves the caret at the end of a link, the next text typed is plain, so a pasted URL does not swallow the words that follow it. This covers pasted URLs and email addresses, pasted HTML or Markdown that ends in a link (Ctrl+V or the Paste button), `editor.insertContent()` (and so the Templates dropdown), and dialog inserts. Otherwise links behave as in the browser's own editing: put the caret at the end of a link and type, and the link extends; select link text and retype it, and the link is kept.
+**Pasting a URL:** a URL or email address pasted at the caret is linked. Pasted over selected text (or a selected inline item such as a mention) within one paragraph, it turns that selection into a link instead of replacing it. Over a larger selection (all content selected with Ctrl+A, or a selection spanning several paragraphs), it replaces the selection like any other paste, and the pasted URL is linked. (Text copied from inside the editor pastes exactly as it was copied, linked or not.)
+
+**Clicking a link** in the editor places the caret; it does not open the link.
 
 **URL normalization:** a URL entered without a scheme that looks like a bare domain (e.g. `www.example.com` or `example.com/path`) is saved with `http://` prepended, so it resolves as an external link instead of a broken relative path. URLs that already carry a scheme (`https:`, `mailto:`, `tel:`, `ftp:`, …), anchors (`#section`), absolute/relative paths (`/`, `./`, `../`), and protocol-relative URLs (`//host`) are left exactly as typed.
 
@@ -532,7 +537,7 @@ The mode only affects pasting, and even then only some pastes:
 - **Copying from a code editor converts too.** VS Code (and editors that copy the way it does) marks the clipboard as code, which the editor would otherwise paste as a code block. While the mode is on, Markdown conversion takes precedence; with the mode off, that code-block behaviour is unchanged.
 - **Images and files** paste and upload exactly as before.
 - **Inside a code block** the Markdown stays literal.
-- **A URL pasted over selected text** still turns that text into a link.
+- **A URL pasted over selected text** within a paragraph still turns that text into a link (see [Insert/Edit Link](#insertedit-link)).
 - **Drag-and-drop is never converted** — only pastes are.
 - **Very large or pathological Markdown** (over 256 KB, or a single paragraph over 5,000 characters) is pasted unconverted rather than risking a frozen tab.
 

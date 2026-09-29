@@ -4,7 +4,9 @@
  */
 
 import type { HTMLEditor } from '../core/HTMLEditor';
+import { getMarkRange } from '@tiptap/core';
 import type { Editor as TipTapEditor } from '@tiptap/core';
+import { LINK_ESCAPE_META } from './LinkEscape';
 
 export interface LinkEditorOptions {
   editor: HTMLEditor;
@@ -44,12 +46,24 @@ export class LinkEditor {
     }
   }
 
+  /**
+   * The range of the link at a collapsed caret — where clicking a link, or
+   * pasting one, leaves it — so the dialog edits that link as a whole. Null
+   * when something is selected or the caret is not on a link.
+   */
+  private linkRangeAtCaret(): { from: number; to: number } | null {
+    const tiptap = this.tiptap;
+    const linkType = tiptap?.schema.marks.link;
+    if (!tiptap || !linkType || !tiptap.state.selection.empty) return null;
+    return getMarkRange(tiptap.state.selection.$from, linkType) ?? null;
+  }
+
   private populateFromSelection(): void {
     const tiptap = this.tiptap;
     if (!tiptap) return;
 
     const attrs = tiptap.getAttributes('link');
-    const { from, to } = tiptap.state.selection;
+    const { from, to } = this.linkRangeAtCaret() ?? tiptap.state.selection;
     const selectedText = tiptap.state.doc.textBetween(from, to, '');
 
     if (this.urlInput) this.urlInput.value = attrs.href ?? '';
@@ -118,43 +132,35 @@ export class LinkEditor {
       linkAttrs.title = null;
     }
 
+    // A caret on a link edits that link: select it, so the branches below
+    // update or retitle it instead of inserting a second one beside it.
+    const linkRange = this.linkRangeAtCaret();
+    if (linkRange) tiptap.commands.setTextSelection(linkRange);
+
     const { from, to } = tiptap.state.selection;
     const currentText = tiptap.state.doc.textBetween(from, to, '');
 
+    // Inserted linked text leaves the caret at the link's end; LINK_ESCAPE_META
+    // moves it out, so what the user types next is not added to the link.
+    const insertLinkedText = (linkText: string, replaceSelection: boolean): void => {
+      const chain = tiptap.chain().focus();
+      if (replaceSelection) chain.deleteSelection();
+      chain
+        .insertContent({
+          type: 'text',
+          text: linkText,
+          marks: [{ type: 'link', attrs: linkAttrs }],
+        })
+        .setMeta(LINK_ESCAPE_META, true)
+        .run();
+    };
+
     if (text && text !== currentText) {
       // User changed the display text — replace selection with new text and apply link
-      tiptap
-        .chain()
-        .focus()
-        .deleteSelection()
-        .insertContent({
-          type: 'text',
-          text: text,
-          marks: [{ type: 'link', attrs: linkAttrs }],
-        })
-        .run();
-    } else if (from === to && text) {
-      // No selection, insert new linked text
-      tiptap
-        .chain()
-        .focus()
-        .insertContent({
-          type: 'text',
-          text: text,
-          marks: [{ type: 'link', attrs: linkAttrs }],
-        })
-        .run();
-    } else if (from === to && !text) {
-      // No selection, no text — insert URL as linked text
-      tiptap
-        .chain()
-        .focus()
-        .insertContent({
-          type: 'text',
-          text: url,
-          marks: [{ type: 'link', attrs: linkAttrs }],
-        })
-        .run();
+      insertLinkedText(text, true);
+    } else if (from === to) {
+      // No selection — insert the text, or the URL when no text was given, as linked text
+      insertLinkedText(text || url, false);
     } else {
       // Selection exists, text unchanged — just set link attributes
       tiptap.chain().focus().setLink(linkAttrs).run();

@@ -1017,6 +1017,21 @@ describe('Toolbar', () => {
       expect(editor.getContent()).not.toContain('<h1');
     });
 
+    it('should keep text typed after pasted HTML that ends in a link out of the link', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste' });
+      read.mockResolvedValue(clipboardWith({ 'text/html': 'see <a href="https://example.com">site</a>' }));
+
+      await clickPaste();
+      const view = editor.getTipTap()!.view;
+      for (const ch of ' more') {
+        const at = view.state.selection.from;
+        view.dispatch(view.state.tr.insertText(ch, at, at));
+      }
+
+      expect(editor.getContent()).toMatch(/<a [^>]*>site<\/a> more/);
+    });
+
     it('should use the clipboard HTML when the plain text is only whitespace', async () => {
       editor.destroy();
       editor = new HTMLEditor(container, { toolbar: 'paste', paste_markdown: true });
