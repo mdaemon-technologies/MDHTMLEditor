@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-10-21
+
+### Added
+
+- **`CodeSample` extension.** The TipTap extension behind the Code sample fix below is exported alongside the other extensions. It adds the `toggleCodeSample()` command and binds Ctrl+Alt+C (Cmd+Option+C on macOS) to it.
+
+### Fixed
+
+- **Code sample starts on the cursor's line.** A line break inside a paragraph (Shift+Enter, or content loaded with `<br>` between lines, as in email and signatures) looks like a new line, but the lines on either side are still one paragraph, and turning **Code sample** on converted all of it, so the lines typed before the cursor went into the code block too. The `codesample` toolbar button and Ctrl+Alt+C now convert only the lines the selection touches: the paragraph is split at the line breaks around them, the lines before and after stay text with their formatting (font, alignment, indent), and a selection across several lines becomes one code block (a selection that starts at the very end of a line, or ends at the very start of one, leaves that line out). Empty lines just above the code block become empty paragraphs, so they still show once the content is sent. One undo reverts it. Turning a code block back into text, a selection across several blocks, and a paragraph without line breaks behave as before, and so does the first line of a list item, which still removes the list.
+
 ## [1.13.1] - 2026-09-29
 
 ### Fixed
@@ -357,6 +367,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.14.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.14.0
 [1.13.1]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.13.1
 [1.13.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.13.0
 [1.12.5]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.12.5

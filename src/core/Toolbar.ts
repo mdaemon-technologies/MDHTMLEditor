@@ -712,7 +712,7 @@ export class Toolbar {
         
       case 'codesample':
         return this.createActionButton('codesample', this.icon('codesample'), this.trans('Code sample'), () => {
-          this.tiptap?.chain().focus().toggleCodeBlock().run();
+          this.tiptap?.chain().focus().toggleCodeSample().run();
         }, () => this.tiptap?.isActive('codeBlock') ?? false);
         
       case 'ltr':

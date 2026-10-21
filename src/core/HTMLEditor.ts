@@ -43,6 +43,7 @@ import { InlineStyle } from '../extensions/InlineStyle';
 import { PasteFromOffice } from '../extensions/PasteFromOffice';
 import { ListPasteNormalizer } from '../extensions/ListPasteNormalizer';
 import { PasteMarkdown } from '../extensions/PasteMarkdown';
+import { CodeSample } from '../extensions/CodeSample';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
@@ -666,11 +667,13 @@ export class HTMLEditor implements IMDHTMLEditor {
       );
     }
     
-    // Add code block with syntax highlighting
+    // Add code block with syntax highlighting. CodeSample's toggle converts
+    // only the lines the selection touches (the codesample button, Mod-Alt-c).
     extensions.push(
       CodeBlockLowlight.configure({
         lowlight,
-      })
+      }),
+      CodeSample
     );
     
     // Add table support

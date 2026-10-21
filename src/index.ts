@@ -39,6 +39,7 @@ export type { PasteFromOfficeOptions } from './extensions/PasteFromOffice';
 export { ListPasteNormalizer, normalizePastedLists, stripIndentDeclarations } from './extensions/ListPasteNormalizer';
 export { PasteMarkdown, pasteMarkdownText } from './extensions/PasteMarkdown';
 export type { PasteMarkdownOptions } from './extensions/PasteMarkdown';
+export { CodeSample } from './extensions/CodeSample';
 export { SpeechToText, isSpeechRecognitionSupported } from './extensions/SpeechToText';
 export type { SpeechToTextOptions } from './extensions/SpeechToText';
 export { Dictation } from './extensions/Dictation';

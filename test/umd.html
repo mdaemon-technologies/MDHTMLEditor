@@ -74,6 +74,7 @@
     <button id="btn-set">Set content</button>
     <button id="btn-roundtrip">Round-trip</button>
     <button id="btn-copy-markdown">Copy sample Markdown</button>
+    <button id="btn-load-br-lines">Load &lt;br&gt; lines (Code sample)</button>
     <button id="btn-insert-roundtrip">Insert own output</button>
     <button id="btn-insert-template">Insert pretty-printed template</button>
     <button id="btn-insert-wrapped">Insert wrapped template</button>
@@ -196,6 +197,13 @@
         ].join('\n');
         navigator.clipboard.writeText(sample);
         show('sample Markdown copied — turn on the Markdown toolbar button, then paste');
+      });
+      document.getElementById('btn-load-br-lines').addEventListener('click', function () {
+        // One paragraph of lines separated by <br>, caret on the last line. The
+        // Code sample button (or Ctrl+Alt+C) converts only the caret's line.
+        editor.setContent('<p>Hi team,<br>Please run:<br>npm install</p>');
+        editor.getTipTap().commands.focus('end');
+        show('loaded lines separated by <br> — now click Code sample');
       });
       editor.on('pastemarkdownchange', function (enabled) {
         show('paste markdown: ' + (enabled ? 'on' : 'off'));

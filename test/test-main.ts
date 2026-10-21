@@ -394,6 +394,16 @@ $('#btn-toggle-markdown').addEventListener('click', () => {
   editor.setPasteMarkdown(!editor.isPasteMarkdownEnabled());
 });
 
+// ── Code sample ──────────────────────────────────────
+// One paragraph of lines separated by <br>, caret on the last line. The Code
+// sample button (or Ctrl+Alt+C) converts only the caret's line.
+$('#btn-load-br-lines').addEventListener('click', () => {
+  editor.setContent('<p>Hi team,<br>Please run:<br>npm install</p>');
+  editor.getTipTap()?.commands.focus('end');
+  refreshHtml();
+  log('info', 'loaded lines separated by <br> — now click Code sample');
+});
+
 // ── Round-trip: setContent(getContent()) ─────────────
 // Exercises the format_empty_lines symmetry: getContent() fills blank lines
 // with <br>, setContent() strips it back out, so blank lines stay put instead

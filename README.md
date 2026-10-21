@@ -364,7 +364,7 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `link` | Open Insert/Edit Link dialog |
 | `unlink` | Remove the link at the cursor |
 | `anchor` | Insert a named anchor (`<a id>` target) |
-| `codesample` | Toggle code sample block |
+| `codesample` | Toggle code sample block (also Ctrl+Alt+C, Cmd+Option+C on macOS). In a paragraph with line breaks (`<br>`, Shift+Enter), only the lines the selection touches become the code block; the lines before and after stay text. A selection across several blocks, and the first line of a list item, still convert whole paragraphs |
 | `fullscreen` | Toggle fullscreen editing mode |
 | `preview` | Open content preview in a new window (the window carries a Content Security Policy that blocks script; images and inline styles still render) |
 | `searchreplace` | Open Find & Replace dialog |
@@ -736,6 +736,7 @@ The `searchreplace` toolbar button (or **Ctrl/Cmd+F**) opens a Find & Replace di
 | Ctrl/Cmd+Z | Undo |
 | Ctrl/Cmd+Shift+Z | Redo |
 | Ctrl/Cmd+F | Open Find & Replace |
+| Ctrl/Cmd+Alt+C | Toggle code sample on the lines the selection touches (same as the `codesample` button) |
 | Tab | Always handled (never escapes the editor). Nests the current list item (or, for an item that can't nest, indents its content), inserts a tab in a code block, moves to the next cell in a table, or adds a left margin to the current paragraph/heading |
 | Shift+Tab | Inverse of Tab: reduces the current block's left margin, lifts the current list item, or moves to the previous table cell |
 | Esc, then Tab | Moves focus out of the editor to the next focusable element (Shift+Tab → previous), so Tab is not a keyboard trap. Esc arms this for the next key press only; any other key cancels it |
