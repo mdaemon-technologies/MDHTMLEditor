@@ -6,8 +6,8 @@
  * page is the thing the whole design avoids.
  */
 
-import { Marked } from 'marked';
-import { markdownToDom, MAX_INLINE_RUN, MAX_MARKDOWN_CHARS } from '../../src/utils/markdownToDom';
+import { Lexer, Marked } from 'marked';
+import { markdownToDom, MAX_INLINE_RUN, MAX_MARKDOWN_CHARS, MAX_PARSE_MS } from '../../src/utils/markdownToDom';
 
 /** The rendered markup, for shape assertions. */
 function html(src: string): string {
@@ -249,6 +249,19 @@ describe('markdownToDom', () => {
   });
 
   describe('size guard', () => {
+    // How much inline parsing a conversion did, counted in `inlineTokens` calls
+    // rather than timed, so how fast the test machine is cannot fail these
+    // assertions.
+    let inlineRuns: jest.SpiedFunction<typeof Lexer.prototype.inlineTokens>;
+
+    beforeEach(() => {
+      inlineRuns = jest.spyOn(Lexer.prototype, 'inlineTokens');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('should refuse input over the character limit', () => {
       expect(markdownToDom('a'.repeat(MAX_MARKDOWN_CHARS + 1))).toBeNull();
     });
@@ -261,20 +274,36 @@ describe('markdownToDom', () => {
       expect(markdownToDom('| a |\n| --- |\n| ' + 'a'.repeat(MAX_INLINE_RUN + 1) + ' |')).toBeNull();
     });
 
-    it('should refuse a pathological emphasis run quickly', () => {
-      const started = Date.now();
-
+    it('should refuse a pathological emphasis run without inline parsing it', () => {
       expect(markdownToDom('*a **a '.repeat(3000))).toBeNull();
-      expect(Date.now() - started).toBeLessThan(2000);
+      expect(inlineRuns).not.toHaveBeenCalled();
     });
 
     it('should refuse many pathological runs that each fit under the per-run limit', () => {
-      // Cost follows shape, not size: each of these paragraphs is under the
-      // per-run cap, but together they would take ~40 seconds to parse.
-      const started = Date.now();
+      // Cost follows shape, not size: each of these 52 paragraphs is under the
+      // per-run cap, but together they would take ~20 seconds to parse. Every
+      // size check passes, so null here comes from the time budget.
+      //
+      // The clock is the test's own: each run costs RUN_MS of it, about what
+      // one of these paragraphs really takes, so the run that crosses the
+      // budget is the same on every machine. The parse must stop right after
+      // it, not finish and throw the result away.
+      const RUN_MS = 400;
+      let now = 0;
+      jest.spyOn(Date, 'now').mockImplementation(() => now);
+      inlineRuns.mockImplementation(() => {
+        now += RUN_MS;
+        return [];
+      });
 
       expect(markdownToDom(('*a **a '.repeat(625) + '\n\n').repeat(52))).toBeNull();
-      expect(Date.now() - started).toBeLessThan(3000);
+      expect(inlineRuns).toHaveBeenCalledTimes(Math.floor(MAX_PARSE_MS / RUN_MS) + 1);
+    });
+
+    it('should keep the time budget to at most a second', () => {
+      // A refused paste waits for the block pass, this budget and one more
+      // inline run before it falls through to an ordinary paste.
+      expect(MAX_PARSE_MS).toBeLessThanOrEqual(1000);
     });
 
     it('should return null rather than throw on deeply nested input', () => {
@@ -292,6 +321,9 @@ describe('markdownToDom', () => {
 
     it('should convert input at the limit and large input split into blocks', () => {
       expect(markdownToDom('a'.repeat(MAX_INLINE_RUN))).not.toBeNull();
+      // The spy sees the converter's inline parsing, one call per plain run, so
+      // the counts in the tests above are of real calls.
+      expect(inlineRuns).toHaveBeenCalledTimes(1);
       expect(markdownToDom(('a'.repeat(100) + '\n\n').repeat(500))).not.toBeNull();
       // A big fenced block is not an inline run, so it is not refused.
       expect(markdownToDom('```\n' + 'x'.repeat(80_000) + '\n```')).not.toBeNull();

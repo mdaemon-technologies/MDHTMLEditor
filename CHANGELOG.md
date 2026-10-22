@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`CodeSample` extension.** The TipTap extension behind the Code sample fix below is exported alongside the other extensions. It adds the `toggleCodeSample()` command and binds Ctrl+Alt+C (Cmd+Option+C on macOS) to it.
 
+### Changed
+
+- **Upgraded TipTap from 3.31.3 to 3.32.0.** All 21 `@tiptap/*` dependencies were bumped together. TipTap's Link extension now ends a link at whitespace typed at the link's end, which on its own would keep only the first word of a retyped link's text (for example a template's placeholder link) linked, and leave words typed after a space at the end of a link outside it. The editor keeps its documented behavior instead: put the caret at the end of a link and type, spaces included, and the link extends; select link text and retype it, and the whole new text stays linked with its title and target. Typed URLs are still autolinked, and text typed after a paste or a link inserted from the Link dialog is still kept out of the link.
+
 ### Fixed
 
 - **Code sample starts on the cursor's line.** A line break inside a paragraph (Shift+Enter, or content loaded with `<br>` between lines, as in email and signatures) looks like a new line, but the lines on either side are still one paragraph, and turning **Code sample** on converted all of it, so the lines typed before the cursor went into the code block too. The `codesample` toolbar button and Ctrl+Alt+C now convert only the lines the selection touches: the paragraph is split at the line breaks around them, the lines before and after stay text with their formatting (font, alignment, indent), and a selection across several lines becomes one code block (a selection that starts at the very end of a line, or ends at the very start of one, leaves that line out). Empty lines just above the code block become empty paragraphs, so they still show once the content is sent. One undo reverts it. Turning a code block back into text, a selection across several blocks, and a paragraph without line breaks behave as before, and so does the first line of a list item, which still removes the list.

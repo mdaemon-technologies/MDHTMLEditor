@@ -6,6 +6,7 @@
 import { Editor as TipTapEditor, EditorOptions, AnyExtension, mergeAttributes } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { AllSelection, Plugin } from '@tiptap/pm/state';
+import { RemoveMarkStep } from '@tiptap/pm/transform';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { Subscript } from '@tiptap/extension-subscript';
@@ -533,9 +534,38 @@ export class HTMLEditor implements IMDHTMLEditor {
          * decline so the paste replaces the selection as any other paste
          * does; a URL from outside the editor is then linked by Link's paste
          * rule.
+         *
+         * Whitespace typed at the end of a link stays in the link. Since
+         * TipTap 3.32 the autolink plugin (the only Link plugin with an
+         * appendTransaction) unlinks whitespace typed at a link's end and
+         * drops the link from the stored marks, so retyping a placeholder
+         * link's text ("Register now") would keep only its first word linked.
+         * The link mark stays inclusive here, as in the browser's own editing
+         * and TinyMCE, so the link's removal (its RemoveMarkSteps and the
+         * stored-mark change) is dropped and the links autolink adds are
+         * kept. Text typed after a paste or a dialog insert is kept out of
+         * the link by LinkEscape instead.
          */
         addProseMirrorPlugins() {
+          const linkType = this.type;
           return (this.parent?.() ?? []).map((plugin) => {
+            const appendTransaction = plugin.spec.appendTransaction;
+            if (appendTransaction) {
+              // Same spec; only the link's removal dropped, every other step kept.
+              return new Plugin({
+                ...plugin.spec,
+                appendTransaction(transactions, oldState, newState) {
+                  const tr = appendTransaction.call(plugin, transactions, oldState, newState);
+                  if (!tr) return tr;
+                  const kept = newState.tr;
+                  tr.steps.forEach((step) => {
+                    if (step instanceof RemoveMarkStep && step.mark.type === linkType) return;
+                    kept.step(step);
+                  });
+                  return kept.steps.length ? kept : null;
+                },
+              });
+            }
             const handlePaste = plugin.props.handlePaste;
             if (!handlePaste) return plugin;
             // Same spec (key, state, every other prop); only handlePaste gated.

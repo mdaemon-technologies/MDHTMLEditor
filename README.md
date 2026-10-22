@@ -16,7 +16,7 @@ MDHTMLEditor is the core vanilla TypeScript package - for React usage, see `@mda
 npm install @mdaemon/html-editor
 ```
 
-TipTap and ProseMirror are **bundled into the published output** (currently TipTap `3.31.x`) —
+TipTap and ProseMirror are **bundled into the published output** (currently TipTap `3.32.x`) —
 there are no peer dependencies to install and no TipTap version for the host app to match. If
 your app uses TipTap directly as well, note that the copy inside this package is separate from
 yours; pass content across the boundary as HTML (`getContent()` / `setContent()`) rather than

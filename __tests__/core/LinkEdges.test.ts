@@ -5,8 +5,8 @@
  * a link both leave the caret at the link's right edge. The link mark is
  * inclusive, so without intervention the next text typed there joins the
  * link; after a paste the caret is moved out of the link instead. Everywhere
- * else the link stays inclusive, as TipTap and the browser's own editing make
- * it. The Link dialog and Markdown paste cases live in LinkEditor.test.ts and
+ * else the link stays inclusive, as in the browser's own editing and TinyMCE,
+ * including the whitespace TipTap's autolink would end it at. The Link dialog and Markdown paste cases live in LinkEditor.test.ts and
  * PasteMarkdown.test.ts.
  */
 
@@ -201,6 +201,15 @@ describe('Link edges', () => {
 
       expect(runs(editor)).toEqual([
         { text: 'https://example.comx', href: 'https://example.com' },
+      ]);
+    });
+
+    it('extends a link with spaces typed at its end', () => {
+      caretAt(editor, 'https://example.com'.length);
+      type(editor, ' more');
+
+      expect(runs(editor)).toEqual([
+        { text: 'https://example.com more', href: 'https://example.com' },
       ]);
     });
 
