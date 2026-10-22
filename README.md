@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@mdaemon/html-editor?color=blue)](https://www.npmjs.com/package/@mdaemon/html-editor)
 [![license](https://img.shields.io/npm/l/@mdaemon/html-editor?color=green)](LICENSE)
 [![node](https://img.shields.io/node/v/@mdaemon/html-editor)](https://nodejs.org)
-[![install size](https://packagephobia.com/badge?p=@mdaemon/html-editor)](https://packagephobia.com/result?p=@mdaemon/html-editor)
+[![install size](https://img.shields.io/npm/unpacked-size/@mdaemon/html-editor)](https://packagephobia.com/result?p=@mdaemon/html-editor)
 [![CI](https://github.com/mdaemon-technologies/MDHTMLEditor/actions/workflows/ci.yml/badge.svg)](https://github.com/mdaemon-technologies/MDHTMLEditor/actions/workflows/ci.yml)
 
 A TinyMCE-compatible HTML editor built on TipTap
