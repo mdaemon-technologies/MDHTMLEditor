@@ -85,6 +85,15 @@ describe('SpeechToText', () => {
     document.querySelectorAll('.md-dialog-overlay').forEach(el => el.remove());
   });
 
+  describe('default language', () => {
+    it('should default the Latin-script Serbian locale to Serbian', () => {
+      editor.setLanguage('sr-latn');
+      speechToText.open();
+      const select = document.querySelector('.md-speechtotext-language') as HTMLSelectElement;
+      expect(select?.value).toBe('sr-RS');
+    });
+  });
+
   describe('isSpeechRecognitionSupported', () => {
     it('should return true when SpeechRecognition is available', () => {
       expect(isSpeechRecognitionSupported()).toBe(true);
@@ -300,6 +309,28 @@ describe('SpeechToText', () => {
       speechToText.open();
       const transcript = document.querySelector('.md-speechtotext-transcript');
       expect(transcript?.innerHTML).toBe('');
+    });
+  });
+
+  describe('Confidence', () => {
+    it('shows the percentage where the translation puts it', () => {
+      let capturedInstance: MockSpeechRecognition | null = null;
+      (window as any).SpeechRecognition = class extends MockSpeechRecognition {
+        constructor() {
+          super();
+          capturedInstance = this;
+        }
+      };
+      const trans = (key: string) => (key === 'Confidence: {percent}%' ? 'Güvenilirlik: %{percent}' : key);
+      speechToText.destroy();
+      speechToText = new SpeechToText({ editor, trans });
+      speechToText.open();
+      (document.querySelector('.md-speechtotext-btn-start') as HTMLElement).click();
+
+      capturedInstance!.simulateResult('hello', true, 0.854);
+
+      const confidence = document.querySelector('.md-speechtotext-confidence');
+      expect(confidence?.textContent).toBe('Güvenilirlik: %85');
     });
   });
 

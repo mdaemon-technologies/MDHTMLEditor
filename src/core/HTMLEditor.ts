@@ -227,6 +227,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       images_file_types: config.images_file_types,
       images_upload_validate: config.images_upload_validate,
       images_upload_error: config.images_upload_error,
+      images_upload_error_message: config.images_upload_error_message,
       // CKEditor aliases: font_names / fontSize_sizes map to the TinyMCE keys
       font_family_formats: config.font_family_formats ?? config.font_names ?? fontNames,
       font_size_formats: config.font_size_formats ?? config.fontSize_sizes ?? DEFAULT_FONT_SIZES,
@@ -412,6 +413,7 @@ export class HTMLEditor implements IMDHTMLEditor {
         fileTypes: this.config.images_file_types,
         validate: this.config.images_upload_validate,
         onError: this.config.images_upload_error,
+        errorMessage: this.config.images_upload_error_message,
         trans: globalTranslate,
       });
     }

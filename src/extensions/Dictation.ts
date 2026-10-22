@@ -73,6 +73,7 @@ const LOCALE_TO_BCP47: Record<string, string> = {
   'ru': 'ru-RU',
   'sl': 'sl-SI',
   'sr': 'sr-RS',
+  'sr-latn': 'sr-RS',
   'sv': 'sv-SE',
   'th': 'th-TH',
   'tr': 'tr-TR',

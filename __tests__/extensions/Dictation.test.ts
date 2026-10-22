@@ -144,6 +144,12 @@ describe('Dictation', () => {
       dictation.start();
       expect(dictation.isActive).toBe(true);
     });
+
+    it('should recognize Serbian for the Latin-script Serbian locale', () => {
+      editor.setLanguage('sr-latn');
+      dictation.start();
+      expect(getMockRecognitionInstance().lang).toBe('sr-RS');
+    });
   });
 
   describe('text insertion', () => {

@@ -97,6 +97,16 @@ describe('SearchReplace', () => {
       expect(labels[0]?.textContent).toContain('Find');
     });
 
+    it('shows the translated labels with no punctuation added', () => {
+      searchReplace.destroy();
+      searchReplace = new SearchReplace({ editor, trans: (key) => `«${key}»` });
+      searchReplace.open();
+
+      const labels = document.querySelectorAll('.md-searchreplace-row label');
+      expect(labels[0]?.textContent).toBe('«Find»');
+      expect(labels[1]?.textContent).toBe('«Replace»');
+    });
+
     it('should trigger search on input', () => {
       editor.setContent('<p>Hello world. Hello again.</p>');
       searchReplace.open();

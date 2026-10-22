@@ -123,6 +123,7 @@ const editor = new HTMLEditor(container, {
 | `images_file_types` | string | *(permissive)* | Comma/space-separated accepted extensions (e.g. `'jpg,jpeg,png,gif,bmp'`). Restricts uploads when set |
 | `images_upload_validate` | (file: File) => string \| null | - | Pre-upload hook; return a message to reject the file, or null to allow |
 | `images_upload_error` | (message: string) => void | - | Caller-supplied alert for drag-drop/paste upload rejections & failures (no dialog to show errors in) |
+| `images_upload_error_message` | (response: unknown, status: number) => string \| null \| undefined | - | Words the message for a failed upload from the server's reply (parsed JSON body, or null, and the HTTP status). Return null/undefined for the editor's own translated message |
 | `font_family_formats` | string | *(TinyMCE defaults)* | Semicolon-separated font list (`Name=family,...`) |
 | `font_size_formats` | string | '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt' | Space-separated font sizes |
 | `font_names` | string | - | CKEditor alias for `font_family_formats` |
@@ -135,7 +136,7 @@ const editor = new HTMLEditor(container, {
 | `fontName` | string | `arial, helvetica, sans-serif` | Default font family, inlined on every block element (see [Font Family & Size](#font-family--size)) |
 | `fontSize` | string | `12pt` | Default font size, inlined on every paragraph (see [Font Family & Size](#font-family--size)) |
 | `directionality` | 'ltr' \| 'rtl' | 'ltr' | Text direction |
-| `language` | string | 'en' | UI language code (built-in translations for 31 languages) |
+| `language` | string | 'en' | UI language code (built-in translations for 32 languages) |
 | `height` | string \| number | 300 | Editor height (fixed) |
 | `min_height` | string \| number | - | Minimum editor height |
 | `max_height` | string \| number | - | Maximum editor height |
@@ -425,6 +426,41 @@ const editor = new HTMLEditor(container, {
   images_file_types: 'jpg,jpeg,png,gif,bmp', // CKEditor simpleuploads parity
   images_upload_validate: (file) =>
     file.size === 0 ? 'Empty files are not allowed' : null,
+  images_upload_error: (message) => myApp.showAlert(message),
+});
+```
+
+### Wording failed uploads
+
+When an upload fails, the editor shows a translated message of its own: "No URL
+returned from server" for a 2xx reply with no string `location`, `url` or `link`,
+"Invalid server response" for a reply that is not a JSON object, and "Upload
+failed: <status>" for an HTTP error status. A network error, an aborted request,
+an SVG that can't be parsed or a file that can't be read also get translated
+messages.
+
+When your server explains a refusal in its reply, `images_upload_error_message`
+lets you word the message yourself. It receives the parsed JSON body (`null` when
+the body is not JSON) and the HTTP status, and returns the message to show, or
+`null`/`undefined` to keep the editor's own. It is not called for a network
+error or an aborted request, which have no reply. The message is shown in the
+image dialog as text, and passed to `images_upload_error` for a dropped or pasted
+image.
+
+```ts
+const UPLOAD_ERRORS: Record<string, string> = {
+  ContentBlocked: 'Files of this type are blocked.',
+  UploadRefused: 'The server refused the upload.',
+};
+
+const editor = new HTMLEditor(container, {
+  images_upload_url: '/api/upload',
+  // The server answers a refusal with HTTP 200 and {"error": "<code or reason>"}
+  images_upload_error_message: (response) => {
+    const error = (response as { error?: unknown } | null)?.error;
+    if (typeof error !== 'string') return null;
+    return UPLOAD_ERRORS[error] ?? error;
+  },
   images_upload_error: (message) => myApp.showAlert(message),
 });
 ```
@@ -743,7 +779,7 @@ The `searchreplace` toolbar button (or **Ctrl/Cmd+F**) opens a Find & Replace di
 
 ## Localization
 
-The editor ships with built-in translations for 31 languages. Set the language at construction or switch dynamically at runtime.
+The editor ships with built-in translations for 32 languages. Set the language at construction or switch dynamically at runtime.
 
 ### Setting the language
 
@@ -777,6 +813,8 @@ const myTranslate: CustomTranslateFunction = (key) => myCustomStrings[key];
 setTranslate(myTranslate);
 ```
 
+Two keys hold a placeholder for a number, so a translation can put the number where its language does: `Upload failed: {status}` (an upload refused with an HTTP error status) and `Confidence: {percent}%` (the Speech-to-Text confidence reading). Keep `{status}` or `{percent}` in your text, for example `'Confidence: {percent}%': 'Güvenilirlik: %{percent}'`.
+
 ### Supported languages
 
 | Code | Language | Code | Language |
@@ -785,19 +823,19 @@ setTranslate(myTranslate);
 | `ar` | العربية | `nb` | Norsk bokmål |
 | `ca` | Català | `pl` | Polski |
 | `zh` | 中文 | `pt` | Português |
-| `cs` | Česky | `ro` | Româna |
+| `cs` | Čeština | `ro` | Română |
 | `da` | Dansk | `ru` | Русский |
-| `en-gb` | English (UK) | `sr` | Srpski |
-| `fi` | Suomi | `sl` | Slovenščina |
-| `fr` | Français | `es` | Español |
-| `fr-ca` | Canadien français | `sv` | Svenska |
-| `de` | Deutsch | `zh-tw` | 繁體中文 (Taiwan) |
-| `el` | Ελληνικά | `th` | ไทย |
-| `hu` | Magyar | `tr` | Türkçe |
-| `id` | Bahasa Indonesia | `vi` | Tiếng Việt |
-| `it` | Italiano | | |
+| `en-gb` | English (UK) | `sr` | Српски |
+| `fi` | Suomi | `sr-latn` | Srpski (latinica) |
+| `fr` | Français | `sl` | Slovenščina |
+| `fr-ca` | Français (Canada) | `es` | Español |
+| `de` | Deutsch | `sv` | Svenska |
+| `el` | Ελληνικά | `zh-tw` | 繁體中文 (Taiwan) |
+| `hu` | Magyar | `th` | ไทย |
+| `id` | Bahasa Indonesia | `tr` | Türkçe |
+| `it` | Italiano | `vi` | Tiếng Việt |
 | `ja` | 日本語 | | |
-| `ko` | 한글 | | |
+| `ko` | 한국어 | | |
 
 ### Discovering available locales
 

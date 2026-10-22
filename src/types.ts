@@ -94,6 +94,15 @@ export interface EditorConfig {
    * Mirrors the CKEditor simpleuploads newAlert flow.
    */
   images_upload_error?: (message: string) => void;
+  /**
+   * Words the message for a failed upload: a 2xx reply with no string `location`/`url`/`link`,
+   * a reply that is not a JSON object, or an HTTP error status. Receives the parsed
+   * JSON body (null when it is not JSON) and the HTTP status. Return the message to
+   * show, or null/undefined for the editor's own translated message. The message is
+   * shown in the image dialog as text, and passed to images_upload_error for a dropped
+   * or pasted image.
+   */
+  images_upload_error_message?: (response: unknown, status: number) => string | null | undefined;
 
   // Font configuration
   font_family_formats?: string;

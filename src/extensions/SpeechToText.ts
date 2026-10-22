@@ -112,6 +112,7 @@ const LOCALE_TO_BCP47: Record<string, string> = {
   'ru': 'ru-RU',
   'sl': 'sl-SI',
   'sr': 'sr-RS',
+  'sr-latn': 'sr-RS',
   'sv': 'sv-SE',
   'th': 'th-TH',
   'tr': 'tr-TR',
@@ -468,7 +469,7 @@ export class SpeechToText {
     if (!this.confidenceEl) return;
     if (this.lastConfidence > 0) {
       const pct = Math.round(this.lastConfidence * 100);
-      this.confidenceEl.textContent = `${this.options.trans('Confidence')}: ${pct}%`;
+      this.confidenceEl.textContent = this.options.trans('Confidence: {percent}%').replace('{percent}', String(pct));
     }
   }
 

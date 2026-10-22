@@ -24,6 +24,7 @@ import { pt } from './pt';
 import { ro } from './ro';
 import { ru } from './ru';
 import { sr } from './sr';
+import { srLatn } from './sr-latn';
 import { sl } from './sl';
 import { es } from './es';
 import { sv } from './sv';
@@ -57,6 +58,7 @@ const locales: Record<string, Record<string, string>> = {
   ro,
   ru,
   sr,
+  'sr-latn': srLatn,
   sl,
   es,
   sv,

@@ -95,6 +95,8 @@ export interface ImageUploadOptions {
   validate?: (file: File) => string | null;
   /** Caller-supplied alert for failures with no dialog context (drag-drop/paste). */
   onError?: (message: string) => void;
+  /** Words a failed upload's message from the reply (images_upload_error_message). */
+  errorMessage?: (response: unknown, status: number) => string | null | undefined;
   trans: (key: string) => string;
 }
 
@@ -549,15 +551,21 @@ export class ImageUpload {
     }
 
     // Upload tab
-    if (!this.currentFile) return;
+    const file = this.currentFile;
+    if (!file) return;
 
     try {
-      const src = await this.uploadFile(this.currentFile);
+      const src = await this.uploadFile(file);
       this.options.onInsert(src, alt);
       this.close();
     } catch (err) {
+      // The dialog was closed (or reopened) while this upload ran
+      if (this.currentFile !== file) return;
       const message = err instanceof Error && err.message ? err.message : this.options.trans('Upload failed');
       this.showError(message);
+      // Let the user try again with the same file
+      const insertBtn = this.dialog?.querySelector('.md-image-upload-insert') as HTMLButtonElement;
+      if (insertBtn) insertBtn.disabled = false;
     }
   }
 
@@ -588,7 +596,7 @@ export class ImageUpload {
         const svgText = reader.result as string;
         const sanitized = sanitizeSVG(svgText);
         if (!sanitized) {
-          reject(new Error('Invalid SVG file'));
+          reject(new Error(this.options.trans('Invalid SVG file')));
           return;
         }
 
@@ -601,7 +609,7 @@ export class ImageUpload {
           this.uploadViaXHR(sanitizedFile).then(resolve, reject);
         }
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onerror = () => reject(new Error(this.options.trans('Failed to read file')));
       reader.readAsText(file);
     });
   }
@@ -613,15 +621,16 @@ export class ImageUpload {
         if (typeof reader.result === 'string') {
           resolve(reader.result);
         } else {
-          reject(new Error('Failed to read file'));
+          reject(new Error(this.options.trans('Failed to read file')));
         }
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onerror = () => reject(new Error(this.options.trans('Failed to read file')));
       reader.readAsDataURL(file);
     });
   }
 
   private uploadViaXHR(file: File): Promise<string> {
+    const t = this.options.trans;
     return new Promise((resolve, reject) => {
       this.uploading = true;
       const progressEl = this.dialog?.querySelector('.md-image-upload-progress') as HTMLElement;
@@ -648,40 +657,61 @@ export class ImageUpload {
         this.uploading = false;
         if (progressEl) progressEl.style.display = 'none';
 
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            let url: string = response.location || response.url || response.link;
-            if (!url) {
-              reject(new Error('No URL returned from server'));
-              return;
-            }
-
-            // Prepend base path if relative URL
-            const basePath = this.options.uploadBasePath ?? '/';
-            if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('data:')) {
-              url = basePath.replace(/\/$/, '') + '/' + url.replace(/^\//, '');
-            }
-
-            resolve(url);
-          } catch {
-            reject(new Error('Invalid server response'));
-          }
-        } else {
-          reject(new Error(`Upload failed: ${xhr.status}`));
+        let response: unknown = null;
+        try {
+          response = JSON.parse(xhr.responseText);
+        } catch {
+          // not JSON: the hook receives null
         }
+
+        // The caller's wording for a failed upload, else the editor's own
+        const fail = (fallback: string) => {
+          let message: string | null | undefined;
+          try {
+            message = this.options.errorMessage?.(response, xhr.status);
+          } catch (err) {
+            console.warn('[html-editor] images_upload_error_message threw; using the default message.', err);
+            message = null;
+          }
+          reject(new Error(typeof message === 'string' && message.trim() ? message : fallback));
+        };
+
+        if (xhr.status < 200 || xhr.status >= 300) {
+          fail(t('Upload failed: {status}').replace('{status}', String(xhr.status)));
+          return;
+        }
+        if (!response || typeof response !== 'object' || Array.isArray(response)) {
+          fail(t('Invalid server response'));
+          return;
+        }
+        const reply = response as Record<string, unknown>;
+        const location = [reply.location, reply.url, reply.link]
+          .find((value): value is string => typeof value === 'string' && value !== '');
+        if (!location) {
+          fail(t('No URL returned from server'));
+          return;
+        }
+        let url = location;
+
+        // Prepend base path if relative URL
+        const basePath = this.options.uploadBasePath ?? '/';
+        if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('data:')) {
+          url = basePath.replace(/\/$/, '') + '/' + url.replace(/^\//, '');
+        }
+
+        resolve(url);
       });
 
       xhr.addEventListener('error', () => {
         this.uploading = false;
         if (progressEl) progressEl.style.display = 'none';
-        reject(new Error('Network error'));
+        reject(new Error(t('Network error')));
       });
 
       xhr.addEventListener('abort', () => {
         this.uploading = false;
         if (progressEl) progressEl.style.display = 'none';
-        reject(new Error('Upload aborted'));
+        reject(new Error(t('Upload aborted')));
       });
 
       xhr.open('POST', this.options.uploadUrl!);

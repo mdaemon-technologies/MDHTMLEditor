@@ -82,7 +82,7 @@ export class SearchReplace {
     const searchRow = document.createElement('div');
     searchRow.className = 'md-searchreplace-row';
     searchRow.innerHTML = `
-      <label>${trans('Find')}:</label>
+      <label>${trans('Find')}</label>
       <input type="text" class="md-searchreplace-input md-searchreplace-search" />
       <span class="md-searchreplace-count"></span>
     `;
@@ -92,7 +92,7 @@ export class SearchReplace {
     const replaceRow = document.createElement('div');
     replaceRow.className = 'md-searchreplace-row';
     replaceRow.innerHTML = `
-      <label>${trans('Replace')}:</label>
+      <label>${trans('Replace')}</label>
       <input type="text" class="md-searchreplace-input md-searchreplace-replace" />
     `;
     this.replaceInput = replaceRow.querySelector('.md-searchreplace-replace') as HTMLInputElement;

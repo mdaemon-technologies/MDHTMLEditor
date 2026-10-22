@@ -82,6 +82,14 @@ function createEditorInstance(skin: typeof currentSkin) {
     log('info', `image rejected: ${message}`);
     alert(message);
   },
+  // Words a failed upload from the server's reply. This demo has no upload URL
+  // (images become base64), so it never runs here; with images_upload_url set,
+  // a 200 reply of {"error":"ContentBlocked"} would show this message.
+  // images_upload_url: '/api/upload',
+  // images_upload_error_message: (response: unknown) =>
+  //   (response as { error?: string } | null)?.error === 'ContentBlocked'
+  //     ? 'Files of this type are blocked.'
+  //     : null,
 
   // Templates
   includeTemplates: true,

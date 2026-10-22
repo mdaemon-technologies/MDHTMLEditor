@@ -1571,6 +1571,7 @@ export class Toolbar {
         fileTypes: this.options.config.images_file_types,
         validate: this.options.config.images_upload_validate,
         onError: this.options.config.images_upload_error,
+        errorMessage: this.options.config.images_upload_error_message,
         trans: this.trans,
       });
     }
