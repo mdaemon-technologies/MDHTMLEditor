@@ -2,7 +2,7 @@
  * Toolbar Tests
  */
 
-import { HTMLEditor } from '../../src/core/HTMLEditor';
+import { HTMLEditor, setTranslate, resetTranslate } from '../../src/core/HTMLEditor';
 import { Toolbar, PREVIEW_CSP } from '../../src/core/Toolbar';
 
 describe('Toolbar', () => {
@@ -61,6 +61,18 @@ describe('Toolbar', () => {
       const boldBtn = container.querySelector('[data-button="bold"]');
       expect(boldBtn).not.toBeNull();
       expect(boldBtn?.getAttribute('title')).toBe('Bold');
+    });
+
+    it('should use the built-in locale for titles the custom translate leaves empty', () => {
+      editor.destroy();
+      setTranslate((key) => (key === 'Italic' ? 'Custom italic' : ''));
+      try {
+        editor = new HTMLEditor(container, { language: 'de' });
+        expect(container.querySelector('[data-button="bold"]')?.getAttribute('title')).toBe('Fett');
+        expect(container.querySelector('[data-button="italic"]')?.getAttribute('title')).toBe('Custom italic');
+      } finally {
+        resetTranslate();
+      }
     });
 
     it('should render italic button', () => {

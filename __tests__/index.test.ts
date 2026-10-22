@@ -7,6 +7,7 @@ import {
   fontNames,
   setTranslate,
   getTranslate,
+  resetTranslate,
   setGetFileSrc,
   getGetFileSrc,
   Toolbar,
@@ -131,7 +132,7 @@ describe('Package Exports', () => {
       expect(currentTranslate('test')).toBe('translated_test');
       
       // Reset
-      setTranslate((key) => key);
+      resetTranslate();
     });
   });
 });

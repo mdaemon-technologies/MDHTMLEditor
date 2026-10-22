@@ -375,6 +375,12 @@ export interface DropboxChooseOptions {
 export type TranslateFunction = (key: string) => string;
 
 /**
+ * Custom translation function passed to setTranslate(). Returning null,
+ * undefined or an empty string falls back to the built-in locale.
+ */
+export type CustomTranslateFunction = (key: string) => string | null | undefined;
+
+/**
  * Global configuration
  */
 export interface GlobalConfig {

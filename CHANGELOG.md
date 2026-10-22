@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-10-22
+
+### Added
+
+- **`CustomTranslateFunction` type.** The type of the function `setTranslate()` accepts: `(key: string) => string | null | undefined`. Existing functions that always return a string still match it.
+
+### Changed
+
+- **The built-in locale is the fallback for a custom translate function.** Previously, once `setTranslate()` was called, the built-in locale was no longer used at all, so any string the custom function returned as `null`, `undefined` or `''` showed up empty (or as `null`/`undefined`) in toolbar titles and dialogs. The custom function is still tried first for every string, but when it returns `null`, `undefined` or an empty string, the built-in locale is used, and the key itself when that locale has no entry either. Like the custom function, the fallback locale is global: it is the `language` of the most recently created editor, or the code from the most recent `setLanguage()` call. A custom function now only needs to supply the strings it wants to change. Whitespace-only strings are still returned as they are. `getTranslate()` returns the combined function rather than the exact function passed to `setTranslate()`; passing it back to `setTranslate()` still restores the custom function that was active when it was obtained.
+- **`setLanguage()` keeps a custom translate function.** It used to replace the function set with `setTranslate()` with the built-in locale, so custom strings were lost after a language change. It now changes only the fallback locale, and the custom function still takes priority. `resetTranslate()` removes the custom function as before.
+
 ## [1.14.0] - 2026-10-21
 
 ### Added
@@ -371,6 +382,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.15.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.15.0
 [1.14.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.14.0
 [1.13.1]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.13.1
 [1.13.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.13.0

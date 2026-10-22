@@ -762,16 +762,19 @@ editor.on('languagechange', (code) => {
 
 ### Custom translations
 
-If you need translations the built-in locales don't cover, you can provide your own function. A custom `setTranslate()` call takes priority over the built-in locale at construction time.
+If you need translations the built-in locales don't cover, you can provide your own function. The custom function set with `setTranslate()` is tried first for every string. When it returns `null`, `undefined` or an empty string, the built-in locale is used instead, so you only need to supply the strings you want to change. Like the custom function, the fallback locale is global: it is the `language` of the most recently created editor, or the code from the most recent `setLanguage()` call. `setLanguage()` keeps the custom function and only changes the fallback locale.
 
 ```ts
 import { setTranslate, TRANSLATION_KEYS } from '@mdaemon/html-editor';
+import type { CustomTranslateFunction } from '@mdaemon/html-editor';
 
 // See all keys that need translating
 console.log(TRANSLATION_KEYS);
 
-// Provide a custom translation function
-setTranslate((key) => myCustomLookup(key));
+// Provide a custom translation function. Keys it has no entry for return
+// undefined and fall back to the built-in locale.
+const myTranslate: CustomTranslateFunction = (key) => myCustomStrings[key];
+setTranslate(myTranslate);
 ```
 
 ### Supported languages
@@ -814,13 +817,14 @@ These functions are exported from the package and operate globally (affecting al
 ```ts
 import { setTranslate, getTranslate, resetTranslate, createTranslateFunction } from '@mdaemon/html-editor';
 
-// Override translations for all editors
+// Override translations for all editors. Returning null, undefined or ''
+// falls back to the built-in locale (the most recently applied language).
 setTranslate((key) => myLookup(key));
 
-// Get the current translate function
+// Get the current translate function (custom first, then the built-in locale)
 const t = getTranslate();
 
-// Reset to built-in locale translations
+// Remove the custom function; editors created afterwards use their built-in locale
 resetTranslate();
 
 // Create a translate function for a specific locale

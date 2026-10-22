@@ -68,6 +68,7 @@ export type {
   DropboxFile,
   DropboxChooseOptions,
   TranslateFunction,
+  CustomTranslateFunction,
   GlobalConfig,
   LanguageChangeCallback,
   PasteMarkdownChangeCallback,

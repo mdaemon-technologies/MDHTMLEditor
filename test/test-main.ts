@@ -1,4 +1,4 @@
-import { HTMLEditor } from '../src/core/HTMLEditor';
+import { HTMLEditor, setTranslate, resetTranslate } from '../src/core/HTMLEditor';
 import '../src/styles/editor.scss';
 
 // ── Helpers ─────────────────────────────────────────
@@ -531,6 +531,26 @@ $<HTMLSelectElement>('#cmd-language').addEventListener('change', (e) => {
     editor.setLanguage(val);
     log('info', `language → ${val}`);
   }
+});
+
+// Custom translate that only knows a few keys; returning undefined falls back to the built-in locale
+const customStrings = new Map([
+  ['Bold', 'Bold (custom)'],
+  ['Italic', 'Italic (custom)'],
+  ['Underline', 'Underline (custom)'],
+]);
+let customTranslateOn = false;
+$('#btn-toggle-custom-translate').addEventListener('click', () => {
+  customTranslateOn = !customTranslateOn;
+  if (customTranslateOn) {
+    setTranslate((key) => customStrings.get(key));
+  } else {
+    resetTranslate();
+  }
+  // Re-apply the current language to redraw the toolbar
+  editor.setLanguage(editor.getConfig().language ?? 'en');
+  $('#state-custom-translate').textContent = String(customTranslateOn);
+  log('info', `custom translate → ${customTranslateOn}`);
 });
 
 // ── Custom button sidebar controls ───────────────────

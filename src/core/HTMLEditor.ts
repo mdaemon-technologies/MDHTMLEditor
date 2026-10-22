@@ -57,6 +57,7 @@ import type {
   ToolbarButtonSpec,
   UIRegistry,
   TranslateFunction,
+  CustomTranslateFunction,
 } from '../types';
 
 import { createTranslateFunction } from '../i18n';
@@ -109,34 +110,47 @@ const IMPORT_PARSE_OPTIONS = { preserveWhitespace: false } as const;
 
 let editorIdCounter = 0;
 
-// Global translate function
-let globalTranslate: TranslateFunction = (key: string) => key;
-let globalTranslateCustomized = false;
+// Global translation: the custom function (setTranslate) is tried first, and the
+// built-in locale (set from the editor's language) fills in when it returns
+// null, undefined or an empty string.
+let customTranslate: CustomTranslateFunction | null = null;
+let builtInTranslate: TranslateFunction = (key: string) => key;
+
+function resolveTranslation(custom: CustomTranslateFunction | null, key: string): string {
+  const result = custom?.(key);
+  return result === null || result === undefined || result === '' ? builtInTranslate(key) : result;
+}
+
+// Internal translate: always uses the current custom function and locale
+const globalTranslate: TranslateFunction = (key: string) => resolveTranslation(customTranslate, key);
 let globalGetFileSrc: (path: string) => string = (path: string) => path;
 
 /**
- * Set global translation function
+ * Set global translation function. It takes priority over the built-in locale;
+ * when it returns null, undefined or an empty string, the built-in locale is used.
  */
-export function setTranslate(fn: TranslateFunction): void {
-  globalTranslate = fn;
-  globalTranslateCustomized = true;
+export function setTranslate(fn: CustomTranslateFunction): void {
+  customTranslate = fn;
 }
 
 /**
- * Get global translation function
+ * Get global translation function (the current custom function with the built-in
+ * locale as fallback). The custom function is captured, so the result can be
+ * passed back to setTranslate() to restore it.
  */
 export function getTranslate(): TranslateFunction {
-  return globalTranslate;
+  const custom = customTranslate;
+  return (key: string) => resolveTranslation(custom, key);
 }
 
 /**
- * Reset the global translation function to the default identity function.
- * This also clears the customized flag so that the next editor created
- * will auto-apply the built-in locale based on its language config.
+ * Remove the custom translation function and reset the built-in locale to the
+ * identity function. The next editor created applies the built-in locale for
+ * its language config.
  */
 export function resetTranslate(): void {
-  globalTranslate = (key: string) => key;
-  globalTranslateCustomized = false;
+  customTranslate = null;
+  builtInTranslate = (key: string) => key;
 }
 
 /**
@@ -258,10 +272,8 @@ export class HTMLEditor implements IMDHTMLEditor {
   }
   
   private createEditor(): void {
-    // Auto-apply built-in locale if no custom translate was set
-    if (!globalTranslateCustomized) {
-      globalTranslate = createTranslateFunction(this.config.language ?? 'en');
-    }
+    // Apply the built-in locale (the fallback when a custom translate is set)
+    builtInTranslate = createTranslateFunction(this.config.language ?? 'en');
 
     // Create wrapper structure
     this.editorWrapper = document.createElement('div');
@@ -1137,10 +1149,11 @@ export class HTMLEditor implements IMDHTMLEditor {
   
   /**
    * Set the UI language, updating all toolbar and dialog translations.
+   * A custom translate function set with setTranslate() still takes priority.
    */
   setLanguage(code: string): void {
     this.config.language = code;
-    globalTranslate = createTranslateFunction(code);
+    builtInTranslate = createTranslateFunction(code);
     this.toolbar?.rebuild();
     this.fire('languagechange', code);
   }

@@ -620,6 +620,10 @@ describe('HTMLEditor', () => {
 
 describe('Global Functions', () => {
   describe('setTranslate / getTranslate', () => {
+    beforeEach(() => {
+      resetTranslate();
+    });
+
     afterEach(() => {
       // Reset to default
       resetTranslate();
@@ -636,6 +640,32 @@ describe('Global Functions', () => {
     it('should return key by default when no translation', () => {
       const translate = getTranslate();
       expect(translate('some_key')).toBe('some_key');
+    });
+
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['an empty string', ''],
+    ])('should fall back to the key when the custom function returns %s', (_label, value) => {
+      setTranslate(() => value);
+      expect(getTranslate()('Bold')).toBe('Bold');
+    });
+
+    it('should restore a function saved with getTranslate', () => {
+      setTranslate((key) => (key === 'Bold' ? 'first' : undefined));
+      const saved = getTranslate();
+      setTranslate((key) => `second:${key}`);
+      setTranslate(saved);
+      const t = getTranslate();
+      expect(t('Bold')).toBe('first');
+      expect(t('Italic')).toBe('Italic');
+    });
+
+    it('should keep non-empty custom results, including whitespace', () => {
+      setTranslate((key) => (key === 'Bold' ? ' ' : `custom:${key}`));
+      const t = getTranslate();
+      expect(t('Bold')).toBe(' ');
+      expect(t('Italic')).toBe('custom:Italic');
     });
   });
 
@@ -868,6 +898,46 @@ describe('Global Functions', () => {
       const t = getTranslate();
       // setTranslate was called, so auto-apply should NOT override it
       expect(t('Bold')).toBe('custom:Bold');
+    });
+
+    it('should fall back to the built-in locale when the custom function returns nothing', () => {
+      setTranslate((key) => (key === 'Bold' ? 'Custom' : undefined));
+      editor = new HTMLEditor(container, { language: 'de' });
+      const t = getTranslate();
+      expect(t('Bold')).toBe('Custom');
+      expect(t('Italic')).toBe('Kursiv');
+    });
+
+    it('should keep the custom function when setLanguage is called', () => {
+      setTranslate((key) => (key === 'Bold' ? 'Custom' : null));
+      editor = new HTMLEditor(container, { language: 'de' });
+      editor.setLanguage('fr');
+      const t = getTranslate();
+      expect(t('Bold')).toBe('Custom');
+      expect(t('Copy')).toBe('Copier');
+    });
+
+    it('should fall back to the most recently created editor\'s language', () => {
+      setTranslate((key) => (key === 'Bold' ? 'Custom' : undefined));
+      editor = new HTMLEditor(container, { language: 'de' });
+      const second = document.createElement('div');
+      document.body.appendChild(second);
+      const editorFr = new HTMLEditor(second, { language: 'fr' });
+      try {
+        const t = getTranslate();
+        expect(t('Bold')).toBe('Custom');
+        expect(t('Copy')).toBe('Copier');
+      } finally {
+        editorFr.destroy();
+        second.remove();
+      }
+    });
+
+    it('should clear the custom function on resetTranslate', () => {
+      setTranslate((key) => `custom:${key}`);
+      resetTranslate();
+      editor = new HTMLEditor(container, { language: 'de' });
+      expect(getTranslate()('Bold')).toBe('Fett');
     });
   });
 });
