@@ -124,6 +124,8 @@ const editor = new HTMLEditor(container, {
 | `images_upload_validate` | (file: File) => string \| null | - | Pre-upload hook; return a message to reject the file, or null to allow |
 | `images_upload_error` | (message: string) => void | - | Caller-supplied alert for drag-drop/paste upload rejections & failures (no dialog to show errors in) |
 | `images_upload_error_message` | (response: unknown, status: number) => string \| null \| undefined | - | Words the message for a failed upload from the server's reply (parsed JSON body, or null, and the HTTP status). Return null/undefined for the editor's own translated message |
+| `object_resizing` | boolean \| string | true | Show drag handles on a selected image to resize it. A string is a CSS selector, as in TinyMCE: only images that match it can be resized. See [Resizing images](#resizing-images) |
+| `resize_img_proportional` | boolean | true | Corner handles keep the image's aspect ratio. Holding Shift while dragging does the opposite for that drag |
 | `font_family_formats` | string | *(TinyMCE defaults)* | Semicolon-separated font list (`Name=family,...`) |
 | `font_size_formats` | string | '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt' | Space-separated font sizes |
 | `font_names` | string | - | CKEditor alias for `font_family_formats` |
@@ -208,6 +210,8 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `languagechange` - UI language changed (receives language code)
 - `templatechange` - A template was applied (receives the `Template` object)
 - `pastemarkdownchange` - Paste-as-Markdown mode was turned on or off (receives the new boolean). Fires only on an actual change, so a host can save the user's choice
+- `objectresizestart` - The user started dragging an image resize handle (receives `{ target, width, height, handle }` with the starting size)
+- `objectresized` - The user finished resizing an image (receives `{ target, width, height, handle }` with the new size). Not fired when the drag is cancelled or the size is unchanged
 
 ### Supported Commands
 
@@ -464,6 +468,39 @@ const editor = new HTMLEditor(container, {
   images_upload_error: (message) => myApp.showAlert(message),
 });
 ```
+
+### Resizing images
+
+Click an image in the full editor to select it. Eight handles appear, one on each corner and one on each side. Drag one to resize the image:
+
+- **Corners** keep the aspect ratio. Hold **Shift** to stretch freely instead. With `resize_img_proportional: false`, corners stretch freely and Shift keeps the ratio.
+- **Sides** change only the width (left and right) or only the height (top and bottom).
+- A label shows the size in pixels while you drag. An image can't be made smaller than 20px on either side, or wider than the space it sits in (the editor, or a table cell).
+- Press **Escape** during a drag to put the image back to its starting size.
+- Touch and pen work too. The handles are larger on touch screens.
+
+When you let go, the size is saved in the image's `width` and `height` attributes, the same form TinyMCE uses. The resize is one undo step, and it marks the editor dirty and fires `change` like any other edit:
+
+```html
+<img class="md-editor-image" src="photo.jpg" width="320" height="240">
+```
+
+The editor shows a resizable image at its `width` and `height` attributes, even when they don't match the picture's own shape. An image wider than the editor is scaled down to fit without being distorted. Images with a percentage size (`width="50%"`) keep that size relative to the editor, and get pixel sizes once they are resized. A resizable image has 1em of space below it, as a paragraph does.
+
+Handles are hidden in read-only mode. Turn resizing off with `object_resizing: false`. Images then look and behave as they did before this feature. A CSS selector limits resizing to the images that match it (`'img[alt]'`, for example), and TinyMCE's own selector lists work too. Images it doesn't match also look as before. In the editor each image sits inside its own wrapper element, so selectors that use the image's direct parent or its position among siblings (`td > img`, `img:first-child`) don't match as they would in the saved HTML; descendant selectors (`td img`) and attribute selectors do. The basic editor has no images, so these options don't apply to it.
+
+```ts
+const editor = new HTMLEditor(container, {
+  object_resizing: 'img',          // or true (default) / false / any selector
+  resize_img_proportional: true,   // corners keep the aspect ratio (default)
+});
+
+editor.on('objectresized', ({ width, height, handle }) => {
+  console.log(`Resized to ${width} × ${height} with the ${handle} handle`);
+});
+```
+
+The TipTap extension behind this, `ResizableImage`, is exported for use in your own TipTap editor. It is TipTap's `Image` node with the same name, schema and HTML, plus a `proportional` option and `onResizeStart`/`onResized` callbacks.
 
 ## Source Code Editor
 
@@ -1007,6 +1044,9 @@ The editor DOM uses BEM-style classes you can target for further customization:
 - `.md-toolbar-sticky` — sticky toolbar
 - `.md-toolbar-primary` / `.md-toolbar-overflow` — primary and collapsible toolbar rows
 - `.md-toolbar-btn` / `.md-toolbar-btn-active` — toolbar buttons
+- `.md-image-resize` / `.md-image-resizable` / `.md-image-resize-active` — wrapper around an image in the editor, the class it has when the image can be resized, and the class it has while being resized. Set `--md-image-resize-color` on it to change the outline and handle color
+- `.md-image-resize-handle` — a resize handle (`data-handle` is `nw`, `n`, `ne`, `e`, `se`, `s`, `sw` or `w`)
+- `.md-image-resize-size` — the size label shown while resizing
 
 ## Browser Support
 

@@ -565,7 +565,99 @@ $md-dark-hover: #2d3e50;
     height: auto;
     display: inline-block;
   }
-  
+
+  // Image resizing (ImageResize node view): handles on the selected image.
+  $resize-handle: 10px;
+  $resize-handle-touch: 18px;
+
+  // The wrapper of an image that can't be resized stays inline, so the image
+  // lays out exactly as a plain img.
+  .md-image-resize {
+    --md-image-resize-color: #{$md-primary};
+    --md-image-resize-handle-bg: #fff;
+    position: relative;
+  }
+
+  .md-image-resizable {
+    display: inline-block;
+    max-width: 100%;
+    // line-height: 0 keeps the outline tight to the image, which also removes
+    // the line-box gap below it; space it from the next block like a <p>.
+    margin: 0 0 1em;
+    line-height: 0;
+    vertical-align: top;
+
+    img {
+      display: block;
+    }
+
+    &.ProseMirror-selectednode {
+      outline: 2px solid var(--md-image-resize-color);
+      outline-offset: 1px;
+    }
+  }
+
+  .md-image-resize-handle {
+    display: none;
+    position: absolute;
+    z-index: 1;
+    width: $resize-handle;
+    height: $resize-handle;
+    margin: -$resize-handle * 0.5;
+    background: var(--md-image-resize-handle-bg);
+    border: 1px solid var(--md-image-resize-color);
+    touch-action: none;
+
+    &[data-handle=nw] { top: 0; left: 0; cursor: nwse-resize; }
+    &[data-handle=n]  { top: 0; left: 50%; cursor: ns-resize; }
+    &[data-handle=ne] { top: 0; left: 100%; cursor: nesw-resize; }
+    &[data-handle=e]  { top: 50%; left: 100%; cursor: ew-resize; }
+    &[data-handle=se] { top: 100%; left: 100%; cursor: nwse-resize; }
+    &[data-handle=s]  { top: 100%; left: 50%; cursor: ns-resize; }
+    &[data-handle=sw] { top: 100%; left: 0; cursor: nesw-resize; }
+    &[data-handle=w]  { top: 50%; left: 0; cursor: ew-resize; }
+
+    // Larger targets for fingers.
+    @media (pointer: coarse) {
+      width: $resize-handle-touch;
+      height: $resize-handle-touch;
+      margin: -$resize-handle-touch * 0.5;
+    }
+  }
+
+  .md-image-resize.ProseMirror-selectednode .md-image-resize-handle,
+  .md-image-resize-active .md-image-resize-handle {
+    display: block;
+  }
+
+  .md-image-resize-size {
+    display: none;
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    padding: 2px 6px;
+    border-radius: $md-border-radius;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font: 11px/1.4 $md-font-family;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .md-image-resize-active .md-image-resize-size {
+    display: block;
+  }
+
+  .md-editor-readonly & .md-image-resize {
+    &.ProseMirror-selectednode {
+      outline: none;
+    }
+
+    .md-image-resize-handle {
+      display: none;
+    }
+  }
+
   table {
     border-collapse: collapse;
     width: 100%;
@@ -1138,7 +1230,11 @@ $md-dark-hover: #2d3e50;
 .md-editor-oxide-dark {
   background: $md-dark-bg;
   border-color: $md-dark-border;
-  
+
+  .md-image-resize {
+    --md-image-resize-handle-bg: #{$md-dark-bg};
+  }
+
   .md-toolbar {
     background: $md-dark-toolbar-bg;
     --md-toolbar-bg: #{$md-dark-toolbar-bg};
@@ -1332,6 +1428,10 @@ $md-dark-hover: #2d3e50;
   background: #fff;
   border-color: var(--color-confab-gray-200, #e5e7eb);
   border-radius: 6px;
+
+  .md-image-resize {
+    --md-image-resize-color: var(--theme-primary, #0066cc);
+  }
 
   .md-toolbar {
     background: var(--color-confab-gray-50, #f9fafb);
@@ -1549,6 +1649,11 @@ $md-dark-hover: #2d3e50;
   background: var(--color-dark-bg-primary, #1a1a2e);
   border-color: var(--color-dark-border, #333);
   border-radius: 6px;
+
+  .md-image-resize {
+    --md-image-resize-color: var(--theme-primary, #0066cc);
+    --md-image-resize-handle-bg: var(--color-dark-bg-primary, #1a1a2e);
+  }
 
   .md-toolbar {
     background: var(--color-dark-bg-secondary, #1e1e1e);

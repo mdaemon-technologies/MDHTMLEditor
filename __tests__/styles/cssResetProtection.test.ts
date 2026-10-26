@@ -146,6 +146,68 @@ describe('CSS Reset Protection', () => {
     });
   });
 
+  describe('Image resize handles', () => {
+    /** The declarations of the first rule whose selector list includes `selector`. */
+    const ruleFor = (selector: string): string => {
+      const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const match = css.match(new RegExp(`(?:^|[,}]\\s*)${escaped}\\s*(?:,[^{]*)?\\{([^}]*)\\}`, 'm'));
+      expect(match).not.toBeNull();
+      return match![1];
+    };
+
+    it('spaces a resizable image from the text below it like a paragraph', () => {
+      expect(ruleFor('.md-editor-body .md-image-resizable')).toMatch(/margin:\s*0 0 1em/);
+    });
+
+    it('frames only resizable images, so other images keep their usual layout', () => {
+      const wrapperRule = ruleFor('.md-editor-body .md-image-resize');
+      expect(wrapperRule).not.toMatch(/display|margin|line-height/);
+      expect(ruleFor('.md-editor-body .md-image-resizable')).toMatch(/display:\s*inline-block/);
+      expect(ruleFor('.md-editor-body .md-image-resizable')).toMatch(/line-height:\s*0/);
+    });
+
+    it('positions the handles against the image wrapper', () => {
+      expect(ruleFor('.md-editor-body .md-image-resize')).toMatch(/position:\s*relative/);
+      expect(ruleFor('.md-editor-body .md-image-resize-handle')).toMatch(/position:\s*absolute/);
+    });
+
+    it('hides the handles until the image is selected', () => {
+      expect(ruleFor('.md-editor-body .md-image-resize-handle')).toMatch(/display:\s*none/);
+      expect(ruleFor('.md-editor-body .md-image-resize.ProseMirror-selectednode .md-image-resize-handle'))
+        .toMatch(/display:\s*block/);
+      expect(ruleFor('.md-editor-body .md-image-resize-active .md-image-resize-handle')).toMatch(/display:\s*block/);
+    });
+
+    it('hides the handles in read-only mode, after the rule that shows them', () => {
+      const readonly = '.md-editor-readonly .md-editor-body .md-image-resize .md-image-resize-handle';
+      expect(ruleFor(readonly)).toMatch(/display:\s*none/);
+      expect(css.indexOf(readonly)).toBeGreaterThan(
+        css.indexOf('.md-editor-body .md-image-resize.ProseMirror-selectednode .md-image-resize-handle')
+      );
+    });
+
+    it('stops touch scrolling on the handles so a drag resizes', () => {
+      expect(ruleFor('.md-editor-body .md-image-resize-handle')).toMatch(/touch-action:\s*none/);
+    });
+
+    it('gives each handle a resize cursor', () => {
+      expect(ruleFor(".md-editor-body .md-image-resize-handle[data-handle=se]")).toMatch(/cursor:\s*nwse-resize/);
+      expect(ruleFor(".md-editor-body .md-image-resize-handle[data-handle=e]")).toMatch(/cursor:\s*ew-resize/);
+      expect(ruleFor(".md-editor-body .md-image-resize-handle[data-handle=n]")).toMatch(/cursor:\s*ns-resize/);
+      expect(ruleFor(".md-editor-body .md-image-resize-handle[data-handle=ne]")).toMatch(/cursor:\s*nesw-resize/);
+    });
+
+    it('shows the size label only while resizing', () => {
+      expect(ruleFor('.md-editor-body .md-image-resize-size')).toMatch(/display:\s*none/);
+      expect(ruleFor('.md-editor-body .md-image-resize-active .md-image-resize-size')).toMatch(/display:\s*block/);
+    });
+
+    it('uses the host theme color in the confab skins', () => {
+      expect(ruleFor('.md-editor-confab .md-image-resize')).toMatch(/--md-image-resize-color:\s*var\(--theme-primary/);
+      expect(ruleFor('.md-editor-confab-dark .md-image-resize')).toMatch(/--md-image-resize-color:\s*var\(--theme-primary/);
+    });
+  });
+
   describe('Layer 3 — Scoped UI baseline', () => {
     it('should scope box-sizing: border-box to all elements inside .md-editor', () => {
       expect(css).toMatch(/\.md-editor\s+\*/);

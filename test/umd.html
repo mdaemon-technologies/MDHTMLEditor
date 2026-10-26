@@ -159,8 +159,16 @@
         // "Decrease indent" pulls this one back (the margin sits on the <li>, so
         // the number moves with the text); "Increase indent" pushes it out again.
         '<p>Use Decrease indent on this pre-indented list:<\\/p>' +
-        '<ol><li style="margin-left: 40px">Indented item<\\/li><\\/ol>'
+        '<ol><li style="margin-left: 40px">Indented item<\\/li><\\/ol>' +
+        // Click the image and drag a corner (keeps the aspect ratio; Shift
+        // stretches) or a side handle. "Get content" shows the new width/height.
+        '<p>Click the image and drag a handle to resize it:<\\/p>' +
+        '<img src="https://picsum.photos/seed/umd/320/160" alt="Sample" width="320" height="160">'
       );
+
+      editor.on('objectresized', function (e) {
+        show('objectresized: ' + e.width + ' × ' + e.height + ' (' + e.handle + ' handle)');
+      });
 
       editor.on('change', function (html) {
         // The payload is byte-identical to getContent() — a host that saves the

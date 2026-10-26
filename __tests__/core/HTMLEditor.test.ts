@@ -57,6 +57,15 @@ describe('HTMLEditor', () => {
       expect(config.directionality).toBe('ltr');
       expect(config.language).toBe('en');
       expect(config.browser_spellcheck).toBe(true);
+      expect(config.object_resizing).toBe(true);
+      expect(config.resize_img_proportional).toBe(true);
+    });
+
+    it('should carry the image resizing options through normalizeConfig', () => {
+      editor = new HTMLEditor(container, { object_resizing: 'img', resize_img_proportional: false });
+      const config = editor.getConfig();
+      expect(config.object_resizing).toBe('img');
+      expect(config.resize_img_proportional).toBe(false);
     });
 
     it('should apply custom configuration', () => {

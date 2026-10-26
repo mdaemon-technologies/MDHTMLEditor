@@ -45,6 +45,7 @@ import { PasteFromOffice } from '../extensions/PasteFromOffice';
 import { ListPasteNormalizer } from '../extensions/ListPasteNormalizer';
 import { PasteMarkdown } from '../extensions/PasteMarkdown';
 import { CodeSample } from '../extensions/CodeSample';
+import { ResizableImage, isObjectResizingOn } from '../extensions/ImageResize';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
@@ -258,6 +259,8 @@ export class HTMLEditor implements IMDHTMLEditor {
       quickbars_selection_toolbar: config.quickbars_selection_toolbar ?? 'bold italic | quicklink blockquote',
       quickbars_image_toolbar: config.quickbars_image_toolbar ?? false,
       quickbars_insert_toolbar: config.quickbars_insert_toolbar ?? false,
+      object_resizing: config.object_resizing ?? true,
+      resize_img_proportional: config.resize_img_proportional ?? true,
       browser_spellcheck: config.browser_spellcheck ?? true,
       elementpath: config.elementpath ?? false,
       entity_encoding: config.entity_encoding ?? 'raw',
@@ -701,13 +704,25 @@ export class HTMLEditor implements IMDHTMLEditor {
 
     // Add image extension for full editor
     if (!this.config.basicEditor) {
+      const imageOptions = {
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'md-editor-image',
+        },
+      };
+      // Resizable images render through a node view with drag handles; the
+      // schema and output HTML are the same as the plain Image. A selector is
+      // matched against each image in the view; false or '' turns it all off.
       extensions.push(
-        Image.configure({
-          allowBase64: true,
-          HTMLAttributes: {
-            class: 'md-editor-image',
-          },
-        })
+        isObjectResizingOn(this.config.object_resizing)
+          ? ResizableImage.configure({
+              ...imageOptions,
+              objectResizing: this.config.object_resizing ?? true,
+              proportional: this.config.resize_img_proportional !== false,
+              onResizeStart: (e) => this.fire('objectresizestart', e),
+              onResized: (e) => this.fire('objectresized', e),
+            })
+          : Image.configure(imageOptions)
       );
     }
     

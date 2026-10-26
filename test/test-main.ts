@@ -354,6 +354,14 @@ function createEditorInstance(skin: typeof currentSkin) {
       const state = document.querySelector('#state-paste-markdown');
       if (state) state.textContent = enabled ? 'on' : 'off';
     });
+
+    ed.on('objectresizestart', ({ width, height, handle }) => {
+      log('info', `objectresizestart: ${width} × ${height} (${handle} handle)`);
+    });
+
+    ed.on('objectresized', ({ width, height, handle }) => {
+      log('info', `objectresized: ${width} × ${height} (${handle} handle)`);
+    });
   },
 });
 }
@@ -410,6 +418,19 @@ $('#btn-load-br-lines').addEventListener('click', () => {
   editor.getTipTap()?.commands.focus('end');
   refreshHtml();
   log('info', 'loaded lines separated by <br> — now click Code sample');
+});
+
+// ── Image resizing ───────────────────────────────────
+// A natural-size image and one stored stretched, to resize with the handles.
+$('#btn-load-images').addEventListener('click', () => {
+  editor.setContent(
+    '<p>Click an image, then drag a corner or side handle.</p>' +
+    '<img src="https://picsum.photos/seed/resize/400/240" alt="Landscape" width="400" height="240">' +
+    '<p>Stored stretched (300 × 80):</p>' +
+    '<img src="https://picsum.photos/seed/resize/400/240" alt="Stretched landscape" width="300" height="80">'
+  );
+  refreshHtml();
+  log('info', 'loaded images — click one and drag a handle');
 });
 
 // ── Round-trip: setContent(getContent()) ─────────────

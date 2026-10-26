@@ -19,7 +19,11 @@ import {
   EmojiPicker,
   EMOJI_CATEGORIES,
   SearchReplace,
+  ResizableImage,
+  computeImageResize,
+  isImageResizable,
 } from '../src';
+import type { ObjectResizeEvent, ImageResizeHandle, ResizableImageOptions, EditorEvents } from '../src';
 
 describe('Package Exports', () => {
   describe('Core Exports', () => {
@@ -73,6 +77,21 @@ describe('Package Exports', () => {
     it('should export TextDirection extension', () => {
       expect(TextDirection).toBeDefined();
       expect(TextDirection.name).toBe('textDirection');
+    });
+
+    it('should export the ResizableImage extension and its helpers', () => {
+      expect(ResizableImage.name).toBe('image');
+      expect(computeImageResize({ handle: 'e', startWidth: 100, startHeight: 50, dx: 10, dy: 0, proportional: true }))
+        .toEqual({ width: 110, height: 50 });
+      expect(isImageResizable(document.createElement('img'), 'img')).toBe(true);
+
+      const handle: ImageResizeHandle = 'se';
+      const event: ObjectResizeEvent = { target: document.createElement('img'), width: 1, height: 1, handle };
+      const options: Partial<ResizableImageOptions> = { proportional: false };
+      const events: EditorEvents = { objectresizestart: () => {}, objectresized: () => {} };
+      expect(event.handle).toBe('se');
+      expect(options.proportional).toBe(false);
+      expect(Object.keys(events)).toEqual(['objectresizestart', 'objectresized']);
     });
   });
 

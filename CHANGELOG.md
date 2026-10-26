@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-10-23
+
+### Added
+
+- **Image resizing with drag handles.** Click an image in the full editor to select it, and eight handles appear on its corners and sides. Corners keep the aspect ratio (hold Shift to stretch freely); sides change only the width or only the height. A label shows the size while dragging, Escape puts the image back (without also reaching the page's own Escape handlers), and touch and pen work as well as the mouse; a second finger or pointer doesn't affect a drag in progress. An image can't go below 20px on either side or grow wider than the editor or table cell it sits in. The new size is saved in the image's `width` and `height` attributes, as TinyMCE does, as one undo step that also marks the editor dirty and fires `change`. A resize is its own undo step even when typing comes right before or after it, including typing that replaces the still-selected image. Handles are hidden in read-only mode.
+- **`object_resizing` option** (TinyMCE name, default `true`). `false` turns image resizing off. A string is a CSS selector, as in TinyMCE: each image is matched against it, so `'img[alt]'` limits resizing to images with alt text and TinyMCE's own default list works. An invalid selector matches no image. In the editor each image sits in a wrapper element, so child (`td > img`) and sibling-position selectors don't match as they would in the saved HTML; descendant and attribute selectors do.
+- **`resize_img_proportional` option** (TinyMCE name, default `true`). Set it to `false` and corners stretch freely, with Shift keeping the aspect ratio instead.
+- **`objectresizestart` and `objectresized` events.** Both receive `{ target, width, height, handle }`: the starting size when a drag begins, and the new size when a resize is saved. `objectresized` is not fired for a cancelled drag or an unchanged size.
+- **`ResizableImage` extension.** The TipTap extension behind image resizing is exported, along with `computeImageResize`, `isImageResizable`, `MIN_IMAGE_SIZE` and the `ResizableImageOptions`, `ImageResizeInput`, `ImageResizeHandle`, `ObjectResizeEvent` and `ObjectResizeCallback` types. It is TipTap's Image node with the same name, schema and HTML, so the output is unchanged.
+- **Image resize styles** for all four skins. The handle and outline color comes from the `--md-image-resize-color` custom property; the confab skins use the host app's `--theme-primary`.
+
+### Changed
+
+- **Images are shown at their `width` and `height` attributes.** Previously the editor's `height: auto` style ignored an image's `height` attribute, so an image saved with a stretched size looked unstretched in the editor but stretched in a mail client. The editor now shows a resizable image at its stored size, and an image wider than the editor is scaled down to fit without being distorted. A resizable image also has the same 1em of space below it as a paragraph, so the text after it doesn't touch it. A percentage width stays relative to the editor. Images that can't be resized (`object_resizing: false`, or not matched by its selector) are shown exactly as before.
+
 ## [1.15.0] - 2026-10-22
 
 ### Added
@@ -418,6 +433,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.16.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.16.0
 [1.15.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.15.0
 [1.14.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.14.0
 [1.13.1]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.13.1

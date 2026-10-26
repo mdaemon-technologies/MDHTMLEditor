@@ -302,6 +302,16 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
       </div>
 
       <div class="card">
+        <div class="card-header">Image resizing</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads two images: one at its own size, and one stored stretched (<code>width="300" height="80"</code>) that the editor now shows as a mail client would. Click an image and drag a handle: corners keep the aspect ratio (hold Shift to stretch), sides change one dimension, and Escape puts it back. The HTML Output panel shows the new <code>width</code>/<code>height</code>, and the Event Log shows <code>objectresizestart</code>/<code>objectresized</code>. Toggle read-only to see the handles disappear.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-load-images">Load images</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Content</div>
         <div class="card-body">
           <div class="control-group">

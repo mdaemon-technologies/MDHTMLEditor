@@ -40,6 +40,8 @@ export { ListPasteNormalizer, normalizePastedLists, stripIndentDeclarations } fr
 export { PasteMarkdown, pasteMarkdownText } from './extensions/PasteMarkdown';
 export type { PasteMarkdownOptions } from './extensions/PasteMarkdown';
 export { CodeSample } from './extensions/CodeSample';
+export { ResizableImage, computeImageResize, isImageResizable, MIN_IMAGE_SIZE } from './extensions/ImageResize';
+export type { ResizableImageOptions, ImageResizeInput } from './extensions/ImageResize';
 export { SpeechToText, isSpeechRecognitionSupported } from './extensions/SpeechToText';
 export type { SpeechToTextOptions } from './extensions/SpeechToText';
 export { Dictation } from './extensions/Dictation';
@@ -72,6 +74,9 @@ export type {
   GlobalConfig,
   LanguageChangeCallback,
   PasteMarkdownChangeCallback,
+  ImageResizeHandle,
+  ObjectResizeEvent,
+  ObjectResizeCallback,
 } from './types';
 
 // Import styles

@@ -160,7 +160,17 @@ export interface EditorConfig {
   quickbars_selection_toolbar?: string;
   quickbars_image_toolbar?: boolean;
   quickbars_insert_toolbar?: boolean;
-  
+
+  // Image resizing
+  /**
+   * Show drag handles on a selected image to resize it. `true` (the default)
+   * allows it for every image, a CSS selector for the images that match it, and
+   * `false` for none. Only images are resized; tables keep their column resizing.
+   */
+  object_resizing?: boolean | string;
+  /** Corner handles keep the image's aspect ratio; Shift inverts this for one drag. Default true. */
+  resize_img_proportional?: boolean;
+
   // Paste from Office
   paste_from_office?: boolean;
 
@@ -220,11 +230,28 @@ export type LanguageChangeCallback = (code: string) => void;
 export type TemplateChangeCallback = (template: Template) => void;
 export type PasteMarkdownChangeCallback = (enabled: boolean) => void;
 
+/** An image resize handle, named by compass direction. */
+export type ImageResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+
+/** Payload of the objectresizestart and objectresized events. */
+export interface ObjectResizeEvent {
+  /** The image being resized (the editor's own element, not the output HTML). */
+  target: HTMLImageElement;
+  /** Size in pixels: the starting size for objectresizestart, the new size for objectresized. */
+  width: number;
+  height: number;
+  /** The handle being dragged. */
+  handle: ImageResizeHandle;
+}
+export type ObjectResizeCallback = (event: ObjectResizeEvent) => void;
+
 export interface EditorEvents {
   init?: InitCallback;
   dirty?: DirtyCallback;
   change?: ChangeCallback;
   pastemarkdownchange?: PasteMarkdownChangeCallback;
+  objectresizestart?: ObjectResizeCallback;
+  objectresized?: ObjectResizeCallback;
   focus?: FocusCallback;
   blur?: BlurCallback;
 }
@@ -296,6 +323,8 @@ export interface EditorEventMap {
   languagechange: LanguageChangeCallback;
   templatechange: TemplateChangeCallback;
   pastemarkdownchange: PasteMarkdownChangeCallback;
+  objectresizestart: ObjectResizeCallback;
+  objectresized: ObjectResizeCallback;
 }
 
 /**
