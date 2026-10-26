@@ -163,7 +163,11 @@
         // Click the image and drag a corner (keeps the aspect ratio; Shift
         // stretches) or a side handle. "Get content" shows the new width/height.
         '<p>Click the image and drag a handle to resize it:<\\/p>' +
-        '<img src="https://picsum.photos/seed/umd/320/160" alt="Sample" width="320" height="160">'
+        '<img src="https://picsum.photos/seed/umd/320/160" alt="Sample" width="320" height="160">' +
+        // Images are inline, so a link around one is kept ("Get content" shows
+        // the <a> around the <img>).
+        '<p>A linked image: <a href="https://www.example.com/">' +
+        '<img src="https://picsum.photos/seed/umdlink/120/40" alt="Linked" width="120" height="40"><\\/a><\\/p>'
       );
 
       editor.on('objectresized', function (e) {

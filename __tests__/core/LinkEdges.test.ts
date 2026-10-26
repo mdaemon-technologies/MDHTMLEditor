@@ -127,6 +127,22 @@ describe('Link edges', () => {
       ]);
     });
 
+    it('keeps text typed after a pasted linked image out of the link', () => {
+      caretAt(editor, 0);
+      paste(editor, { 'text/html': '<a href="https://example.com/"><img src="https://example.com/a.png"></a>' });
+      type(editor, 'x');
+
+      const children: { type: string; href: string | null }[] = [];
+      editor.getTipTap()!.state.doc.firstChild!.forEach((node) => {
+        const link = node.marks.find((mark) => mark.type.name === 'link');
+        children.push({ type: node.isText ? node.text! : node.type.name, href: link ? (link.attrs.href as string) : null });
+      });
+      expect(children).toEqual([
+        { type: 'image', href: 'https://example.com/' },
+        { type: 'x', href: null },
+      ]);
+    });
+
     it('keeps text typed after a URL pasted into the middle of a sentence out of the link', () => {
       editor.setContent('<p>go now</p>');
       caretAt(editor, 'go '.length);

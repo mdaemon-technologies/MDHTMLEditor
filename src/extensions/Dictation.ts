@@ -4,6 +4,7 @@
  * No dialog — just toggle on/off from the toolbar button.
  */
 
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type { HTMLEditor } from '../core/HTMLEditor';
 
 // Web Speech API type declarations
@@ -255,15 +256,22 @@ export class Dictation {
     const tiptap = this.options.editor.getTipTap();
     if (!tiptap) return false;
 
-    const { from } = tiptap.state.selection;
+    const { from, $from } = tiptap.state.selection;
     if (from === 0) return false;
 
-    // Get the character just before the cursor
-    const textBefore = tiptap.state.doc.textBetween(Math.max(0, from - 1), from, '');
+    // The line so far, as it reads: an inline node that shows something (an
+    // image, a mention) counts as a character, a line break as whitespace,
+    // and an invisible one (a named anchor) as nothing.
+    const leafText = (node: ProseMirrorNode): string => {
+      if (node.type.name === 'hardBreak') return '\n';
+      if (node.type.name === 'anchor') return '';
+      return '\uFFFC';
+    };
+    const textBefore = tiptap.state.doc.textBetween($from.start(), from, '', leafText);
     if (!textBefore) return false;
 
-    // If the char before cursor is whitespace or empty, no space needed
-    return textBefore.trim().length > 0;
+    // If the char before cursor is whitespace, no space needed
+    return textBefore.slice(-1).trim().length > 0;
   }
 
   private handleError(event: SpeechRecognitionErrorEvent): void {

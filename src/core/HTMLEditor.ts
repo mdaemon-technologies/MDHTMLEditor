@@ -38,6 +38,7 @@ import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
 import { LinkEscape, LINK_ESCAPE_META } from '../extensions/LinkEscape';
 import { SignatureBlock } from '../extensions/SignatureBlock';
+import { MarkedQuote } from '../extensions/MarkedQuote';
 import { Mention } from '../extensions/Mention';
 import { Anchor } from '../extensions/Anchor';
 import { InlineStyle } from '../extensions/InlineStyle';
@@ -49,6 +50,7 @@ import { ResizableImage, isObjectResizingOn } from '../extensions/ImageResize';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
+import { normalizeQuoteMarkerClass } from '../utils/markedQuote';
 import { ImageUpload } from '../extensions/ImageUpload';
 
 import type {
@@ -271,6 +273,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       toolbar_priority: config.toolbar_priority,
       paste_from_office: config.paste_from_office ?? true,
       paste_markdown: config.paste_markdown ?? false,
+      quote_marker_class: normalizeQuoteMarkerClass(config.quote_marker_class) ?? undefined,
       speech_to_text: config.speech_to_text ?? true,
     };
   }
@@ -497,6 +500,8 @@ export class HTMLEditor implements IMDHTMLEditor {
         // handler opened links despite openOnClick: false, and its
         // link-on-paste handler linked selections the one below declines.
         link: false,
+        // Replaced by MarkedQuote below, which keeps the quote_marker_class marker.
+        blockquote: false,
         // When forced_root_block is 'div', swap StarterKit's <p> paragraph for
         // a custom Paragraph that renders as <div> (CKEditor ENTER_DIV parity).
         // StarterKit enables trailingNode by default; it accepts `false` to
@@ -505,7 +510,10 @@ export class HTMLEditor implements IMDHTMLEditor {
         trailingNode: this.config.trailingNode ? undefined : false,
         ...(useDivBlocks ? { paragraph: false } : {}),
       }),
+      // Before MarkedQuote: their div rules share priority 100, so a div that
+      // is both the signature and marked parses as the signature.
       SignatureBlock,
+      MarkedQuote.configure({ markerClass: this.config.quote_marker_class ?? null }),
       Mention,
       Anchor,
       Subscript,
@@ -705,6 +713,10 @@ export class HTMLEditor implements IMDHTMLEditor {
     // Add image extension for full editor
     if (!this.config.basicEditor) {
       const imageOptions = {
+        // Inline, as in TinyMCE and in mail HTML: the image sits in a line of
+        // text and can carry the link mark. As a block node it was lifted out
+        // of its paragraph and the <a> around it was dropped.
+        inline: true,
         allowBase64: true,
         HTMLAttributes: {
           class: 'md-editor-image',
@@ -794,7 +806,7 @@ export class HTMLEditor implements IMDHTMLEditor {
    * latter judges the real lines rather than the wrappers around them.
    */
   private formatInput(html: string): string {
-    const normalized = flattenWrapperBlocks(unescapeTagSlashes(html));
+    const normalized = flattenWrapperBlocks(unescapeTagSlashes(html), this.config.quote_marker_class);
     return this.config.format_empty_lines ? stripEmptyLineBreaks(normalized) : normalized;
   }
 

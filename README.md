@@ -111,7 +111,7 @@ const editor = new HTMLEditor(container, {
 | `basicEditor` | boolean | false | Use simplified toolbar for notes/tasks |
 | `readonly` | boolean | false | Start the editor in read-only mode (see `setReadOnly`) |
 | `forced_root_block` | 'p' \| 'div' | 'p' | Block element produced on Enter. `'div'` gives CKEditor `ENTER_DIV` parity |
-| `trailingNode` | boolean | false | Append an empty trailing paragraph when the document ends in a block node (table, image, code block) so the cursor can be placed after it |
+| `trailingNode` | boolean | false | Append an empty trailing paragraph when the document ends in a block node (table, code block) so the cursor can be placed after it |
 | `includeTemplates` | boolean | false | Show template dropdown |
 | `templates` | Template[] | [] | Array of templates |
 | `dropbox` | boolean | false | Enable Dropbox integration |
@@ -154,6 +154,7 @@ const editor = new HTMLEditor(container, {
 | `convert_unsafe_embeds` | boolean | true | Sanitize embedded content |
 | `format_empty_lines` | boolean | true | Preserve blank lines in exported content. When `true`, every path that hands HTML *out* of the editor (`getContent()`, the `change` event payload, the source dialog, preview) injects a `<br>` into each empty block so blank lines keep their height in mail clients and other consumers that would otherwise collapse a bare `<div></div>`/`<p></p>` to zero height, and every path that brings HTML *in* (`setContent()`, `insertContent()`, the Templates dropdown, saving the source dialog) runs the exact inverse — stripping that `<br>` back out on import so a blank line is not re-parsed as a doubled line. This keeps `setContent(getContent(x))` stable across round-trips (skin/root-block changes, saved-draft reloads). A block holding only a non-breaking space (`<div>&nbsp;</div>`) is *not* a blank line — an `&nbsp;` is visible content that already gives the block height — so it is left exactly as it is by both passes. Set `false` to pass the engine's output through unchanged in both directions. |
 | `paste_from_office` | boolean | true | Clean and preserve formatting when pasting from Microsoft Word and Excel |
+| `quote_marker_class` | string | - | Class that marks a reply's quoted original. A `<blockquote>` or `<div>` whose class is exactly this keeps it — see [Quoted original of a reply](#quoted-original-of-a-reply) |
 | `paste_markdown` | boolean | false | Start with paste-as-Markdown mode on. While on, a paste is read as Markdown and inserted as formatting — see [Pasting Markdown](#pasting-markdown) |
 | `speech_to_text` | boolean | true | Enable Speech to Text and Dictate toolbar buttons (requires Web Speech API: Chrome, Edge, Safari) |
 | `setup` | (editor) => void | - | Callback invoked before init — use to register custom buttons |
@@ -318,11 +319,44 @@ Template bodies also tend to arrive swaddled in container `<div>`s — mail clie
 
 Inherited style on a dissolved wrapper (`font-family`, `font-size`, `font-weight`, `font-style`, `color`, `line-height`, `text-align`, `text-indent`, `direction`) is carried down to the children it wrapped, unless a child already states that property. A body wrapped in a single `<div style="font-family:Georgia;font-size:10pt">` therefore keeps its font on every line. Box properties (border, background, padding, margin) describe the wrapper itself and cannot be re-expressed on *n* children, so they are dropped.
 
-Blocks that own their nesting are never dissolved: a `<blockquote>`, `<li>` or table cell holding blocks is a real node in the schema, and the signature container (`<div id="signature">`) is left intact. A genuinely empty `<div></div>` is a blank line the author typed, not a wrapper, and is preserved.
+Blocks that own their nesting are never dissolved: a `<blockquote>`, `<li>` or table cell holding blocks is a real node in the schema, the signature container (`<div id="signature">`) is left intact, and so is the quoted original of a reply (a `<div>` whose class is exactly the marker; see [Quoted original of a reply](#quoted-original-of-a-reply)). A genuinely empty `<div></div>` is a blank line the author typed, not a wrapper, and is preserved.
 
 ### Placeholder links
 
 An `<a href="">` — a link whose target the author has not filled in yet, or that an upstream sanitizer has blanked — is preserved as a link on import, matching TinyMCE and CKEditor. URI validation is otherwise unchanged: a `javascript:` or `data:` target is still rejected and its anchor unwrapped to plain text.
+
+### Links on images
+
+Images are inline, as in TinyMCE and in mail HTML: an image sits in a line of text, so a link around it is kept on import and paste (`<p><a href="https://example.com/"><img src="logo.png"></a></p>` comes back unchanged), and an image between words stays in its paragraph. Select an image and use the Link dialog or `unlink` to link or unlink it. An `<img>` that is not already in a line of text (at the top level, or directly in a table cell, list item, quote or the signature) is put in one (`<p>`, or `<div>` with `forced_root_block: 'div'`); with `<p>` lines it then has the paragraph's margin in the saved HTML. When the selection holds an image (or a mention or named anchor), the Link dialog's "Text to display" is disabled, as in TinyMCE, so the selection is relinked rather than replaced by text. A link the editor rejects, such as `javascript:`, is dropped and the image kept.
+
+### Quoted original of a reply
+
+A host can mark the quoted original of a reply or forward with a class of its choosing and find the quote again by that class in `getContent()`. Name the class in `quote_marker_class` and the editor keeps it:
+
+```ts
+const editor = new HTMLEditor(container, { quote_marker_class: 'quoted-original' });
+
+editor.setContent(
+  '<p>Thanks, see below.</p>' +
+  '<blockquote class="quoted-original" style="margin-left: 5px; padding-left: 5px; border-left: 2px solid #000">' +
+  '<p>The original message.</p></blockquote>'
+);
+
+editor.getContent();
+// … <blockquote class="quoted-original" style="margin-left: 5px; padding-left: 5px; border-left: 2px solid rgb(0, 0, 0);"><p …>The original message.</p></blockquote>
+```
+
+It is off by default, and off for an empty value or one holding more than one class name. With it set:
+
+| Element | Attribute | Kept when |
+|---------|-----------|-----------|
+| `<blockquote>` | `class` | the value is exactly the marker (surrounding whitespace ignored) |
+| `<div>` | `class` | the same; only then is the `<div>` kept as a quote rather than handled as an ordinary line or wrapper |
+| either, when marked | `style` | only `margin-*` and `padding-*` (`0` or a positive `px`, `pt` or `em` length), `border-*-width` (the same), `border-*-style` (`none`, `solid`, `dashed`, `dotted`, `double`) and `border-*-color` (hex, `rgb()`/`rgba()` or a color name, not `inherit`, `initial`, `unset` or `revert`) |
+
+The class is written first, so a plain substring search for `<blockquote class="quoted-original"` finds the quote. Nested quotes keep their own marker. A marked quote is a blockquote to the editor, so the Blockquote button, Enter and Backspace work in it as in any blockquote, and the button never creates a marked one. Splitting a marked quote (lifting a line out of it, say) leaves both halves marked, since both are still the quoted original. Content loaded with `setContent()` or `insertContent()` is marked as written. Editing doesn't create a second marked quote that could be found before the real one: while the document holds a marked quote, a marked quote that is pasted in (or part of the quoted original copied and pasted elsewhere in the reply) becomes a plain blockquote, and so does part of a quote dragged out of it or a copy dragged from it. Cutting the quote and pasting it somewhere else, pasting it over itself, or dragging the whole quote to move it keeps the marker. A font on a marked quote reaches the paragraphs directly inside it, not those inside a nested list, table or plain blockquote. Joining a marked quote with a plain blockquote directly next to it (Backspace or Delete at their boundary) merges them into one quote, which is marked only if the first of the two was.
+
+Apart from naming the class, the list is deliberately short and not configurable. The editor's content is part of the host page, not an iframe as in TinyMCE or CKEditor, so a `class`, `id`, `data-*` attribute or `style` from an email could pick up the host app's CSS (an overlay class, say), collide with its ids, or trigger its data-attribute handlers. A class that only *contains* the marker (`class="foo quoted-original"`) is not kept, every other `class`, `id`, `data-*` and `style` is dropped, and adding an entry is a code change.
 
 ## Toolbar Buttons
 

@@ -22,6 +22,7 @@ import {
   ResizableImage,
   computeImageResize,
   isImageResizable,
+  MarkedQuote,
 } from '../src';
 import type { ObjectResizeEvent, ImageResizeHandle, ResizableImageOptions, EditorEvents } from '../src';
 
@@ -92,6 +93,11 @@ describe('Package Exports', () => {
       expect(event.handle).toBe('se');
       expect(options.proportional).toBe(false);
       expect(Object.keys(events)).toEqual(['objectresizestart', 'objectresized']);
+    });
+
+    it('should export the MarkedQuote extension', () => {
+      expect(MarkedQuote.name).toBe('blockquote');
+      expect(MarkedQuote.configure({ markerClass: 'quoted-original' }).options.markerClass).toBe('quoted-original');
     });
   });
 

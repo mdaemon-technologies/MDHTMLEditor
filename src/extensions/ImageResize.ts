@@ -361,6 +361,9 @@ class ImageResizeView implements NodeView {
       })
       .setNodeSelection(pos)
       .updateAttributes(this.node.type.name, { width: drag.width, height: drag.height })
+      // Re-select: updating a leaf node replaces it, and inside a paragraph the
+      // selection would otherwise fall back to a text cursor.
+      .setNodeSelection(pos)
       .run();
 
     // run() reports whether the commands could run, not whether a plugin let
@@ -405,9 +408,16 @@ class ImageResizeView implements NodeView {
     this.dom.classList.remove('md-image-resize-active');
   }
 
-  /** Content width of the block the image sits in (the editor, or a table cell). */
+  /**
+   * Content width of the paragraph the image sits in (it spans the editor, or
+   * the table cell). Found through the document, not the DOM parent: in a link
+   * or a styled span the parent is an inline element with no width of its own.
+   */
   private availableWidth(): number | undefined {
-    const parent = this.dom.parentElement;
+    const pos = this.getPos();
+    const $pos = pos === undefined ? null : this.editor.state.doc.resolve(pos);
+    const block = $pos && $pos.depth > 0 ? this.editor.view.nodeDOM($pos.before()) : null;
+    const parent = block instanceof HTMLElement ? block : this.dom.parentElement;
     if (!parent) return undefined;
     const style = parent.ownerDocument.defaultView?.getComputedStyle(parent);
     const padding = style ? (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) : 0;

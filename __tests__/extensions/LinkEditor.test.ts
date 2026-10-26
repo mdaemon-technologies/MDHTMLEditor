@@ -249,6 +249,115 @@ describe('LinkEditor', () => {
     });
   });
 
+  describe('Linking a selected image', () => {
+    const IMG = '<img src="https://example.com/logo.png" alt="logo">';
+
+    /** Node-select the first image, as clicking it does. */
+    function selectImage(): void {
+      const tiptap = editor.getTipTap()!;
+      let imagePos = -1;
+      tiptap.state.doc.descendants((node, pos) => {
+        if (imagePos === -1 && node.type.name === 'image') imagePos = pos;
+      });
+      tiptap.commands.setNodeSelection(imagePos);
+    }
+
+    const imageHref = (): string | null => {
+      const body = new DOMParser().parseFromString(editor.getContent(), 'text/html').body;
+      return body.querySelector('img')?.closest('a')?.getAttribute('href') ?? null;
+    };
+
+    const save = (url: string): void => {
+      (document.querySelector('.md-link-editor-input') as HTMLInputElement).value = url;
+      (document.querySelector('.md-link-editor-save') as HTMLElement).click();
+    };
+
+    it('links the image', () => {
+      editor.setContent(`<p>${IMG}</p>`);
+      selectImage();
+      linkEditor.open();
+      save('https://example.com/');
+
+      expect(imageHref()).toBe('https://example.com/');
+      expect(editor.getContent()).toContain('<img');
+    });
+
+    it('pre-fills the URL of the image\'s link', () => {
+      editor.setContent(`<p><a href="https://example.com/">${IMG}</a></p>`);
+      selectImage();
+      linkEditor.open();
+
+      expect((document.querySelector('.md-link-editor-input') as HTMLInputElement).value).toBe('https://example.com/');
+    });
+
+    it('disables the display text for a range holding an image, and enables it again for text', () => {
+      editor.setContent(`<p>Click here ${IMG} for details</p>`);
+      editor.getTipTap()!.commands.selectAll();
+      linkEditor.open();
+      const textInput = document.querySelectorAll<HTMLInputElement>('.md-link-editor-input')[1];
+      expect(textInput.disabled).toBe(true);
+      linkEditor.close();
+
+      editor.getTipTap()!.commands.setTextSelection({ from: 1, to: 6 });
+      linkEditor.open();
+      expect(textInput.disabled).toBe(false);
+    });
+
+    it('disables the display text for a range holding a mention or a named anchor', () => {
+      const textInput = (): HTMLInputElement => document.querySelectorAll<HTMLInputElement>('.md-link-editor-input')[1];
+      for (const html of ['<p>Hi <span class="composer-mention" contenteditable="false" data-jid="jane@example.test" data-display="Jane">@Jane</span></p>', '<p>Hi <a id="top"></a>there</p>']) {
+        editor.setContent(html);
+        editor.getTipTap()!.commands.selectAll();
+        linkEditor.open();
+        expect(textInput().disabled).toBe(true);
+        linkEditor.close();
+      }
+    });
+
+    it('keeps a selected image when display text is typed, linking the image', () => {
+      editor.setContent(`<p>${IMG}</p>`);
+      selectImage();
+      linkEditor.open();
+      document.querySelectorAll<HTMLInputElement>('.md-link-editor-input')[1].value = 'Logo';
+      save('https://example.com/');
+
+      expect(imageHref()).toBe('https://example.com/');
+      expect(editor.getTipTap()!.getText()).not.toContain('Logo');
+    });
+
+    it('keeps an image inside a link when the link text is changed at the caret', () => {
+      editor.setContent(`<p><a href="https://example.com/">Visit ${IMG}</a></p>`);
+      editor.getTipTap()!.commands.setTextSelection(3);
+      linkEditor.open();
+      document.querySelectorAll<HTMLInputElement>('.md-link-editor-input')[1].value = 'Go';
+      save('https://example.org/');
+
+      expect(imageHref()).toBe('https://example.org/');
+      expect(editor.getContent()).toContain('<img');
+    });
+
+    it('still replaces a selection holding a line break with the display text', () => {
+      editor.setContent('<p>one<br>two</p>');
+      editor.getTipTap()!.commands.setTextSelection({ from: 1, to: editor.getTipTap()!.state.doc.content.size - 1 });
+      linkEditor.open();
+      document.querySelectorAll<HTMLInputElement>('.md-link-editor-input')[1].value = 'Contact';
+      save('https://example.com/');
+
+      expect(editor.getTipTap()!.getText()).toBe('Contact');
+    });
+
+    it('unlinks the image when the URL is cleared, keeping the image', () => {
+      editor.setContent(`<p><a href="https://example.com/">${IMG}</a></p>`);
+      expect(imageHref()).toBe('https://example.com/');
+      selectImage();
+      linkEditor.open();
+      save('');
+
+      expect(imageHref()).toBeNull();
+      expect(editor.getContent()).toContain('<img');
+    });
+  });
+
   describe('Typing after an inserted link', () => {
     it('keeps text typed after a link inserted with nothing selected out of the link', () => {
       linkEditor.open();

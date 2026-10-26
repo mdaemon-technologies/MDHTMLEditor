@@ -50,7 +50,7 @@
     "typecheck": "tsc --noEmit",
     "demo": "vite test",
     "demo:umd": "npm run build && node test/serve-umd.mjs",
-    "update:tiptap": "npm install @tiptap/core@latest @tiptap/extension-character-count@latest @tiptap/extension-code-block-lowlight@latest @tiptap/extension-color@latest @tiptap/extension-font-family@latest @tiptap/extension-highlight@latest @tiptap/extension-image@latest @tiptap/extension-link@latest @tiptap/extension-paragraph@latest @tiptap/extension-placeholder@latest @tiptap/extension-subscript@latest @tiptap/extension-superscript@latest @tiptap/extension-table@latest @tiptap/extension-table-cell@latest @tiptap/extension-table-header@latest @tiptap/extension-table-row@latest @tiptap/extension-text-align@latest @tiptap/extension-text-style@latest @tiptap/extension-underline@latest @tiptap/pm@latest @tiptap/starter-kit@latest"
+    "update:tiptap": "npm install @tiptap/core@latest @tiptap/extension-blockquote@latest @tiptap/extension-character-count@latest @tiptap/extension-code-block-lowlight@latest @tiptap/extension-color@latest @tiptap/extension-font-family@latest @tiptap/extension-highlight@latest @tiptap/extension-image@latest @tiptap/extension-link@latest @tiptap/extension-paragraph@latest @tiptap/extension-placeholder@latest @tiptap/extension-subscript@latest @tiptap/extension-superscript@latest @tiptap/extension-table@latest @tiptap/extension-table-cell@latest @tiptap/extension-table-header@latest @tiptap/extension-table-row@latest @tiptap/extension-text-align@latest @tiptap/extension-text-style@latest @tiptap/extension-underline@latest @tiptap/pm@latest @tiptap/starter-kit@latest"
   },
   "keywords": [
     "html-editor",
@@ -69,6 +69,7 @@
   },
   "dependencies": {
     "@tiptap/core": "^3.32.0",
+    "@tiptap/extension-blockquote": "^3.32.0",
     "@tiptap/extension-character-count": "^3.32.0",
     "@tiptap/extension-code-block-lowlight": "^3.32.0",
     "@tiptap/extension-color": "^3.32.0",

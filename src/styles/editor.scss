@@ -581,11 +581,12 @@ $md-dark-hover: #2d3e50;
   .md-image-resizable {
     display: inline-block;
     max-width: 100%;
-    // line-height: 0 keeps the outline tight to the image, which also removes
-    // the line-box gap below it; space it from the next block like a <p>.
-    margin: 0 0 1em;
+    // line-height: 0 keeps the outline tight to the image. The handles and the
+    // size label are absolutely positioned, so the wrapper's baseline is its
+    // bottom edge and the image sits on the text baseline like a plain img; the
+    // paragraph around it spaces it from the next block.
     line-height: 0;
-    vertical-align: top;
+    vertical-align: baseline;
 
     img {
       display: block;

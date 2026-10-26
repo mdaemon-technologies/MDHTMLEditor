@@ -226,6 +226,40 @@ describe('Dictation', () => {
       }
     });
 
+    it('adds a leading space after an image, which has no text of its own', () => {
+      editor.setContent('<p>see <img src="https://example.com/a.png"></p>');
+      const tiptap = editor.getTipTap()!;
+      tiptap.commands.setTextSelection(tiptap.state.doc.content.size - 1);
+      dictation.start();
+
+      getMockRecognitionInstance().simulateResult('here', true);
+
+      const last = tiptap.state.doc.firstChild!.lastChild!;
+      expect(last.text).toBe(' here');
+    });
+
+    it('adds a leading space after a mention', () => {
+      editor.setContent('<p>hi <span class="composer-mention" contenteditable="false" data-jid="jane@example.test" data-display="Jane">@Jane</span></p>');
+      const tiptap = editor.getTipTap()!;
+      tiptap.commands.setTextSelection(tiptap.state.doc.content.size - 1);
+      dictation.start();
+
+      getMockRecognitionInstance().simulateResult('here', true);
+
+      expect(tiptap.state.doc.firstChild!.lastChild!.text).toBe(' here');
+    });
+
+    it('adds a leading space after a word followed by a named anchor', () => {
+      editor.setContent('<p>word<a id="here"></a></p>');
+      const tiptap = editor.getTipTap()!;
+      tiptap.commands.setTextSelection(tiptap.state.doc.content.size - 1);
+      dictation.start();
+
+      getMockRecognitionInstance().simulateResult('next', true);
+
+      expect(tiptap.state.doc.firstChild!.lastChild!.text).toBe(' next');
+    });
+
     it('should not add leading space if transcript starts with space', () => {
       dictation.start();
 

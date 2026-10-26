@@ -312,6 +312,26 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
       </div>
 
       <div class="card">
+        <div class="card-header">Links on images</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads a linked image, an image between words, and a <code>javascript:</code> link around an image. The HTML Output panel shows the first link kept around the <code>&lt;img&gt;</code>, the second image still in its sentence, and the <code>javascript:</code> link dropped. Select the linked image and use the Link or Unlink button to change it.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-load-image-links">Load linked images</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Quoted original of a reply</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads a reply: the signature, then the quoted original in a <code>&lt;blockquote&gt;</code> carrying the marker class (the demo sets <code>quote_marker_class: 'quoted-original'</code>) and its border, with an earlier quote nested inside, followed by the indented <code>&lt;div&gt;</code> form. The HTML Output panel shows both markers kept, the class written first, and only the box style kept; the <code>id</code>, the <code>data-*</code> attribute and the <code>background</code>/<code>position</code> declarations are dropped.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-load-quote">Load reply with quoted original</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Content</div>
         <div class="card-body">
           <div class="control-group">

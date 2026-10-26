@@ -177,6 +177,14 @@ export interface EditorConfig {
   // Paste Markdown
   paste_markdown?: boolean;
 
+  /**
+   * Class that marks a reply's quoted original. A <blockquote> or <div> whose
+   * class is exactly this keeps it, with its margin, padding and border, so the
+   * quote can be found again in getContent(). One class name; unset, empty or
+   * several names turn marking off. Default: off.
+   */
+  quote_marker_class?: string;
+
   // Speech to Text
   speech_to_text?: boolean;
 

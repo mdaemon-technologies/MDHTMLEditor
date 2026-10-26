@@ -10,7 +10,7 @@ const BLOCK_SELECTOR = 'p, div, h1, h2, h3, h4, h5, h6';
  * also what keeps the transform idempotent: once we insert a <br>, the block is
  * no longer considered empty.
  */
-const CONTENT_BEARING =
+export const CONTENT_BEARING =
   'br, img, hr, input, video, audio, iframe, object, embed, canvas, svg, table, picture, source';
 
 /**

@@ -51,6 +51,9 @@ function getContentCss(skin: string): 'default' | 'dark' | 'confab' | 'confab-da
   return 'default';
 }
 
+// The class this demo uses to mark a reply's quoted original (quote_marker_class).
+const QUOTE_MARKER = 'quoted-original';
+
 function createEditorInstance(skin: typeof currentSkin) {
   return new HTMLEditor(container, {
   height: 400,
@@ -63,6 +66,10 @@ function createEditorInstance(skin: typeof currentSkin) {
 
   // CKEditor-parity: Enter produces <p> or <div>
   forced_root_block: currentForcedRootBlock,
+
+  // A <blockquote>/<div> with exactly this class keeps it (see "Quoted original
+  // of a reply" below); every other class is still dropped.
+  quote_marker_class: QUOTE_MARKER,
 
   // Default font inlined on every block element of the exported HTML (check the
   // "HTML Output" panel — each <p>/<div> carries font-family/font-size). Picking
@@ -431,6 +438,41 @@ $('#btn-load-images').addEventListener('click', () => {
   );
   refreshHtml();
   log('info', 'loaded images — click one and drag a handle');
+});
+
+// ── Links on images ──────────────────────────────────
+// Images are inline, so a link around one is kept and an image between words
+// stays in its line; a javascript: link is still dropped, keeping the image.
+$('#btn-load-image-links').addEventListener('click', () => {
+  editor.setContent(
+    '<p>Linked logo: <a href="https://www.example.com/">' +
+    '<img src="https://picsum.photos/seed/logo/120/40" alt="Logo" width="120" height="40"></a></p>' +
+    '<p>An image <img src="https://picsum.photos/seed/inline/24/24" alt="Icon" width="24" height="24"> between words.</p>' +
+    '<p>Rejected link: <a href="javascript:alert(1)">' +
+    '<img src="https://picsum.photos/seed/rejected/60/30" alt="Rejected" width="60" height="30"></a></p>'
+  );
+  refreshHtml();
+  log('info', 'loaded linked images — check the links in the HTML Output panel');
+});
+
+// ── Quoted original of a reply ───────────────────────
+// A reply: a signature, then the quoted original with the marker class
+// (nested for an earlier reply), then the indented div form.
+// Only the marker and its box style are kept; the id, data-* and the other
+// declarations are dropped.
+$('#btn-load-quote').addEventListener('click', () => {
+  editor.setContent(
+    '<p>Thanks, see below.</p>' +
+    '<div style="font-size:10pt;font-family:Arial" id="signature"><p>-- <br>Jane</p></div>' +
+    `<BR><BLOCKQUOTE class="${QUOTE_MARKER}" id="quote" data-x="1" style="PADDING-RIGHT: 0px; PADDING-LEFT: 5px; ` +
+    'MARGIN-LEFT: 5px; BORDER-LEFT: #000000 2px solid; MARGIN-RIGHT: 0px; background: url(https://example.com/x.gif); position: fixed">' +
+    'From: a@b.test<BR>To: c@d.test<BR><p>The original message.</p>' +
+    `<BLOCKQUOTE class="${QUOTE_MARKER}" style="PADDING-LEFT: 5px; BORDER-LEFT: #000000 2px solid">` +
+    'From: c@d.test<BR><p>An earlier message.</p></BLOCKQUOTE></BLOCKQUOTE>' +
+    `<BR><div class="${QUOTE_MARKER}" style="MARGIN-LEFT: 15px;">From: e@f.test<BR><p>An indented original.</p></div>`
+  );
+  refreshHtml();
+  log('info', 'loaded a reply — the quote markers are in the HTML Output panel');
 });
 
 // ── Round-trip: setContent(getContent()) ─────────────

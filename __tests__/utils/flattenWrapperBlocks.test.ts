@@ -1,5 +1,9 @@
 import { flattenWrapperBlocks } from '../../src/utils/flattenWrapperBlocks';
 
+/** The quote marker these tests configure (quote_marker_class). */
+const MARKER = 'quoted-original';
+const flattenQuotes = (html: string): string => flattenWrapperBlocks(html, MARKER);
+
 describe('flattenWrapperBlocks', () => {
   describe('dissolving wrappers', () => {
     it('unwraps a div whose children are all blocks', () => {
@@ -32,6 +36,27 @@ describe('flattenWrapperBlocks', () => {
       expect(flattenWrapperBlocks('<div>\n\t<div>A</div>\n</div>')).toBe('\n\t<div>A</div>\n');
     });
 
+    it('unwraps a div whose class only contains the quoted-original marker among others', () => {
+      // Only a class of exactly the marker makes a quote, as in MarkedQuote.
+      expect(
+        flattenQuotes(`<div class="foo ${MARKER}"><div>A</div></div>`),
+      ).toBe('<div>A</div>');
+    });
+
+    it('unwraps a marked p wrapper: only a div is a quoted-original container', () => {
+      // Without a doctype the parser nests a table inside a <p>.
+      const table = '<table><tbody><tr><td>a</td></tr></tbody></table>';
+      expect(
+        flattenQuotes(`<p class="${MARKER}">${table}</p>`),
+      ).toBe(table);
+    });
+
+    it('unwraps a div with the marker class when no marker is configured', () => {
+      expect(flattenWrapperBlocks(`<div class="${MARKER}"><div>A</div><div>B</div></div>`)).toBe(
+        '<div>A</div><div>B</div>',
+      );
+    });
+
     it('is idempotent', () => {
       const once = flattenWrapperBlocks('<div><div><div>A</div></div></div>');
       expect(flattenWrapperBlocks(once)).toBe(once);
@@ -61,6 +86,61 @@ describe('flattenWrapperBlocks', () => {
       expect(flattenWrapperBlocks('<div id="signature"><div>s</div></div>')).toBe(
         '<div id="signature"><div>s</div></div>',
       );
+    });
+
+    it('keeps the quoted-original container, dissolving only the wrappers inside it', () => {
+      // MarkedQuote parses this div as the reply's quoted original,
+      // which is found by its class.
+      const quote = `<div class="${MARKER}">`;
+      expect(flattenQuotes(`${quote}<div>A</div><div>B</div></div>`)).toBe(
+        `${quote}<div>A</div><div>B</div></div>`,
+      );
+      expect(flattenQuotes(`${quote}<div><div>A</div><div>B</div></div></div>`)).toBe(
+        `${quote}<div>A</div><div>B</div></div>`,
+      );
+    });
+
+    it('carries the inherited style of a wrapper through the quoted-original container to its lines', () => {
+      // The container is kept, but its lines inherit as they did when it was
+      // dissolved; MarkedQuote keeps only its box style.
+      const html = flattenQuotes(
+        '<div style="font-family: Georgia; color: red">' +
+          `<div class="${MARKER}"><p>a</p><p style="color: blue">b</p></div>` +
+        '</div>',
+      );
+      const lines = new DOMParser().parseFromString(html, 'text/html').querySelectorAll<HTMLElement>('p');
+      expect(lines[0].style.fontFamily).toBe('Georgia');
+      expect(lines[0].style.color).toBe('red');
+      expect(lines[1].style.fontFamily).toBe('Georgia');
+      expect(lines[1].style.color).toBe('blue');
+    });
+
+    it('gives attribution text in a styled quote its own line, and nothing else', () => {
+      // Comments, <style> and whitespace-only inline elements between blocks are
+      // not a line of text: wrapping them would add a blank line to the quote.
+      const html = flattenQuotes(
+        `<div class="${MARKER}" style="font-family: Georgia">` +
+          'From: a<br><p>a</p><!--[if mso]><![endif]--><style>.x{}</style><span> </span><p>b</p></div>',
+      );
+      const lines = Array.from(new DOMParser().parseFromString(html, 'text/html').querySelectorAll('p'));
+      expect(lines.map((line) => line.textContent)).toEqual(['From: a', 'a', 'b']);
+    });
+
+    it('does not wrap an inline element holding blocks in a line of its own', () => {
+      // <p><span><p>…</p></span></p> would re-parse as empty lines.
+      const html = flattenQuotes(
+        `<div class="${MARKER}" style="font-family: Arial"><span style="font-size: 10pt"><p>Hi</p><p>Bye</p></span></div>`,
+      );
+      expect(html).not.toMatch(/<p[^>]*><span/);
+    });
+
+    it('carries inherited style through a marked blockquote to its lines', () => {
+      const html = flattenQuotes(
+        '<div style="font-family: Georgia"><p>reply</p>' +
+          `<blockquote class="${MARKER}"><p>orig</p></blockquote></div>`,
+      );
+      const orig = new DOMParser().parseFromString(html, 'text/html').querySelector<HTMLElement>('blockquote p')!;
+      expect(orig.style.fontFamily).toBe('Georgia');
     });
 
     it('unwraps around the signature container without touching it', () => {

@@ -58,6 +58,21 @@ export class LinkEditor {
     return getMarkRange(tiptap.state.selection.$from, linkType) ?? null;
   }
 
+  /**
+   * True when the range holds an inline node that is not text, such as an
+   * image, a mention or a named anchor (a line break aside). Display text can't
+   * stand in for one (textBetween skips it), so as in TinyMCE the text field
+   * is disabled and the range is relinked rather than replaced.
+   */
+  private rangeHoldsInlineNode(from: number, to: number): boolean {
+    let found = false;
+    this.tiptap?.state.doc.nodesBetween(from, to, (node) => {
+      if (node.isInline && node.isLeaf && !node.isText && node.type.name !== 'hardBreak') found = true;
+      return !found;
+    });
+    return found;
+  }
+
   private populateFromSelection(): void {
     const tiptap = this.tiptap;
     if (!tiptap) return;
@@ -67,7 +82,10 @@ export class LinkEditor {
     const selectedText = tiptap.state.doc.textBetween(from, to, '');
 
     if (this.urlInput) this.urlInput.value = attrs.href ?? '';
-    if (this.textInput) this.textInput.value = selectedText;
+    if (this.textInput) {
+      this.textInput.value = selectedText;
+      this.textInput.disabled = this.rangeHoldsInlineNode(from, to);
+    }
     if (this.titleInput) this.titleInput.value = attrs.title ?? '';
     if (this.targetSelect) this.targetSelect.value = attrs.target ?? '';
   }
@@ -155,7 +173,7 @@ export class LinkEditor {
         .run();
     };
 
-    if (text && text !== currentText) {
+    if (text && text !== currentText && !this.rangeHoldsInlineNode(from, to)) {
       // User changed the display text — replace selection with new text and apply link
       insertLinkedText(text, true);
     } else if (from === to) {

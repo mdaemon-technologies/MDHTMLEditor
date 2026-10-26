@@ -155,8 +155,10 @@ describe('CSS Reset Protection', () => {
       return match![1];
     };
 
-    it('spaces a resizable image from the text below it like a paragraph', () => {
-      expect(ruleFor('.md-editor-body .md-image-resizable')).toMatch(/margin:\s*0 0 1em/);
+    it('sits a resizable image on the text baseline, spaced by its line rather than its own margin', () => {
+      const rule = ruleFor('.md-editor-body .md-image-resizable');
+      expect(rule).toMatch(/vertical-align:\s*baseline/);
+      expect(rule).not.toMatch(/margin/);
     });
 
     it('frames only resizable images, so other images keep their usual layout', () => {

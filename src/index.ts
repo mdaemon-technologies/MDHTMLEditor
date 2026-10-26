@@ -23,6 +23,8 @@ export { CharacterMap, CHAR_MAP } from './extensions/CharacterMap';
 export { EmojiPicker, EMOJI_CATEGORIES } from './extensions/Emoji';
 export { SearchReplace } from './extensions/SearchReplace';
 export { SignatureBlock } from './extensions/SignatureBlock';
+export { MarkedQuote } from './extensions/MarkedQuote';
+export type { MarkedQuoteOptions } from './extensions/MarkedQuote';
 export { Mention } from './extensions/Mention';
 export { Anchor } from './extensions/Anchor';
 export type { AnchorOptions } from './extensions/Anchor';

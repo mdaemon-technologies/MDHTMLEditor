@@ -90,7 +90,8 @@ let container: HTMLElement;
 let editor: HTMLEditor;
 
 const view = () => editor.getTipTap()!.view.dom as HTMLElement;
-const img = () => view().querySelector('img') as HTMLImageElement;
+// The image is inline, so ProseMirror puts img.ProseMirror-separator elements beside it.
+const img = () => view().querySelector('img.md-editor-image') as HTMLImageElement;
 const wrapper = () => view().querySelector('.md-image-resize') as HTMLElement;
 const handle = (name: string) => view().querySelector(`[data-handle="${name}"]`) as HTMLElement;
 
@@ -212,7 +213,7 @@ describe('Image resize node view', () => {
 
   it('updates the img when the image attributes change', () => {
     make();
-    editor.getTipTap()!.chain().setNodeSelection(0).updateAttributes('image', { width: 120, height: 90, alt: 'B' }).run();
+    editor.getTipTap()!.chain().setNodeSelection(1).updateAttributes('image', { width: 120, height: 90, alt: 'B' }).run();
     expect(img().getAttribute('width')).toBe('120');
     expect(img().getAttribute('height')).toBe('90');
     expect(img().getAttribute('alt')).toBe('B');
@@ -222,7 +223,7 @@ describe('Image resize node view', () => {
   it('does not set an unchanged src again, so the image is not reloaded', () => {
     make();
     const setAttribute = jest.spyOn(img(), 'setAttribute');
-    editor.getTipTap()!.chain().setNodeSelection(0).updateAttributes('image', { width: 120, height: 90 }).run();
+    editor.getTipTap()!.chain().setNodeSelection(1).updateAttributes('image', { width: 120, height: 90 }).run();
     expect(setAttribute).toHaveBeenCalledWith('width', '120');
     expect(setAttribute).not.toHaveBeenCalledWith('src', expect.anything());
   });
@@ -321,7 +322,7 @@ describe('Image resize dragging', () => {
     make();
     handle('se').dispatchEvent(pointer('pointerdown'));
     document.dispatchEvent(pointer('pointermove', { clientX: 50 }));
-    editor.getTipTap()!.chain().setNodeSelection(0).updateAttributes('image', { alt: 'B' }).run();
+    editor.getTipTap()!.chain().setNodeSelection(1).updateAttributes('image', { alt: 'B' }).run();
     expect(img().style.width).toBe('250px');
     expect(img().style.height).toBe('125px');
     document.dispatchEvent(pointer('pointerup', { clientX: 50 }));
@@ -390,7 +391,16 @@ describe('Image resize dragging', () => {
 
   it('does not grow wider than the space the image sits in', () => {
     make();
-    jest.spyOn(view(), 'clientWidth', 'get').mockReturnValue(320);
+    // The image's paragraph, whose width is the space it can take.
+    jest.spyOn(wrapper().parentElement!, 'clientWidth', 'get').mockReturnValue(320);
+    drag('e', 500, 0);
+    expect(editor.getContent()).toContain('width="320"');
+  });
+
+  it('does not grow wider than its paragraph when the image is inside a link', () => {
+    make({}, `<p><a href="https://example.com/">${IMG}</a></p>`);
+    // The node view's parent is the <a>, which has no width of its own.
+    jest.spyOn(wrapper().closest('p')!, 'clientWidth', 'get').mockReturnValue(320);
     drag('e', 500, 0);
     expect(editor.getContent()).toContain('width="320"');
   });
@@ -556,7 +566,7 @@ describe('object_resizing', () => {
       '<img src="https://example.com/a.png" alt="A" width="200" height="100">' +
       '<img src="https://example.com/b.png" width="200" height="100">'
     );
-    const [withAlt, withoutAlt] = Array.from(view().querySelectorAll('img'));
+    const [withAlt, withoutAlt] = Array.from(view().querySelectorAll('img.md-editor-image'));
     expect(handleCount(withAlt)).toBe(8);
     expect(handleCount(withoutAlt)).toBe(0);
   });
@@ -571,7 +581,7 @@ describe('object_resizing', () => {
   it('checks the selector again when the image attributes change', () => {
     make({ object_resizing: 'img[alt]' }, '<img src="https://example.com/b.png" width="200" height="100">');
     expect(handleCount(img())).toBe(0);
-    editor.getTipTap()!.chain().setNodeSelection(0).updateAttributes('image', { alt: 'B' }).run();
+    editor.getTipTap()!.chain().setNodeSelection(1).updateAttributes('image', { alt: 'B' }).run();
     expect(handleCount(img())).toBe(8);
   });
 });
