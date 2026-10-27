@@ -71,6 +71,10 @@ function createEditorInstance(skin: typeof currentSkin) {
   // of a reply" below); every other class is still dropped.
   quote_marker_class: QUOTE_MARKER,
 
+  // Right-click in a table for the table menu (Ctrl+right-click for the
+  // browser's). The table context toolbar (table_toolbar) is on by default.
+  contextmenu: 'table',
+
   // Default font inlined on every block element of the exported HTML (check the
   // "HTML Output" panel — each <p>/<div> carries font-family/font-size). Picking
   // a font/size from the toolbar still creates inline <span> overrides.
@@ -242,7 +246,8 @@ function createEditorInstance(skin: typeof currentSkin) {
     'bold italic underline strikethrough subscript superscript | blocks styles | bullist numlist outdent indent blockquote | fontfamily fontsize ' +
     '|| lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste ' +
     '| undo redo | image table charmap emoticons hr | fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace ' +
-    '| template | pastemarkdown | dictate speechtotext | wordcount timestamp markpen',
+    '| template | pastemarkdown | dictate speechtotext | wordcount timestamp markpen ' +
+    '| tablecellprops tablemergecells tablesplitcells tablerowheader tablecaption tablecellvalign tablecellborderstyle tablecellbackgroundcolor tablecellbordercolor',
 
   setup: (ed) => {
     // ── Custom button 1: Word Count (text label) ──────────
@@ -369,6 +374,13 @@ function createEditorInstance(skin: typeof currentSkin) {
     ed.on('objectresized', ({ width, height, handle }) => {
       log('info', `objectresized: ${width} × ${height} (${handle} handle)`);
     });
+
+    ed.on('tablemodified', ({ structure, style }) => {
+      log('info', `tablemodified: structure=${structure}, style=${style}`);
+    });
+
+    ed.on('newrow', () => log('info', 'newrow'));
+    ed.on('newcell', () => log('info', 'newcell'));
   },
 });
 }
@@ -471,6 +483,45 @@ $('#btn-load-image-map').addEventListener('click', () => {
   );
   refreshHtml();
   log('info', 'loaded an image map — the <map> and its areas are in the HTML Output panel');
+});
+
+// ── Tables ───────────────────────────────────────────
+// A table with the formatting the editor keeps (border, cellpadding, a caption,
+// a centered width, a header row, row and cell shading, a merged cell) and
+// some it drops (a class, a data-* attribute, a background image, a fixed
+// position). Edit it from the table menu, the floating table toolbar, a
+// right-click, or the table buttons at the end of the toolbar, and watch the
+// HTML Output panel and the log.
+$('#btn-load-table').addEventListener('click', () => {
+  editor.setContent(
+    '<p>Click in the table, or right-click a cell:</p>' +
+    '<table class="data-grid" data-sort="1" border="1" cellpadding="6" ' +
+    'style="width: 80%; margin-left: auto; margin-right: auto; border-collapse: collapse; position: fixed">' +
+    '<caption>Quarterly orders</caption>' +
+    '<tbody>' +
+    '<tr style="background-color: #e8eef7"><th scope="col">Region</th><th scope="col">Q1</th><th scope="col">Q2</th></tr>' +
+    '<tr><td>North</td><td style="text-align: right">120</td><td style="text-align: right">135</td></tr>' +
+    '<tr><td>South</td><td bgcolor="#fff2cc" style="text-align: right">98</td>' +
+    '<td style="text-align: right; background-image: url(https://example.test/x.png)">104</td></tr>' +
+    '<tr><td colspan="3" style="vertical-align: top; border-style: dashed">Totals are provisional.</td></tr>' +
+    '</tbody></table>'
+  );
+  refreshHtml();
+  log('info', 'loaded a styled table — the class, data-*, position and background image are dropped');
+});
+
+$('#btn-table-command').addEventListener('click', () => {
+  const command = $<HTMLSelectElement>('#cmd-table-command').value;
+  const done = editor.execCommand(command, false, command === 'mceInsertTable' ? { rows: 3, columns: 4, options: { headerRows: 1 } } : undefined);
+  log('info', `execCommand('${command}') → ${done}`);
+  refreshHtml();
+});
+
+$('#btn-table-query').addEventListener('click', () => {
+  log(
+    'info',
+    `row type: ${editor.queryCommandValue('mceTableRowType') || '—'}, column type: ${editor.queryCommandValue('mceTableColType') || '—'}, cell type: ${editor.queryCommandValue('mceTableCellType') || '—'}`
+  );
 });
 
 // ── Quoted original of a reply ───────────────────────

@@ -171,6 +171,50 @@ export interface EditorConfig {
   /** Corner handles keep the image's aspect ratio; Shift inverts this for one drag. Default true. */
   resize_img_proportional?: boolean;
 
+  // Tables
+  /**
+   * Buttons of the toolbar shown above a table while the cursor is in it, as
+   * a toolbar string. `false` or '' turns it off. Default: TinyMCE's
+   * `'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol'`
+   * in the full editor, off in the basic editor.
+   */
+  table_toolbar?: string | false;
+  /** Insert tables from a size grid in the table menu (default true); false uses the Insert table dialog. */
+  table_grid?: boolean;
+  /**
+   * Attributes given to an inserted table. Only `border`, `cellpadding` and
+   * `cellspacing` are used. Default `{ border: '1' }`.
+   */
+  table_default_attributes?: Record<string, string>;
+  /**
+   * Style given to an inserted table, as CSS property/value pairs, kept only
+   * where the table allows the property and value. Default
+   * `{ 'border-collapse': 'collapse', width: '100%' }`.
+   */
+  table_default_styles?: Record<string, string>;
+  /** Header rows of a table inserted from the toolbar, menu or dialog. Default 0. */
+  table_default_header_rows?: number;
+  /** Header columns of a table inserted from the toolbar, menu or dialog. Default 0. */
+  table_default_header_cols?: number;
+  /** Tab and Shift+Tab move between table cells (default true); false indents the paragraph in the cell instead. */
+  table_tab_navigation?: boolean;
+  /** Show cell spacing, cell padding, border width and caption in the Table properties dialog. Default true. */
+  table_appearance_options?: boolean;
+  /** Show the Advanced tab (border style, border color, background color) in the Table properties dialog. Default true. */
+  table_advtab?: boolean;
+  /** Show the Advanced tab in the Row properties dialog. Default true. */
+  table_row_advtab?: boolean;
+  /** Show the Advanced tab in the Cell properties dialog. Default true. */
+  table_cell_advtab?: boolean;
+  /** Choices of the cell border width menu: `{ title, value }` pairs. Default 1px to 5px. */
+  table_border_widths?: Array<{ title: string; value: string }>;
+  /** Choices of the cell border style menu: `{ title, value }` pairs. Default every CSS border style. */
+  table_border_styles?: Array<{ title: string; value: string }>;
+  /** Palette of the cell background color picker. Falls back to `color_map`. */
+  table_background_color_map?: string[] | ColorOption[];
+  /** Palette of the cell border color picker. Falls back to `color_map`. */
+  table_border_color_map?: string[] | ColorOption[];
+
   // Paste from Office
   paste_from_office?: boolean;
 
@@ -253,6 +297,27 @@ export interface ObjectResizeEvent {
 }
 export type ObjectResizeCallback = (event: ObjectResizeEvent) => void;
 
+/** Payload of `tablemodified`: a table changed through a table command. */
+export interface TableModifiedEvent {
+  /** The table in the editor (not the output HTML). */
+  table: HTMLTableElement;
+  /** Rows, columns or cells were added, removed, merged, split or changed type. */
+  structure: boolean;
+  /** Attributes or style of the table, its rows or cells changed. */
+  style: boolean;
+}
+export type TableModifiedCallback = (event: TableModifiedEvent) => void;
+/** Payload of `newrow`: a row a table command created. */
+export interface NewRowEvent {
+  node: HTMLTableRowElement;
+}
+export type NewRowCallback = (event: NewRowEvent) => void;
+/** Payload of `newcell`: a cell a table command created. */
+export interface NewCellEvent {
+  node: HTMLTableCellElement;
+}
+export type NewCellCallback = (event: NewCellEvent) => void;
+
 export interface EditorEvents {
   init?: InitCallback;
   dirty?: DirtyCallback;
@@ -260,6 +325,9 @@ export interface EditorEvents {
   pastemarkdownchange?: PasteMarkdownChangeCallback;
   objectresizestart?: ObjectResizeCallback;
   objectresized?: ObjectResizeCallback;
+  tablemodified?: TableModifiedCallback;
+  newrow?: NewRowCallback;
+  newcell?: NewCellCallback;
   focus?: FocusCallback;
   blur?: BlurCallback;
 }
@@ -288,6 +356,8 @@ export interface MDHTMLEditor {
   
   // Command execution
   execCommand(command: string, ui?: boolean, value?: unknown): boolean;
+  /** The value of a command at the selection, as TinyMCE's queryCommandValue: '' when it has none. */
+  queryCommandValue(command: string): string;
 
   // Current font at the cursor (inline override → block font → configured default)
   getFontFamily(): string;
@@ -333,6 +403,9 @@ export interface EditorEventMap {
   pastemarkdownchange: PasteMarkdownChangeCallback;
   objectresizestart: ObjectResizeCallback;
   objectresized: ObjectResizeCallback;
+  tablemodified: TableModifiedCallback;
+  newrow: NewRowCallback;
+  newcell: NewCellCallback;
 }
 
 /**

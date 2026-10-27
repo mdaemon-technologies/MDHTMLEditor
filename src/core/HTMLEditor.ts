@@ -4,9 +4,12 @@
  */
 
 import { Editor as TipTapEditor, EditorOptions, AnyExtension, mergeAttributes } from '@tiptap/core';
+import type { ChainedCommands } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { AllSelection, Plugin } from '@tiptap/pm/state';
-import { RemoveMarkStep } from '@tiptap/pm/transform';
+import type { EditorState, Transaction } from '@tiptap/pm/state';
+import { Mapping, RemoveMarkStep } from '@tiptap/pm/transform';
+import { isInTable } from '@tiptap/pm/tables';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { Subscript } from '@tiptap/extension-subscript';
@@ -19,10 +22,6 @@ import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Link, isAllowedUri } from '@tiptap/extension-link';
 import { Image } from '@tiptap/extension-image';
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
 import { CharacterCount } from '@tiptap/extension-character-count';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
@@ -48,6 +47,27 @@ import { PasteMarkdown } from '../extensions/PasteMarkdown';
 import { CodeSample } from '../extensions/CodeSample';
 import { ResizableImage, isObjectResizingOn } from '../extensions/ImageResize';
 import { ImageMap, relabelImageMapMarkers } from '../extensions/ImageMap';
+import {
+  StyledTable,
+  StyledTableRow,
+  StyledTableCell,
+  StyledTableHeader,
+  CELL_STYLE_RULES,
+  MAX_TABLE_SIZE,
+} from '../extensions/TableAttributes';
+import {
+  TableCommands,
+  getTableCellType,
+  getTableColumnType,
+  getTableRowType,
+  selectedTable,
+  tableAtSelection,
+  tableElementAtSelection,
+} from '../extensions/TableCommands';
+import { TableDialog } from '../extensions/TableDialog';
+import { TableToolbar } from '../extensions/TableToolbar';
+import { ContextMenu, contextMenuSections } from '../extensions/ContextMenu';
+import type { TableDialogKind } from '../extensions/TableDialog';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
@@ -75,6 +95,37 @@ export const fontNames = 'Andale Mono=andale mono,times; Arial=arial,helvetica,s
 
 // Default toolbar configurations
 const FULL_TOOLBAR = 'bold italic underline strikethrough subscript superscript | blocks styles | bullist numlist outdent indent blockquote | fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | image table charmap emoticons hr | fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace';
+/**
+ * What a table command changes, for the events it fires: 'insert' creates rows
+ * or cells (newrow/newcell, then tablemodified), 'structure' and 'style' fire
+ * tablemodified, 'none' fires nothing.
+ */
+export type TableChange = 'insert' | 'structure' | 'style' | 'none';
+
+/** The style properties a cell keeps: what mceTableApplyCellStyle can set. */
+const CELL_STYLE_PROPERTIES = new Set(CELL_STYLE_RULES.map(([property]) => property));
+
+/** Positions of the rows and cells of the table at the selection, or none outside a table. */
+function tablePartPositions(state: EditorState): number[] {
+  const table = tableAtSelection(state);
+  const positions: number[] = [];
+  table?.node.descendants((node, pos) => {
+    const role = node.type.spec.tableRole;
+    if (role === 'row' || role === 'cell' || role === 'header_cell') positions.push(table.start + pos);
+    return true;
+  });
+  return positions;
+}
+
+/** A whole-number command argument of at least `min`, or `fallback`. */
+function tableCount(value: unknown, min: number, fallback: number): number {
+  const n = typeof value === 'string' ? Number(value) : value;
+  return typeof n === 'number' && Number.isInteger(n) && n >= min ? Math.min(n, MAX_TABLE_SIZE) : fallback;
+}
+
+/** TinyMCE's default table_toolbar: shown above a table while the cursor is in it. */
+export const DEFAULT_TABLE_TOOLBAR =
+  'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol';
 const BASIC_TOOLBAR = 'bold italic underline strikethrough subscript superscript | bullist numlist outdent indent | fontfamily fontsize blockquote | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link unlink | ltr rtl | searchreplace';
 
 // Default font sizes
@@ -191,6 +242,9 @@ export class HTMLEditor implements IMDHTMLEditor {
   private eventListeners: Map<keyof EditorEventMap, Set<EditorEventMap[keyof EditorEventMap]>> = new Map();
   private changeTimeout: ReturnType<typeof setTimeout> | null = null;
   private imageUploadHelper: ImageUpload | null = null;
+  private tableDialog: TableDialog | null = null;
+  private tableToolbar: TableToolbar | null = null;
+  private contextMenu: ContextMenu | null = null;
   
   constructor(container: HTMLElement, config: EditorConfig = {}) {
     this.id = `md-editor-${++editorIdCounter}`;
@@ -277,6 +331,21 @@ export class HTMLEditor implements IMDHTMLEditor {
       paste_markdown: config.paste_markdown ?? false,
       quote_marker_class: normalizeQuoteMarkerClass(config.quote_marker_class) ?? undefined,
       speech_to_text: config.speech_to_text ?? true,
+      table_toolbar: config.table_toolbar ?? (config.basicEditor ? false : DEFAULT_TABLE_TOOLBAR),
+      table_grid: config.table_grid ?? true,
+      table_default_attributes: config.table_default_attributes ?? { border: '1' },
+      table_default_styles: config.table_default_styles ?? { 'border-collapse': 'collapse', width: '100%' },
+      table_default_header_rows: config.table_default_header_rows ?? 0,
+      table_default_header_cols: config.table_default_header_cols ?? 0,
+      table_tab_navigation: config.table_tab_navigation ?? true,
+      table_appearance_options: config.table_appearance_options ?? true,
+      table_advtab: config.table_advtab ?? true,
+      table_row_advtab: config.table_row_advtab ?? true,
+      table_cell_advtab: config.table_cell_advtab ?? true,
+      table_border_widths: config.table_border_widths,
+      table_border_styles: config.table_border_styles,
+      table_background_color_map: config.table_background_color_map,
+      table_border_color_map: config.table_border_color_map,
     };
   }
   
@@ -384,6 +453,21 @@ export class HTMLEditor implements IMDHTMLEditor {
       narrowBreakpoint: this.config.toolbar_narrow_breakpoint ?? 768,
       priorityOverrides: this.config.toolbar_priority ?? {},
     });
+
+    // The table context toolbar and the right-click menu
+    if (this.config.table_toolbar) {
+      this.tableToolbar = new TableToolbar({
+        editor: this,
+        buttons: this.config.table_toolbar,
+        config: this.config,
+        iconSet,
+        customButtons: this.customButtons,
+        trans: globalTranslate,
+      });
+    }
+    if (contextMenuSections(this.config.contextmenu).includes('table')) {
+      this.contextMenu = new ContextMenu({ editor: this, trans: globalTranslate });
+    }
 
     // Apply initial read-only state
     if (this.config.readonly) {
@@ -538,7 +622,7 @@ export class HTMLEditor implements IMDHTMLEditor {
       }),
       // Block indentation (margin-left) for paragraphs/headings, plus the Tab /
       // Shift+Tab keymap that indents the block when the cursor is not in a list.
-      BlockIndent,
+      BlockIndent.configure({ tableTabNavigation: this.config.table_tab_navigation !== false }),
       LineHeight,
       Color,
       Highlight.configure({
@@ -753,15 +837,21 @@ export class HTMLEditor implements IMDHTMLEditor {
     
     // Add table support
     extensions.push(
-      Table.configure({
+      StyledTable.configure({
         resizable: true,
         HTMLAttributes: {
           class: 'md-editor-table',
         },
+        defaultAttributes: this.config.table_default_attributes,
+        defaultStyles: this.config.table_default_styles,
+        tabNavigation: this.config.table_tab_navigation !== false,
+        // A row added by Tab in the last cell fires newrow / tablemodified too.
+        onTabAddRow: () => this.runTableCommand('insert', (c) => c.addRowAfter().goToNextCell()),
       }),
-      TableRow,
-      TableCell,
-      TableHeader
+      StyledTableRow,
+      StyledTableCell,
+      StyledTableHeader,
+      TableCommands
     );
     
     return extensions;
@@ -960,6 +1050,9 @@ export class HTMLEditor implements IMDHTMLEditor {
   execCommand(command: string, _ui?: boolean, value?: unknown): boolean {
     if (!this.tiptap) return false;
 
+    const tableResult = this.execTableCommand(command.toLowerCase(), value);
+    if (tableResult !== undefined) return tableResult;
+
     const chain = this.tiptap.chain().focus();
     
     // Map TinyMCE commands to TipTap
@@ -1078,6 +1171,186 @@ export class HTMLEditor implements IMDHTMLEditor {
     }
   }
   
+  /**
+   * The value of a command at the selection, as TinyMCE's queryCommandValue:
+   * the row, column and cell types of a table ('header'/'body', 'th'/'td').
+   * '' for any other command, or outside a table.
+   */
+  queryCommandValue(command: string): string {
+    const state = this.tiptap?.state;
+    if (!state) return '';
+    switch (command.toLowerCase()) {
+      case 'mcetablerowtype':
+        return getTableRowType(state);
+      case 'mcetablecoltype':
+        return getTableColumnType(state);
+      case 'mcetablecelltype':
+        return getTableCellType(state);
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * TinyMCE's table commands (mceInsertTable, mceTable*), lower-cased. The
+   * result is whether the command applied — false outside a table, in a
+   * read-only editor, or when there is nothing to do — and undefined for a
+   * command that is not a table command. With `dryRun`, nothing changes and
+   * the result is whether the command would apply.
+   */
+  private execTableCommand(command: string, value: unknown, dryRun = false): boolean | undefined {
+    const arg = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+    const type = typeof value === 'string' ? value : arg.type;
+    const run = (kind: TableChange, build: (chain: ChainedCommands) => ChainedCommands) => {
+      if (!dryRun) return this.runTableCommand(kind, build);
+      return !!this.tiptap && !this.isReadOnly() && build(this.tiptap.can().chain()).run();
+    };
+    const dialog = (kind: TableDialogKind) => {
+      if (!this.tiptap || this.isReadOnly()) return false;
+      if (kind !== 'insert' && !isInTable(this.tiptap.state)) return false;
+      if (dryRun) return true;
+      this.tableDialog ??= new TableDialog({ editor: this, trans: globalTranslate });
+      return this.tableDialog.open(kind);
+    };
+
+    switch (command) {
+      case 'mceinserttabledialog':
+        return dialog('insert');
+      case 'mcetableprops':
+        return dialog('table');
+      case 'mcetablerowprops':
+        return dialog('row');
+      case 'mcetablecellprops':
+        return dialog('cell');
+      case 'mceinserttable': {
+        const options = (arg.options && typeof arg.options === 'object' ? arg.options : {}) as Record<string, unknown>;
+        return run('insert', (c) =>
+          c.insertStyledTable({
+            rows: tableCount(arg.rows, 1, 3),
+            cols: tableCount(arg.columns, 1, 3),
+            headerRows: tableCount(options.headerRows, 0, this.config.table_default_header_rows ?? 0),
+            headerCols: tableCount(options.headerColumns, 0, this.config.table_default_header_cols ?? 0),
+          })
+        );
+      }
+      case 'mcetableinsertrowbefore':
+        return run('insert', (c) => c.addRowBefore());
+      case 'mcetableinsertrowafter':
+        return run('insert', (c) => c.addRowAfter());
+      case 'mcetabledeleterow':
+        return run('structure', (c) => c.deleteTableRows());
+      case 'mcetableinsertcolbefore':
+        return run('insert', (c) => c.addColumnBefore());
+      case 'mcetableinsertcolafter':
+        return run('insert', (c) => c.addColumnAfter());
+      case 'mcetabledeletecol':
+        return run('structure', (c) => c.deleteTableColumns());
+      case 'mcetablemergecells':
+        return run('structure', (c) => c.mergeTableCells());
+      case 'mcetablesplitcells':
+        return run('insert', (c) => c.splitCell());
+      case 'mcetabledelete':
+        return run('structure', (c) => c.deleteTable());
+      case 'mcetablecutrow':
+        return run('structure', (c) => c.cutTableRows());
+      case 'mcetablecopyrow':
+        return run('none', (c) => c.copyTableRows());
+      case 'mcetablepasterowbefore':
+        return run('insert', (c) => c.pasteTableRows(true));
+      case 'mcetablepasterowafter':
+        return run('insert', (c) => c.pasteTableRows(false));
+      case 'mcetablecutcol':
+        return run('structure', (c) => c.cutTableColumns());
+      case 'mcetablecopycol':
+        return run('none', (c) => c.copyTableColumns());
+      case 'mcetablepastecolbefore':
+        return run('insert', (c) => c.pasteTableColumns(true));
+      case 'mcetablepastecolafter':
+        return run('insert', (c) => c.pasteTableColumns(false));
+      case 'mcetabletogglecaption': {
+        const table = this.tiptap ? selectedTable(this.tiptap.state) : null;
+        if (!table) return false;
+        const caption = table.attrs.caption ? null : globalTranslate('Caption');
+        return run('structure', (c) => c.setTableAttributes({ caption }));
+      }
+      case 'mcetablerowtype':
+        // A footer needs a <tfoot>, which the editor does not keep.
+        if (type !== 'header' && type !== 'body') return false;
+        return run('structure', (c) => c.setTableRowType(type));
+      case 'mcetablecoltype':
+        if (type !== 'th' && type !== 'td') return false;
+        return run('structure', (c) => c.setTableColumnType(type));
+      case 'mcetablecelltype':
+        if (type !== 'th' && type !== 'td') return false;
+        return run('structure', (c) => c.setTableCellType(type));
+      case 'mcetableapplycellstyle': {
+        // TinyMCE takes `backgroundColor` as well as `background-color`.
+        const changes: Record<string, string | null> = {};
+        for (const [key, styleValue] of Object.entries(arg)) {
+          const property = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+          if (typeof styleValue === 'string' && CELL_STYLE_PROPERTIES.has(property)) changes[property] = styleValue;
+        }
+        if (!Object.keys(changes).length) return false;
+        return run('style', (c) => c.applyTableCellStyle(changes));
+      }
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Whether a table command (an execCommand name) would apply at the
+   * selection: false outside a table, in a read-only editor, or when there is
+   * nothing to do (merging a single cell, pasting before anything was copied).
+   * The editor's table menus and buttons use it to disable what cannot run.
+   */
+  isTableCommandEnabled(command: string, value?: unknown): boolean {
+    return this.execTableCommand(command.toLowerCase(), value, true) ?? false;
+  }
+
+  /**
+   * Run a table command and fire TinyMCE's table events for it: newrow and
+   * newcell for each row and cell it created, then tablemodified. Commands
+   * that change nothing (a copy) fire nothing.
+   */
+  runTableCommand(kind: TableChange, build: (chain: ChainedCommands) => ChainedCommands): boolean {
+    const tiptap = this.tiptap;
+    if (!tiptap || this.isReadOnly()) return false;
+
+    // The rows and cells there were before, so the ones the command created
+    // can be told apart. Positions, mapped through the command's steps, not
+    // DOM elements: ProseMirror redraws a cell whose span changed, which is
+    // not a new cell.
+    const before = kind === 'insert' ? tablePartPositions(tiptap.state) : null;
+    const mapping = new Mapping();
+    // Steps other plugins append (appendTransaction) move positions too.
+    const record = ({ transaction, appendedTransactions }: { transaction: Transaction; appendedTransactions: Transaction[] }) => {
+      for (const tr of [transaction, ...appendedTransactions]) mapping.appendMapping(tr.mapping);
+    };
+    tiptap.on('transaction', record);
+    let done: boolean;
+    try {
+      done = build(tiptap.chain().focus()).run();
+    } finally {
+      tiptap.off('transaction', record);
+    }
+    if (!done || kind === 'none') return done;
+
+    if (before) {
+      const kept = new Set(before.map((pos) => mapping.map(pos, 1)));
+      for (const pos of tablePartPositions(tiptap.state)) {
+        if (kept.has(pos)) continue;
+        const node = tiptap.view.nodeDOM(pos);
+        if (node instanceof HTMLTableRowElement) this.fire('newrow', { node });
+        else if (node instanceof HTMLTableCellElement) this.fire('newcell', { node });
+      }
+    }
+
+    const table = tableElementAtSelection(tiptap.view);
+    if (table) this.fire('tablemodified', { table, structure: kind !== 'style', style: kind === 'style' });
+    return true;
+  }
+
   isDirty(): boolean {
     return this.dirty;
   }
@@ -1098,6 +1371,8 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.tiptap?.setEditable(!state);
     this.editorWrapper?.classList.toggle('md-editor-readonly', state);
     this.toolbar?.setEnabled(!state);
+    this.tableToolbar?.refresh();
+    if (state) this.contextMenu?.close();
   }
 
   isReadOnly(): boolean {
@@ -1162,11 +1437,17 @@ export class HTMLEditor implements IMDHTMLEditor {
     }
     
     this.toolbar?.destroy();
+    this.tableToolbar?.destroy();
+    this.tableToolbar = null;
+    this.contextMenu?.destroy();
+    this.contextMenu = null;
     this.toolbar = null;
     this.tiptap?.destroy();
     this.tiptap = null;
     this.imageUploadHelper?.destroy();
     this.imageUploadHelper = null;
+    this.tableDialog?.destroy();
+    this.tableDialog = null;
     
     if (this.editorWrapper) {
       this.editorWrapper.remove();
@@ -1177,6 +1458,13 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.customButtons.clear();
   }
   
+  /** Recreate the right-click menu, so its labels are in the current language. */
+  private rebuildContextMenu(): void {
+    if (!this.contextMenu) return;
+    this.contextMenu.destroy();
+    this.contextMenu = new ContextMenu({ editor: this, trans: globalTranslate });
+  }
+
   getTipTap(): TipTapEditor | null {
     return this.tiptap;
   }
@@ -1189,6 +1477,8 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.config.language = code;
     builtInTranslate = createTranslateFunction(code);
     this.toolbar?.rebuild();
+    this.tableToolbar?.rebuild();
+    this.rebuildContextMenu();
     if (this.tiptap) relabelImageMapMarkers(this.tiptap.view.dom, globalTranslate);
     this.fire('languagechange', code);
   }

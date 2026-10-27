@@ -95,6 +95,7 @@ describe('i18n', () => {
       'Subscript': ['nl'],
       'Superscript': ['nl'],
       'Stop': ['da'],
+      'Cell': ['sv'],
     };
 
     it('translates every key in every non-English locale', () => {

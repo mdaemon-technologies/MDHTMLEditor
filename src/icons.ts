@@ -24,6 +24,52 @@ const SVG_ANCHOR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
 const SVG_PASTE_MARKDOWN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17.5V6.5l4.5 5.5 4.5-5.5v11"/><path d="M17.5 6.5v8.5"/><polyline points="14 11.5 17.5 15 21 11.5"/></svg>';
 const SVG_UNLINK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.84 12.25l1.72-1.71a4 4 0 0 0-5.66-5.66l-1.71 1.72"/><path d="M5.17 11.75l-1.71 1.71a4 4 0 0 0 5.66 5.66l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
 
+/** A 16px stroke icon on the 24px grid the other SVG icons use. */
+const tableIcon = (body: string): string =>
+  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+
+// A small table in the top-left corner, leaving room for a mark at bottom right.
+const MINI_TABLE = '<rect x="2" y="2" width="14" height="14" rx="1"/><line x1="2" y1="7" x2="16" y2="7"/><line x1="9" y1="2" x2="9" y2="16"/>';
+const MARK_PLUS = '<line x1="19" y1="15" x2="19" y2="23"/><line x1="15" y1="19" x2="23" y2="19"/>';
+const MARK_X = '<line x1="16" y1="16" x2="22" y2="22"/><line x1="22" y1="16" x2="16" y2="22"/>';
+const MARK_GEAR = '<circle cx="19" cy="19" r="3"/>';
+// Two rows (a row band) and two columns (a column band).
+const ROW_BAND = (y: number) => `<rect x="3" y="${y}" width="18" height="8" rx="1"/><line x1="12" y1="${y}" x2="12" y2="${y + 8}"/>`;
+const COL_BAND = (x: number) => `<rect x="${x}" y="3" width="8" height="18" rx="1"/><line x1="${x}" y1="12" x2="${x + 8}" y2="12"/>`;
+
+/** Icons for the table toolbar buttons, the same in every skin. */
+const TABLE_ICONS: IconSet = {
+  tableinsertdialog: tableIcon(MINI_TABLE + MARK_PLUS),
+  tableprops: tableIcon(MINI_TABLE + MARK_GEAR),
+  tabledelete: tableIcon(MINI_TABLE + MARK_X),
+  tablecellprops: tableIcon('<rect x="3" y="3" width="18" height="18" rx="1"/><rect x="8" y="8" width="8" height="8" fill="currentColor"/>'),
+  tablemergecells: tableIcon('<rect x="3" y="5" width="18" height="14" rx="1"/><path d="M5 12h5M8 9.5 10.5 12 8 14.5M19 12h-5M16 9.5 13.5 12 16 14.5"/>'),
+  tablesplitcells: tableIcon('<rect x="3" y="5" width="18" height="14" rx="1"/><line x1="12" y1="5" x2="12" y2="19"/><path d="M10 12H6M8 10l-2 2 2 2M14 12h4M16 10l2 2-2 2"/>'),
+  tableinsertrowbefore: tableIcon(ROW_BAND(13) + '<line x1="12" y1="2" x2="12" y2="10"/><line x1="8" y1="6" x2="16" y2="6"/>'),
+  tableinsertrowafter: tableIcon(ROW_BAND(3) + '<line x1="12" y1="14" x2="12" y2="22"/><line x1="8" y1="18" x2="16" y2="18"/>'),
+  tabledeleterow: tableIcon(ROW_BAND(8) + '<line x1="5" y1="5" x2="19" y2="19"/>'),
+  tablerowprops: tableIcon(ROW_BAND(4) + '<circle cx="12" cy="18" r="3"/>'),
+  tablecutrow: tableIcon('<rect x="3" y="8" width="18" height="8" rx="1" stroke-dasharray="3 2"/>'),
+  tablecopyrow: tableIcon('<rect x="3" y="4" width="15" height="7" rx="1"/><rect x="6" y="13" width="15" height="7" rx="1"/>'),
+  tablepasterowbefore: tableIcon(ROW_BAND(13) + '<path d="M12 2v8M9 7l3 3 3-3"/>'),
+  tablepasterowafter: tableIcon(ROW_BAND(3) + '<path d="M12 22v-8M9 17l3-3 3 3"/>'),
+  tableinsertcolbefore: tableIcon(COL_BAND(13) + '<line x1="2" y1="12" x2="10" y2="12"/><line x1="6" y1="8" x2="6" y2="16"/>'),
+  tableinsertcolafter: tableIcon(COL_BAND(3) + '<line x1="14" y1="12" x2="22" y2="12"/><line x1="18" y1="8" x2="18" y2="16"/>'),
+  tabledeletecol: tableIcon(COL_BAND(8) + '<line x1="5" y1="5" x2="19" y2="19"/>'),
+  tablecutcol: tableIcon('<rect x="8" y="3" width="8" height="18" rx="1" stroke-dasharray="3 2"/>'),
+  tablecopycol: tableIcon('<rect x="4" y="3" width="7" height="15" rx="1"/><rect x="13" y="6" width="7" height="15" rx="1"/>'),
+  tablepastecolbefore: tableIcon(COL_BAND(13) + '<path d="M2 12h8M7 9l3 3-3 3"/>'),
+  tablepastecolafter: tableIcon(COL_BAND(3) + '<path d="M22 12h-8M17 9l-3 3 3 3"/>'),
+  tablecaption: tableIcon('<line x1="6" y1="4" x2="18" y2="4"/><rect x="3" y="8" width="18" height="13" rx="1"/><line x1="3" y1="13" x2="21" y2="13"/>'),
+  tablerowheader: tableIcon('<rect x="3" y="3" width="18" height="18" rx="1"/><rect x="3" y="3" width="18" height="6" fill="currentColor"/><line x1="3" y1="15" x2="21" y2="15"/>'),
+  tablecolheader: tableIcon('<rect x="3" y="3" width="18" height="18" rx="1"/><rect x="3" y="3" width="6" height="18" fill="currentColor"/><line x1="15" y1="3" x2="15" y2="21"/>'),
+  tablecellvalign: tableIcon('<rect x="3" y="3" width="18" height="18" rx="1"/><line x1="8" y1="8" x2="16" y2="8"/><path d="M12 11v7M9 15l3 3 3-3"/>'),
+  tablecellborderwidth: tableIcon('<line x1="3" y1="5" x2="21" y2="5" stroke-width="1"/><line x1="3" y1="11" x2="21" y2="11" stroke-width="2.5"/><line x1="3" y1="18" x2="21" y2="18" stroke-width="4"/>'),
+  tablecellborderstyle: tableIcon('<line x1="3" y1="5" x2="21" y2="5"/><line x1="3" y1="12" x2="21" y2="12" stroke-dasharray="4 3"/><line x1="3" y1="19" x2="21" y2="19" stroke-dasharray="1 3"/>'),
+  tablecellbackgroundcolor: tableIcon('<rect x="4" y="4" width="16" height="13" rx="1"/><path d="M8 13l4-5 4 5z" fill="currentColor"/>'),
+  tablecellbordercolor: tableIcon('<rect x="4" y="4" width="16" height="13" rx="1" stroke-width="3"/>'),
+};
+
 /**
  * Default icon set — used by oxide and oxide-dark skins.
  * Text characters and emoji for most buttons, inline SVGs for alignment/image/code.
@@ -71,6 +117,7 @@ export const DEFAULT_ICONS: IconSet = {
   unlink: SVG_UNLINK,
   blocks: '\u00b6',
   styles: 'A',
+  ...TABLE_ICONS,
 };
 
 /**
@@ -121,4 +168,5 @@ export const CONFAB_ICONS: IconSet = {
   unlink: SVG_UNLINK,
   blocks: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4v16"/><path d="M17 4v16"/><path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13"/></svg>',
   styles: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l4 7h-8z"/><path d="M8 10h8l-4 11z"/></svg>',
+  ...TABLE_ICONS,
 };

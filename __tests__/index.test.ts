@@ -24,8 +24,37 @@ import {
   isImageResizable,
   MarkedQuote,
   ImageMap,
+  StyledTable,
+  StyledTableRow,
+  StyledTableCell,
+  StyledTableHeader,
+  StyledTableView,
+  TABLE_STYLE_RULES,
+  ROW_STYLE_RULES,
+  CELL_STYLE_RULES,
+  TableCommands,
+  TableDialog,
+  TableMenu,
+  TABLE_ACTIONS,
+  TABLE_BUTTON_NAMES,
+  TableToolbar,
+  ContextMenu,
+  DEFAULT_TABLE_TOOLBAR,
 } from '../src';
-import type { ObjectResizeEvent, ImageResizeHandle, ResizableImageOptions, EditorEvents, ImageMapArea } from '../src';
+import type {
+  ObjectResizeEvent,
+  ImageResizeHandle,
+  ResizableImageOptions,
+  EditorEvents,
+  ImageMapArea,
+  TableModifiedEvent,
+  NewRowEvent,
+  NewCellEvent,
+  StyledTableOptions,
+  TableClipboard,
+  TableDialogKind,
+  TableAction,
+} from '../src';
 
 describe('Package Exports', () => {
   describe('Core Exports', () => {
@@ -106,9 +135,50 @@ describe('Package Exports', () => {
       const area: ImageMapArea = { shape: 'rect', coords: '0,0,1,1', href: 'https://example.com/' };
       expect(area.shape).toBe('rect');
     });
+
+    it('should export the table extensions, rules and types', () => {
+      expect(StyledTable.name).toBe('table');
+      expect(StyledTableRow.name).toBe('tableRow');
+      expect(StyledTableCell.name).toBe('tableCell');
+      expect(StyledTableHeader.name).toBe('tableHeader');
+      expect(typeof StyledTableView).toBe('function');
+      expect(TableCommands.name).toBe('tableCommands');
+      for (const rules of [TABLE_STYLE_RULES, ROW_STYLE_RULES, CELL_STYLE_RULES]) {
+        expect(rules.some(([property]) => property === 'background-color')).toBe(true);
+      }
+      const options: Partial<StyledTableOptions> = { defaultAttributes: { border: '1' } };
+      const kind: TableDialogKind = 'cell';
+      const clipboard: TableClipboard | null = null;
+      expect([options.defaultAttributes, kind, clipboard]).toEqual([{ border: '1' }, 'cell', null]);
+    });
   });
 
   describe('UI Component Exports', () => {
+    it('should export the table UI components', () => {
+      expect(typeof TableDialog).toBe('function');
+      expect(typeof TableMenu).toBe('function');
+      expect(typeof TableToolbar).toBe('function');
+      expect(typeof ContextMenu).toBe('function');
+      const action: TableAction = TABLE_ACTIONS.tableprops;
+      expect(action.command).toBe('mceTableProps');
+      expect(TABLE_BUTTON_NAMES).toContain('tablecellbackgroundcolor');
+      expect(DEFAULT_TABLE_TOOLBAR).toContain('tableprops');
+    });
+
+    it('should type the table events', () => {
+      const table = document.createElement('table');
+      const modified: TableModifiedEvent = { table, structure: true, style: false };
+      const row: NewRowEvent = { node: document.createElement('tr') };
+      const cell: NewCellEvent = { node: document.createElement('td') };
+      const handlers: EditorEvents = { tablemodified: () => {}, newrow: () => {}, newcell: () => {} };
+      expect([modified.structure, row.node.tagName, cell.node.tagName, Object.keys(handlers)]).toEqual([
+        true,
+        'TR',
+        'TD',
+        ['tablemodified', 'newrow', 'newcell'],
+      ]);
+    });
+
     it('should export CharacterMap class', () => {
       expect(CharacterMap).toBeDefined();
       expect(typeof CharacterMap).toBe('function');

@@ -670,20 +670,64 @@ $md-dark-hover: #2d3e50;
     }
   }
 
+  // prosemirror-tables marks the editor while the pointer is on a column
+  // border it can drag.
+  &.resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;
+  }
+
+  .tableWrapper {
+    overflow-x: auto;
+  }
+
   table {
     border-collapse: collapse;
     width: 100%;
     margin: 1em 0;
-    
+
     td, th {
       border: 1px solid $md-border-color;
       padding: 8px;
       text-align: left;
+      // Holds the selection highlight and the resize handle below.
+      position: relative;
     }
-    
+
     th {
       background: #f5f5f5;
       font-weight: bold;
+    }
+
+    // Shown, not edited, in place: it is edited in Table properties.
+    caption {
+      caption-side: top;
+      padding: 4px 0;
+      font-style: italic;
+      text-align: center;
+      user-select: none;
+    }
+
+    // A cell selection: prosemirror-tables puts .selectedCell on each cell.
+    .selectedCell::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--md-table-selection-color, #{rgba($md-primary, 0.18)});
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    // The draggable border prosemirror-tables puts on a cell's right edge.
+    .column-resize-handle {
+      position: absolute;
+      top: 0;
+      bottom: -1px;
+      right: -2px;
+      width: 4px;
+      background: var(--md-table-resize-color, #{$md-primary});
+      pointer-events: none;
+      z-index: 3;
     }
   }
 }
@@ -1227,6 +1271,211 @@ $md-dark-hover: #2d3e50;
 }
 
 .md-link-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+// Table menu: the toolbar's table dropdown and the right-click menu
+.md-table-menu {
+  overflow: visible;
+  max-height: none;
+  padding: 4px 0;
+}
+
+.md-table-menu-entry {
+  position: relative;
+}
+
+.md-table-menu-parent {
+  padding-right: 28px;
+
+  &::after {
+    content: "\203A";
+    position: absolute;
+    right: 12px;
+  }
+}
+
+.md-toolbar-dropdown-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: transparent;
+}
+
+.md-toolbar-dropdown-item[aria-checked="true"]::before {
+  content: "\2713";
+  display: inline-block;
+  width: 1.2em;
+  margin-left: -1.2em;
+}
+
+.md-table-menu .md-toolbar-dropdown-item[role="menuitemcheckbox"] {
+  padding-left: 28px;
+}
+
+.md-table-submenu {
+  position: absolute;
+  left: 100%;
+  top: -4px;
+  min-width: 190px;
+  padding: 4px 0;
+  background: #fff;
+  border: 1px solid $md-border-color;
+  border-radius: $md-border-radius;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1;
+}
+
+// Opened to the left of its item when there is no room on the right.
+.md-table-submenu-left {
+  left: auto;
+  right: 100%;
+}
+
+.md-table-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: $md-border-color;
+}
+
+.md-table-grid {
+  padding: 6px 8px;
+}
+
+.md-table-grid-cells {
+  display: grid;
+  grid-template-columns: repeat(10, 14px);
+  gap: 2px;
+}
+
+.md-table-grid-cell {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid $md-border-color;
+  border-radius: 1px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.md-table-grid-cell-active {
+  background: rgba($md-primary, 0.25);
+  border-color: $md-primary;
+}
+
+.md-table-grid-label {
+  min-height: 1.4em;
+  margin-top: 4px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.md-context-menu {
+  z-index: 10001;
+}
+
+// Table context toolbar, above the table the cursor is in. Over the fullscreen
+// editor (z-index 9999), under the dialogs, which come later in the page.
+.md-table-toolbar {
+  position: fixed;
+  z-index: 10000;
+  padding: 2px;
+  background: #fff;
+  border: 1px solid $md-border-color;
+  border-radius: $md-border-radius;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-family: $md-font-family;
+
+  .md-toolbar {
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .md-toolbar-buttons {
+    flex-wrap: nowrap;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+// The table toolbar's own dropdown and color menus, above the toolbar.
+.md-table-toolbar-menu {
+  z-index: 10001;
+}
+
+// Table dialogs
+.md-table-dialog {
+  width: 440px;
+}
+
+.md-table-dialog-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px 0;
+  border-bottom: 1px solid $md-border-color;
+}
+
+.md-table-dialog-tab {
+  appearance: none;
+  margin-bottom: -1px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: $md-border-radius $md-border-radius 0 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &[aria-selected="true"] {
+    border-color: $md-border-color;
+    background: #fff;
+    font-weight: 600;
+  }
+}
+
+.md-table-dialog-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.md-table-dialog-row label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #555;
+}
+
+.md-table-dialog-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid $md-border-color;
+  border-radius: $md-border-radius;
+  box-sizing: border-box;
+  background: #fff;
+  color: #222;
+  font-size: 13px;
+
+  &:focus {
+    outline: none;
+    border-color: $md-primary;
+  }
+
+  &[aria-invalid="true"] {
+    border-color: #d33;
+  }
+}
+
+.md-table-dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
@@ -2300,4 +2549,140 @@ $md-dark-hover: #2d3e50;
 @keyframes md-dictate-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+// Table menus, context toolbar and dialogs in the dark and confab skins. The
+// right-click menu, context toolbar and dialogs carry the skin class; the
+// toolbar's own dropdown is themed like the other dropdowns.
+.md-editor-oxide-dark {
+  .md-table-submenu,
+  .md-table-toolbar {
+    background: $md-dark-bg;
+    border-color: $md-dark-border;
+  }
+
+  .md-table-menu-separator {
+    background: $md-dark-border;
+  }
+
+  .md-table-dialog-tabs {
+    border-color: $md-dark-border;
+  }
+
+  .md-table-grid-cell {
+    background: $md-dark-toolbar-bg;
+    border-color: $md-dark-border;
+  }
+
+  .md-table-grid-cell-active {
+    background: rgba($md-primary, 0.45);
+    border-color: $md-primary;
+  }
+
+  .md-table-dialog-tab[aria-selected="true"] {
+    background: $md-dark-bg;
+    border-color: $md-dark-border;
+  }
+
+  .md-table-dialog-row label {
+    color: $md-dark-text;
+  }
+
+  .md-table-dialog-input {
+    background: $md-dark-toolbar-bg;
+    border-color: $md-dark-border;
+    color: $md-dark-text;
+  }
+
+  .md-editor-body table th {
+    background: $md-dark-toolbar-bg;
+  }
+}
+
+.md-editor-confab {
+  --md-table-selection-color: color-mix(in srgb, var(--theme-primary, #0066cc) 18%, transparent);
+  --md-table-resize-color: var(--theme-primary, #0066cc);
+
+  .md-table-submenu,
+  .md-table-toolbar {
+    background: #fff;
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+    border-radius: 6px;
+  }
+
+  .md-table-menu-separator {
+    background: var(--color-confab-gray-200, #e5e7eb);
+  }
+
+  .md-table-grid-cell {
+    border-color: var(--color-confab-gray-300, #d1d5db);
+  }
+
+  .md-table-grid-cell-active {
+    background: color-mix(in srgb, var(--theme-primary, #0066cc) 30%, transparent);
+    border-color: var(--theme-primary, #0066cc);
+  }
+
+  .md-table-dialog-tab[aria-selected="true"] {
+    border-color: var(--color-confab-gray-200, #e5e7eb);
+  }
+
+  .md-table-dialog-input {
+    border-color: var(--color-confab-gray-300, #d1d5db);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: var(--theme-primary, #0066cc);
+    }
+  }
+}
+
+.md-editor-confab-dark {
+  --md-table-selection-color: color-mix(in srgb, var(--theme-primary, #0066cc) 30%, transparent);
+  --md-table-resize-color: var(--theme-primary, #0066cc);
+
+  .md-table-submenu,
+  .md-table-toolbar {
+    background: var(--color-dark-bg-secondary, #1e1e1e);
+    border-color: var(--color-dark-border, #333);
+    border-radius: 6px;
+  }
+
+  .md-table-menu-separator {
+    background: var(--color-dark-border, #333);
+  }
+
+  .md-table-grid-cell {
+    background: var(--color-dark-bg-primary, #1a1a2e);
+    border-color: var(--color-dark-border, #333);
+  }
+
+  .md-table-grid-cell-active {
+    background: color-mix(in srgb, var(--theme-primary, #0066cc) 45%, transparent);
+    border-color: var(--theme-primary, #0066cc);
+  }
+
+  .md-table-dialog-tabs {
+    border-color: var(--color-dark-border, #333);
+  }
+
+  .md-table-dialog-tab[aria-selected="true"] {
+    background: var(--color-dark-bg-secondary, #1e1e1e);
+    border-color: var(--color-dark-border, #333);
+  }
+
+  .md-table-dialog-row label {
+    color: var(--color-dark-text-secondary, #aaa);
+  }
+
+  .md-table-dialog-input {
+    background: var(--color-dark-bg-primary, #1a1a2e);
+    border-color: var(--color-dark-border, #333);
+    color: var(--color-dark-text-primary, #fff);
+    border-radius: 6px;
+
+    &:focus {
+      border-color: var(--theme-primary, #0066cc);
+    }
+  }
 }

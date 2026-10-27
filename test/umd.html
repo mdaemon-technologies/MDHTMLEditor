@@ -82,6 +82,8 @@
     <button id="btn-color">Set text color</button>
     <button id="btn-clear-color">Clear text color</button>
     <button id="btn-font">Font at cursor</button>
+    <button id="btn-insert-table">Insert table (execCommand)</button>
+    <button id="btn-table-props">Table properties</button>
     <button id="btn-clear">Clear</button>
   </div>
 
@@ -116,10 +118,14 @@
         toolbar:
           'bold italic underline strikethrough | blocks styles | bullist numlist outdent indent blockquote | ' +
           'fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | ' +
-          'removeformat copy cut paste pastemarkdown | undo redo | image table charmap emoticons hr | ' +
+          'removeformat copy cut paste pastemarkdown | undo redo | image table tablecellbackgroundcolor charmap emoticons hr | ' +
           'fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace',
         skin: 'oxide',
         content_css: 'default',
+
+        // Right-click in a table for the table menu. While the cursor is in a
+        // table, the table toolbar (table_toolbar) floats above it.
+        contextmenu: 'table',
 
         // Default font. It is inlined on every block of the exported HTML — clear
         // the editor, pick a different font from the toolbar before typing, then
@@ -221,6 +227,19 @@
         editor.setContent('<p>Hi team,<br>Please run:<br>npm install</p>');
         editor.getTipTap().commands.focus('end');
         show('loaded lines separated by <br> — now click Code sample');
+      });
+      document.getElementById('btn-insert-table').addEventListener('click', function () {
+        // TinyMCE's command: a 3x3 table with a header row, inserted with
+        // border="1" and collapsed borders so it shows in mail.
+        var done = editor.execCommand('mceInsertTable', false, { rows: 3, columns: 3, options: { headerRows: 1 } });
+        show('mceInsertTable → ' + done + ' — click in the table for its toolbar, or right-click a cell');
+      });
+      document.getElementById('btn-table-props').addEventListener('click', function () {
+        // Opens only with the cursor in a table; returns false otherwise.
+        show('mceTableProps → ' + editor.execCommand('mceTableProps'));
+      });
+      editor.on('tablemodified', function (e) {
+        show('tablemodified: structure=' + e.structure + ', style=' + e.style);
       });
       editor.on('pastemarkdownchange', function (enabled) {
         show('paste markdown: ' + (enabled ? 'on' : 'off'));

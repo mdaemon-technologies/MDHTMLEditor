@@ -24,6 +24,10 @@ import { Dictation } from '../extensions/Dictation';
 import type { StyleFormat } from '../types';
 import { pasteMarkdownText } from '../extensions/PasteMarkdown';
 import { LINK_ESCAPE_META } from '../extensions/LinkEscape';
+import { TableMenu, TABLE_ACTIONS, runTableAction } from '../extensions/TableMenu';
+import type { TableAction } from '../extensions/TableMenu';
+import { BORDER_STYLE_CHOICES } from '../extensions/TableDialog';
+import { isInTable } from '@tiptap/pm/tables';
 
 interface ToolbarOptions {
   editor: HTMLEditor;
@@ -35,7 +39,30 @@ interface ToolbarOptions {
   iconSet: IconSet;
   narrowBreakpoint: number;
   priorityOverrides: Record<string, number>;
+  /** Bind the document-level shortcuts (Mod-F). Off for a second toolbar of the same editor. */
+  shortcuts?: boolean;
+  /** Render the "…" toggle that collapses buttons that do not fit. Off for the small table toolbar. */
+  overflowToggle?: boolean;
+  /** Extra class names for the dropdown and color menus, which are portaled to document.body. */
+  menuClassName?: string;
+  /** While this returns false the toolbar is not shown, and its button states are not refreshed. */
+  isVisible?: () => boolean;
 }
+
+/**
+ * A table control and how its state is read: enabled when its command would
+ * apply, and, for a toggle, pressed when the action is on.
+ */
+interface TableControl {
+  button: HTMLButtonElement;
+  command: string;
+  action?: TableAction;
+  /** For a cell style control: a value to test the command with. */
+  probe?: Record<string, string>;
+}
+
+/** TinyMCE's default table_border_widths. */
+const DEFAULT_TABLE_BORDER_WIDTHS = ['1px', '2px', '3px', '4px', '5px'].map((value) => ({ title: value, value }));
 
 interface ToolbarState {
   isFullscreen: boolean;
@@ -261,6 +288,7 @@ export class Toolbar {
   private buttonElements: Map<string, HTMLElement> = new Map();
   private dropdowns: Map<string, HTMLElement> = new Map();
   private labelSyncers: LabelSyncer[] = [];
+  private tableControls: TableControl[] = [];
   private bodyMenus: HTMLElement[] = [];
   private charMap: CharacterMap | null = null;
   private emojiPicker: EmojiPicker | null = null;
@@ -317,7 +345,8 @@ export class Toolbar {
     this.renderGroups(buttonsStr, this.buttonsEl);
     
     this.container.appendChild(this.buttonsEl);
-    
+    if (this.options.overflowToggle === false) return;
+
     // Toggle button sits outside the wrapping container so it's always visible
     this.toggleBtn = this.createToggleButton();
     this.container.appendChild(this.toggleBtn);
@@ -759,10 +788,96 @@ export class Toolbar {
       case 'template':
         return this.createTemplateDropdown();
         
-      default:
+      default: {
+        const tableControl = this.createTableControl(name.toLowerCase());
+        if (tableControl) return tableControl;
         console.warn(`Unknown toolbar button: ${name}`);
         return null;
+      }
     }
+  }
+
+  /**
+   * A table toolbar button: one of TABLE_ACTIONS, or a cell style control
+   * (vertical alignment, border width, border style, background and border
+   * color). Null for a name that is neither.
+   */
+  private createTableControl(name: string): HTMLElement | null {
+    const editor = this.options.editor;
+    const config = this.options.config;
+    const t = this.trans;
+    const applyCellStyle = (property: string, value: string) => {
+      editor.execCommand('mceTableApplyCellStyle', false, { [property]: value });
+    };
+    let property: string;
+
+    // Own keys only: `constructor` is not a table button.
+    const action = Object.prototype.hasOwnProperty.call(TABLE_ACTIONS, name) ? TABLE_ACTIONS[name] : undefined;
+    if (action) {
+      const button = this.createActionButton(name, this.icon(name), t(action.label), () => runTableAction(editor, action));
+      this.tableControls.push({ button: button as HTMLButtonElement, command: action.command, action });
+      return button;
+    }
+
+    let control: HTMLElement;
+    switch (name) {
+      case 'tablecellvalign':
+        property = 'vertical-align';
+        control = this.createIconDropdown(name, t('Cell vertical alignment'), [
+          { label: t('None'), value: '' },
+          { label: t('Top'), value: 'top' },
+          { label: t('Middle'), value: 'middle' },
+          { label: t('Bottom'), value: 'bottom' },
+        ], (value) => applyCellStyle('vertical-align', value));
+        break;
+      case 'tablecellborderwidth':
+        property = 'border-width';
+        control = this.createIconDropdown(name, t('Cell border width'), [
+          { label: t('Clear'), value: '' },
+          ...(config.table_border_widths ?? DEFAULT_TABLE_BORDER_WIDTHS).map(({ title, value }) => ({ label: t(title), value })),
+        ], (value) => applyCellStyle('border-width', value));
+        break;
+      case 'tablecellborderstyle':
+        property = 'border-style';
+        control = this.createIconDropdown(name, t('Cell border style'), [
+          { label: t('Clear'), value: '' },
+          ...(config.table_border_styles ?? BORDER_STYLE_CHOICES.map(([value, title]) => ({ title, value }))).map(
+            ({ title, value }) => ({ label: t(title), value })
+          ),
+        ], (value) => applyCellStyle('border-style', value));
+        break;
+      case 'tablecellbackgroundcolor':
+        property = 'background-color';
+        control = this.createColorPicker(name, t('Cell background color'), (color) => applyCellStyle('background-color', color), () =>
+          applyCellStyle('background-color', '')
+        );
+        break;
+      case 'tablecellbordercolor':
+        property = 'border-color';
+        control = this.createColorPicker(name, t('Cell border color'), (color) => applyCellStyle('border-color', color), () =>
+          applyCellStyle('border-color', '')
+        );
+        break;
+      default:
+        return null;
+    }
+    const button = control.querySelector('button') as HTMLButtonElement;
+    this.tableControls.push({ button, command: 'mceTableApplyCellStyle', probe: { [property]: '' } });
+    return control;
+  }
+
+  /** A dropdown whose face is the button's icon rather than a word; the tooltip names it. */
+  private createIconDropdown(
+    name: string,
+    tooltip: string,
+    options: Array<{ label: string; value: string }>,
+    onSelect: (value: string) => void
+  ): HTMLElement {
+    const dropdown = this.createDropdown(name, tooltip, options, (option) => onSelect(option.value));
+    const label = dropdown.querySelector('.md-toolbar-dropdown-label') as HTMLElement;
+    label.innerHTML = `<span class="md-toolbar-btn-icon md-icon-${name}">${this.icon(name)}</span>`;
+    dropdown.querySelector('button')?.setAttribute('aria-label', tooltip);
+    return dropdown;
   }
   
   private createActionButton(
@@ -1056,7 +1171,13 @@ export class Toolbar {
    * pale tints that work as highlights are unreadable as font colors.
    */
   private getColors(name: string): ColorOption[] {
-    const { color_map, color_map_foreground, color_map_background } = this.options.config;
+    const { color_map, color_map_foreground, color_map_background, table_background_color_map, table_border_color_map } =
+      this.options.config;
+    if (name === 'tablecellbackgroundcolor' || name === 'tablecellbordercolor') {
+      const map = (name === 'tablecellbackgroundcolor' ? table_background_color_map : table_border_color_map) ?? color_map;
+      if (map) return parseColorMap(map);
+      return name === 'tablecellbordercolor' ? DEFAULT_FORECOLORS : DEFAULT_BACKCOLORS;
+    }
     const specific = name === 'forecolor' ? color_map_foreground : color_map_background;
     const map = specific ?? color_map;
 
@@ -1112,39 +1233,19 @@ export class Toolbar {
     chain.run();
   }
 
+  /** The `table` dropdown: TinyMCE's table menu (see TableMenu). */
   private createTableDropdown(): HTMLElement {
-    const t = this.trans;
-    const options = [
-      { label: t('Insert table'), value: 'insert' },
-      { label: t('Insert row before'), value: 'rowBefore' },
-      { label: t('Insert row after'), value: 'rowAfter' },
-      { label: t('Delete row'), value: 'deleteRow' },
-      { label: t('Insert column before'), value: 'colBefore' },
-      { label: t('Insert column after'), value: 'colAfter' },
-      { label: t('Delete column'), value: 'deleteCol' },
-      { label: t('Merge cells'), value: 'merge' },
-      { label: t('Split cell'), value: 'split' },
-      { label: t('Toggle header row'), value: 'headerRow' },
-      { label: t('Delete table'), value: 'deleteTable' },
-    ];
-
-    return this.createDropdown('table', this.trans('Table'), options, (option) => {
-      const chain = this.tiptap?.chain().focus();
-      if (!chain) return;
-      switch (option.value) {
-        case 'insert': chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); break;
-        case 'rowBefore': chain.addRowBefore().run(); break;
-        case 'rowAfter': chain.addRowAfter().run(); break;
-        case 'deleteRow': chain.deleteRow().run(); break;
-        case 'colBefore': chain.addColumnBefore().run(); break;
-        case 'colAfter': chain.addColumnAfter().run(); break;
-        case 'deleteCol': chain.deleteColumn().run(); break;
-        case 'merge': chain.mergeCells().run(); break;
-        case 'split': chain.splitCell().run(); break;
-        case 'headerRow': chain.toggleHeaderRow().run(); break;
-        case 'deleteTable': chain.deleteTable().run(); break;
-      }
-    });
+    const { wrapper, button } = this.createDropdownShell('table', this.trans('Table'));
+    const close = () => {
+      menu.element.style.display = 'none';
+      wrapper.classList.remove('md-toolbar-dropdown-open');
+    };
+    const menu = new TableMenu({ editor: this.options.editor, trans: this.trans, withInsert: true, onClose: close });
+    menu.element.classList.add('md-toolbar-dropdown-menu');
+    menu.element.setAttribute('data-dropdown-menu', 'table');
+    menu.element.style.display = 'none';
+    this.attachMenu('table', wrapper, button, menu.element, () => menu.refresh());
+    return wrapper;
   }
 
   /**
@@ -1170,18 +1271,7 @@ export class Toolbar {
     getCurrentValue?: () => string,
     format?: (value: string) => string
   ): HTMLElement {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'md-toolbar-dropdown';
-    wrapper.setAttribute('data-dropdown', name);
-
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'md-toolbar-dropdown-btn';
-    button.title = label;
-    button.innerHTML = `
-      <span class="md-toolbar-dropdown-label">${label}</span>
-      <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
-    `;
+    const { wrapper, button } = this.createDropdownShell(name, label);
 
     if (format && getCurrentValue) {
       const labelEl = button.querySelector('.md-toolbar-dropdown-label') as HTMLElement;
@@ -1190,8 +1280,9 @@ export class Toolbar {
 
     const menu = document.createElement('div');
     menu.className = 'md-toolbar-dropdown-menu';
+    menu.setAttribute('data-dropdown-menu', name);
     menu.style.display = 'none';
-    
+
     options.forEach(option => {
       const item = document.createElement('button');
       item.type = 'button';
@@ -1219,11 +1310,47 @@ export class Toolbar {
       
       menu.appendChild(item);
     });
-    
+
+    // Mark the value at the cursor as selected when the menu opens
+    this.attachMenu(name, wrapper, button, menu, getCurrentValue && (() => {
+      const currentVal = getCurrentValue();
+      menu.querySelectorAll('.md-toolbar-dropdown-item').forEach(item => {
+        const val = item.getAttribute('data-value');
+        item.classList.toggle('md-toolbar-dropdown-item-selected', val === currentVal);
+      });
+    }));
+
+    return wrapper;
+  }
+
+  /** A dropdown's wrapper and trigger button, showing `label`. */
+  private createDropdownShell(name: string, label: string): { wrapper: HTMLElement; button: HTMLButtonElement } {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'md-toolbar-dropdown';
+    wrapper.setAttribute('data-dropdown', name);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'md-toolbar-dropdown-btn';
+    button.title = label;
+    button.innerHTML = `
+      <span class="md-toolbar-dropdown-label">${label}</span>
+      <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
+    `;
+    return { wrapper, button };
+  }
+
+  /**
+   * Make `button` open and close `menu`, a fixed-position menu portaled to
+   * document.body so it escapes any overflow:hidden ancestor. Opening one
+   * menu closes the others; `onOpen` runs each time it opens.
+   */
+  private attachMenu(name: string, wrapper: HTMLElement, button: HTMLElement, menu: HTMLElement, onOpen?: () => void): void {
+    if (this.options.menuClassName) menu.classList.add(...this.options.menuClassName.split(/\s+/).filter(Boolean));
     button.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Close other dropdowns
       this.dropdowns.forEach((dropdown, key) => {
         if (key !== name) {
@@ -1233,7 +1360,7 @@ export class Toolbar {
       this.bodyMenus.forEach(m => {
         if (m !== menu) m.style.display = 'none';
       });
-      
+
       const isOpen = menu.style.display !== 'none';
       menu.style.display = isOpen ? 'none' : 'block';
       wrapper.classList.toggle('md-toolbar-dropdown-open', !isOpen);
@@ -1241,25 +1368,15 @@ export class Toolbar {
       // Position the fixed menu below its trigger button
       if (!isOpen) {
         this.positionMenu(button, menu);
-      }
-      
-      // Update selected state
-      if (!isOpen && getCurrentValue) {
-        const currentVal = getCurrentValue();
-        menu.querySelectorAll('.md-toolbar-dropdown-item').forEach(item => {
-          const val = item.getAttribute('data-value');
-          item.classList.toggle('md-toolbar-dropdown-item-selected', val === currentVal);
-        });
+        onOpen?.();
       }
     });
-    
+
     wrapper.appendChild(button);
     document.body.appendChild(menu);
     this.bodyMenus.push(menu);
-    
+
     this.dropdowns.set(name, wrapper);
-    
-    return wrapper;
   }
   
   private createColorPicker(
@@ -1272,20 +1389,23 @@ export class Toolbar {
     wrapper.className = 'md-toolbar-colorpicker';
     wrapper.setAttribute('data-colorpicker', name);
 
-    const defaultPreview = name === 'forecolor' ? '#000' : '#ff0';
+    const defaultPreview = name === 'forecolor' || name === 'tablecellbordercolor' ? '#000' : '#ff0';
+    // The text color pickers show an "A"; the table cell pickers their icon.
+    const glyph = this.options.iconSet[name] ?? 'A';
 
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'md-toolbar-btn md-toolbar-colorpicker-btn';
     button.title = tooltip;
     button.innerHTML = `
-      <span class="md-toolbar-colorpicker-icon md-icon-${name}">A</span>
+      <span class="md-toolbar-colorpicker-icon md-icon-${name}">${glyph}</span>
       <span class="md-toolbar-colorpicker-preview" style="background-color: ${defaultPreview}"></span>
       <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
     `;
 
     const menu = document.createElement('div');
     menu.className = 'md-toolbar-colorpicker-menu';
+    if (this.options.menuClassName) menu.classList.add(...this.options.menuClassName.split(/\s+/).filter(Boolean));
     // The menu is portaled to document.body, so tag it to keep it addressable
     menu.setAttribute('data-colorpicker-menu', name);
     menu.style.display = 'none';
@@ -1411,6 +1531,8 @@ export class Toolbar {
       }
     };
     document.addEventListener('click', this.boundClickHandler);
+
+    if (this.options.shortcuts === false) return;
     
     // Keyboard shortcuts.
     //
@@ -1447,6 +1569,16 @@ export class Toolbar {
     }
   }
   
+  /** Close every open dropdown and color menu. */
+  closeMenus(): void {
+    this.closeAllDropdowns();
+  }
+
+  /** Bring the buttons' active and enabled states up to date now, rather than on the next tick. */
+  refreshState(): void {
+    this.updateButtonStates();
+  }
+
   private closeAllDropdowns(): void {
     this.dropdowns.forEach(dropdown => {
       dropdown.classList.remove('md-toolbar-dropdown-open', 'md-toolbar-colorpicker-open');
@@ -1464,6 +1596,7 @@ export class Toolbar {
   }
   
   private updateButtonStates(): void {
+    if (this.options.isVisible && !this.options.isVisible()) return;
     this.buttonElements.forEach((button, name) => {
       if (button.getAttribute('data-has-active') !== 'true') return;
       
@@ -1534,7 +1667,35 @@ export class Toolbar {
       button.classList.toggle('md-toolbar-btn-active', isActive);
     });
 
+    this.syncTableControls();
     this.syncDropdownLabels();
+  }
+
+  /**
+   * Enable each table control only where its command would apply (in a table,
+   * and for a paste, after a copy), and press a toggle that is on. Touches
+   * the DOM only when a state actually changed, as this runs on a timer.
+   */
+  private syncTableControls(): void {
+    if (!this.tableControls.length) return;
+    const editor = this.options.editor;
+    // Outside a table only Insert table can run, so the rest need no dry run.
+    const state = this.tiptap?.state;
+    const inTable = !!state && isInTable(state);
+    this.tableControls.forEach(({ button, command, action, probe }) => {
+      const enabled =
+        inTable || command === 'mceInsertTableDialog'
+          ? editor.isTableCommandEnabled(command, action ? action.value?.(editor) : probe)
+          : false;
+      if (button.disabled === enabled) button.disabled = !enabled;
+      if (action?.isActive) {
+        const active = enabled && action.isActive(editor);
+        if (button.classList.contains('md-toolbar-btn-active') !== active) {
+          button.classList.toggle('md-toolbar-btn-active', active);
+          button.setAttribute('aria-pressed', String(active));
+        }
+      }
+    });
   }
 
   /**
@@ -1740,6 +1901,7 @@ export class Toolbar {
     this.buttonElements.clear();
     this.dropdowns.clear();
     this.labelSyncers = [];
+    this.tableControls = [];
     this.removeBodyMenus();
     this.buttonsEl = null;
     this.toggleBtn = null;
@@ -1772,6 +1934,7 @@ export class Toolbar {
     this.buttonElements.clear();
     this.dropdowns.clear();
     this.labelSyncers = [];
+    this.tableControls = [];
     this.removeBodyMenus();
     this.container.innerHTML = '';
   }

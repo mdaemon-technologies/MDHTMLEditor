@@ -290,6 +290,7 @@ describe('CKEditor parity features', () => {
 
     it('inserts a table from the table dropdown', () => {
       openAndPick('table', 'insert');
+      (document.querySelector('.md-table-grid-cell[data-row="3"][data-col="3"]') as HTMLButtonElement).click();
       expect(editor.getContent()).toContain('<table');
     });
 

@@ -332,6 +332,39 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
       </div>
 
       <div class="card">
+        <div class="card-header">Tables</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads a table with a caption, a header row, shading, alignment and a merged cell. The HTML Output panel shows that formatting kept and the <code>class</code>, <code>data-*</code>, <code>position</code> and background image dropped. Click in the table for the floating table toolbar, right-click a cell for the table menu (Ctrl+right-click for the browser's), or use the <strong>Table</strong> menu and the table buttons at the end of the toolbar. Drag across cells to select several, then Merge cells. Cut or copy a row, then paste it elsewhere. The log shows <code>tablemodified</code>, <code>newrow</code> and <code>newcell</code>.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-load-table">Load styled table</button>
+          </div>
+          <div class="btn-row" style="margin-top:8px;">
+            <select id="cmd-table-command">
+              <option value="mceInsertTable">mceInsertTable (3×4, header row)</option>
+              <option value="mceInsertTableDialog">mceInsertTableDialog</option>
+              <option value="mceTableProps">mceTableProps</option>
+              <option value="mceTableRowProps">mceTableRowProps</option>
+              <option value="mceTableCellProps">mceTableCellProps</option>
+              <option value="mceTableInsertRowAfter">mceTableInsertRowAfter</option>
+              <option value="mceTableDeleteRow">mceTableDeleteRow</option>
+              <option value="mceTableInsertColAfter">mceTableInsertColAfter</option>
+              <option value="mceTableDeleteCol">mceTableDeleteCol</option>
+              <option value="mceTableCopyRow">mceTableCopyRow</option>
+              <option value="mceTablePasteRowAfter">mceTablePasteRowAfter</option>
+              <option value="mceTableCutCol">mceTableCutCol</option>
+              <option value="mceTablePasteColBefore">mceTablePasteColBefore</option>
+              <option value="mceTableMergeCells">mceTableMergeCells</option>
+              <option value="mceTableSplitCells">mceTableSplitCells</option>
+              <option value="mceTableToggleCaption">mceTableToggleCaption</option>
+              <option value="mceTableDelete">mceTableDelete</option>
+            </select>
+            <button class="btn" id="btn-table-command">Run</button>
+            <button class="btn" id="btn-table-query">Query types</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Quoted original of a reply</div>
         <div class="card-body">
           <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads a reply: the signature, then the quoted original in a <code>&lt;blockquote&gt;</code> carrying the marker class (the demo sets <code>quote_marker_class: 'quoted-original'</code>) and its border, with an earlier quote nested inside, followed by the indented <code>&lt;div&gt;</code> form. The HTML Output panel shows both markers kept, the class written first, and only the box style kept; the <code>id</code>, the <code>data-*</code> attribute and the <code>background</code>/<code>position</code> declarations are dropped.</p>

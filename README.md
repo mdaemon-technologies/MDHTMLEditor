@@ -126,6 +126,22 @@ const editor = new HTMLEditor(container, {
 | `images_upload_error_message` | (response: unknown, status: number) => string \| null \| undefined | - | Words the message for a failed upload from the server's reply (parsed JSON body, or null, and the HTTP status). Return null/undefined for the editor's own translated message |
 | `object_resizing` | boolean \| string | true | Show drag handles on a selected image to resize it. A string is a CSS selector, as in TinyMCE: only images that match it can be resized. See [Resizing images](#resizing-images) |
 | `resize_img_proportional` | boolean | true | Corner handles keep the image's aspect ratio. Holding Shift while dragging does the opposite for that drag |
+| `table_toolbar` | string \| false | *(see [Tables](#table-context-toolbar))* | Buttons of the toolbar shown above a table while the cursor is in it, as a toolbar string. `false` or `''` turns it off. Off by default in the basic editor |
+| `table_grid` | boolean | true | Insert tables from a size grid in the table menu. `false` opens the Insert table dialog instead |
+| `table_default_attributes` | Record\<string, string\> | `{ border: '1' }` | Attributes of a table the user inserts. Only `border`, `cellpadding` and `cellspacing` are used |
+| `table_default_styles` | Record\<string, string\> | `{ 'border-collapse': 'collapse', width: '100%' }` | Style of a table the user inserts, as CSS property/value pairs. Only properties and values a table keeps are used (see [Formatting a table keeps](#formatting-a-table-keeps)) |
+| `table_default_header_rows` | number | 0 | Header rows of a table inserted from the menu, grid or dialog |
+| `table_default_header_cols` | number | 0 | Header columns of a table inserted from the menu, grid or dialog |
+| `table_tab_navigation` | boolean | true | Tab and Shift+Tab move between table cells. `false` makes them indent the paragraph in the cell, as they do outside a table |
+| `table_appearance_options` | boolean | true | Show Cell spacing, Cell padding, Border width and Caption in the Table properties dialog |
+| `table_advtab` | boolean | true | Show the Advanced tab (border style, border color, background color) in the Table properties dialog |
+| `table_row_advtab` | boolean | true | Show the Advanced tab in the Row properties dialog |
+| `table_cell_advtab` | boolean | true | Show the Advanced tab (adds border width) in the Cell properties dialog |
+| `table_border_widths` | { title, value }[] | 1px to 5px | Choices of the `tablecellborderwidth` menu |
+| `table_border_styles` | { title, value }[] | every CSS border style | Choices of the `tablecellborderstyle` menu |
+| `table_background_color_map` | string[] \| ColorOption[] | `color_map` | Palette of the `tablecellbackgroundcolor` picker |
+| `table_border_color_map` | string[] \| ColorOption[] | `color_map` | Palette of the `tablecellbordercolor` picker |
+| `contextmenu` | string \| boolean | `''` | Right-click menu. A string naming `table` (or `true`) shows the table menu on a right-click in a table. Off by default, because it replaces the browser's menu and its spelling suggestions — see [Right-click menu](#right-click-menu) |
 | `font_family_formats` | string | *(TinyMCE defaults)* | Semicolon-separated font list (`Name=family,...`) |
 | `font_size_formats` | string | '8pt 9pt 10pt 12pt 14pt 18pt 24pt 36pt' | Space-separated font sizes |
 | `font_names` | string | - | CKEditor alias for `font_family_formats` |
@@ -181,7 +197,9 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `getContent(): string` - Get HTML content (applies the `format_empty_lines` serialization pass; the `change` event payload is identical)
 - `setContent(html: string): void` - Set HTML content. Backslash-escaped closing tags (`<\/p>`, produced by hosts that pass HTML through PHP `json_encode` and similar `/`→`\/` encoders) are repaired to real tags before parsing, matching TinyMCE's lenient parser, and the `format_empty_lines` import pass is applied. Insignificant whitespace between block elements is collapsed per the HTML spec, so pretty-printed (indented, multi-line) source imports the same way a browser would render it — see [Importing pretty-printed HTML](#importing-pretty-printed-html)
 - `insertContent(html: string): void` - Insert HTML at cursor (same `<\/` repair, whitespace handling, and `format_empty_lines` import pass as `setContent`, so inserting a fragment produced by `getContent()` does not double its blank lines)
-- `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command
+- `execCommand(cmd: string, ui?: boolean, value?: any): boolean` - Execute editor command. A table command returns `false` when it did not apply (outside a table, in a read-only editor, or with nothing to do)
+- `queryCommandValue(cmd: string): string` - The value of a command at the selection, as TinyMCE's: `mceTableRowType` gives `'header'` or `'body'`, `mceTableColType` and `mceTableCellType` give `'th'` or `'td'`. `''` outside a table and for other commands
+- `isTableCommandEnabled(cmd: string, value?: unknown): boolean` - Whether a table command would apply at the selection, without running it. For custom table buttons that should be disabled when they can do nothing
 - `isPasteMarkdownEnabled(): boolean` - Whether pastes are currently read as Markdown
 - `setPasteMarkdown(on: boolean): void` - Turn paste-as-Markdown on or off. Per editor instance and not remembered between sessions — see [Pasting Markdown](#pasting-markdown)
 - `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default). Returns `''` when the selection spans more than one family
@@ -213,6 +231,8 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `pastemarkdownchange` - Paste-as-Markdown mode was turned on or off (receives the new boolean). Fires only on an actual change, so a host can save the user's choice
 - `objectresizestart` - The user started dragging an image resize handle (receives `{ target, width, height, handle }` with the starting size)
 - `objectresized` - The user finished resizing an image (receives `{ target, width, height, handle }` with the new size). Not fired when the drag is cancelled or the size is unchanged
+- `tablemodified` - A table command changed a table (receives `{ table, structure, style }`: the table in the editor, and whether rows, columns or cells changed or only formatting). Not fired by a copy, or by a command that did nothing
+- `newrow` / `newcell` - A table command created a row or cell (receives `{ node }`, the new `<tr>` or `<td>`/`<th>` in the editor). Fired by inserting and pasting rows and columns, splitting cells, inserting a table, and Tab in the last cell. Table commands include the menus, buttons, dialogs and Tab; dragging a column border, and editing or deleting cell content, fire none of the three
 
 ### Supported Commands
 
@@ -228,6 +248,7 @@ The following TinyMCE-compatible commands are supported:
 - `undo`, `redo`
 - `removeformat`
 - `mceremoveeditor` - Destroys the editor instance
+- Table commands — see [Table commands](#table-commands)
 
 ## Templates
 
@@ -400,7 +421,20 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `lineheight` | Line height dropdown (1, 1.2, 1.4, 1.6, 2) |
 | `blocks` | Block format dropdown (Paragraph, Heading 1–6; alias `formatselect`) |
 | `styles` | Named styles dropdown (configurable via `style_formats`) |
-| `table` | Table dropdown (insert table + row/column/cell operations) |
+| `table` | Table menu: an Insert table size grid, Cell / Row / Column submenus, Table properties, caption and Delete table (see [Tables](#tables)) |
+| `tableinsertdialog` | Open the Insert table dialog |
+| `tableprops` / `tablerowprops` / `tablecellprops` | Open the Table / Row / Cell properties dialog |
+| `tabledelete` | Delete the table |
+| `tableinsertrowbefore` / `tableinsertrowafter` / `tabledeleterow` | Insert a row above / below, delete the row |
+| `tableinsertcolbefore` / `tableinsertcolafter` / `tabledeletecol` | Insert a column left / right, delete the column |
+| `tablecutrow` / `tablecopyrow` / `tablepasterowbefore` / `tablepasterowafter` | Cut or copy the row, paste it above / below |
+| `tablecutcol` / `tablecopycol` / `tablepastecolbefore` / `tablepastecolafter` | Cut or copy the column, paste it left / right |
+| `tablemergecells` / `tablesplitcells` | Merge the selected cells, split a merged cell |
+| `tablerowheader` / `tablecolheader` | Toggle the row / column between header cells and data cells |
+| `tablecaption` | Add or remove the table's caption |
+| `tablecellvalign` | Menu: the cells' vertical alignment |
+| `tablecellborderwidth` / `tablecellborderstyle` | Menus: the cells' border width / style (`table_border_widths`, `table_border_styles`) |
+| `tablecellbackgroundcolor` / `tablecellbordercolor` | Color pickers: the cells' background / border color (`table_background_color_map`, `table_border_color_map`) |
 | `hr` | Insert horizontal rule |
 | `template` | Template dropdown (requires `includeTemplates: true`) |
 | `alignleft` | Align left |
@@ -592,12 +626,77 @@ editor.getTipTap()?.commands.setAnchor('section-1');
 
 ## Tables
 
-The `table` toolbar button is a dropdown that inserts a table and edits the one under the cursor:
+Table editing follows TinyMCE's table plugin: the same menu, toolbar buttons, dialogs, commands, events and options.
 
-- **Insert table** — inserts a 3×3 table with a header row.
-- **Insert/delete row**, **Insert/delete column**, **Merge cells**, **Split cell**, **Toggle header row**, **Delete table**.
+### Table menu
 
-Tables are resizable by dragging column borders.
+The `table` toolbar button opens the table menu:
+
+- **Insert table** — a 10×10 grid: point at the size you want and click. With `table_grid: false` it opens the Insert table dialog (columns and rows, 1 to 100 each) instead. A new table has `border="1"` and `border-collapse: collapse; width: 100%` (`table_default_attributes`, `table_default_styles`), so its borders show in mail clients, and no header row unless `table_default_header_rows` / `table_default_header_cols` say otherwise.
+- **Cell** — Cell properties, Merge cells, Split cell.
+- **Row** — Insert row before / after, Delete row, Row properties, Cut / Copy row, Paste row before / after, Toggle header row.
+- **Column** — Insert column before / after, Delete column, Cut / Copy column, Paste column before / after, Toggle header column.
+- **Table properties**, **Toggle caption**, **Delete table**.
+
+Items that cannot apply are disabled: everything but Insert table outside a table, Merge cells unless several cells are selected, and the paste items until a row or column was cut or copied. Select several cells by dragging across them, or with Shift+arrow keys; most row, column and cell actions then apply to all of them.
+
+Deleting the last row or the last column of a table deletes the table, as in TinyMCE. Merging cells across whole rows leaves no empty rows behind. Rows and columns are cut, copied and pasted through the editor's own table clipboard, separate from the system clipboard: a pasted row narrower than the table is padded with empty cells, and one wider than it widens the table. Ctrl+C / Ctrl+V of selected cells still use the system clipboard and paste into the cells of the table.
+
+Columns are resized by dragging their borders.
+
+### Table context toolbar
+
+While the cursor is in a table, a small toolbar floats above it, with TinyMCE's default buttons: Table properties, Delete table, Insert row before / after, Delete row, Insert column before / after, Delete column. `table_toolbar` sets its buttons as a toolbar string (any of the table buttons in [Toolbar Buttons](#toolbar-buttons), and custom buttons), and `table_toolbar: false` turns it off. It is off by default in the basic editor and hidden while the editor is read-only or does not have focus.
+
+### Right-click menu
+
+With `contextmenu: 'table'`, a right-click in a table opens the table menu (without Insert table) for the cell under the pointer, or for the selected cells when it is one of them. It is off by default because it replaces the browser's own menu, and with it the spelling suggestions; Ctrl+right-click still shows the browser's menu, and so does a right-click outside a table.
+
+### Properties dialogs
+
+- **Table properties** — width, height, cell spacing, cell padding, border width, caption and alignment (left and right float the table, center centers it); the Advanced tab has border style, border color and background color. `table_appearance_options: false` hides cell spacing, cell padding, border width and caption, and `table_advtab: false` the Advanced tab.
+- **Row properties** — row type (header or body), alignment and height, with the same Advanced tab (`table_row_advtab`).
+- **Cell properties** — width, height, cell type (cell or header cell), scope, horizontal and vertical alignment; the Advanced tab adds border width (`table_cell_advtab`). A cell's width is its column's, so it applies to every cell in the column.
+
+A size without a unit is pixels. Only the fields you change are applied, so opening a dialog on several rows or cells that differ leaves the rest alone. A value the editor does not keep (see below) is dropped.
+
+### Table commands
+
+| Command | Value | Action |
+|---------|-------|--------|
+| `mceInsertTable` | `{ rows, columns, options?: { headerRows, headerColumns } }` | Insert a table, of at most 100 rows and 100 columns |
+| `mceInsertTableDialog` | - | Open the Insert table dialog |
+| `mceTableProps` / `mceTableRowProps` / `mceTableCellProps` | - | Open the Table / Row / Cell properties dialog |
+| `mceTableInsertRowBefore` / `mceTableInsertRowAfter` / `mceTableDeleteRow` | - | Insert a row above / below, delete the selected rows |
+| `mceTableInsertColBefore` / `mceTableInsertColAfter` / `mceTableDeleteCol` | - | Insert a column left / right, delete the selected columns |
+| `mceTableCutRow` / `mceTableCopyRow` / `mceTablePasteRowBefore` / `mceTablePasteRowAfter` | - | Cut or copy the selected rows, paste them above / below |
+| `mceTableCutCol` / `mceTableCopyCol` / `mceTablePasteColBefore` / `mceTablePasteColAfter` | - | Cut or copy the selected columns, paste them left / right |
+| `mceTableMergeCells` / `mceTableSplitCells` | - | Merge the selected cells, split a merged cell |
+| `mceTableDelete` | - | Delete the table |
+| `mceTableToggleCaption` | - | Add a caption (the word "Caption", to edit in Table properties) or remove it |
+| `mceTableRowType` | `{ type: 'header' \| 'body' }` | Make the selected rows header or body rows (`'footer'` is not supported) |
+| `mceTableColType` / `mceTableCellType` | `{ type: 'th' \| 'td' }` | Make the cells of the selected columns / the selected cells header or data cells |
+| `mceTableApplyCellStyle` | `{ 'background-color'?, 'border-color'?, 'border-style'?, 'border-width'?, 'vertical-align'?, height? }` | Style the selected cells; an empty value removes a property. camelCase names (`backgroundColor`) work too; other properties are ignored, and with none left the command does nothing |
+
+`queryCommandValue('mceTableRowType' | 'mceTableColType' | 'mceTableCellType')` reads the types back. Table commands do nothing, and return `false`, in a read-only editor. They fire `tablemodified`, and those that create rows or cells fire `newrow` and `newcell` first (see [Events](#events)).
+
+### Formatting a table keeps
+
+The editor's content is part of the host page, not an iframe as in TinyMCE, so a table's attributes are not passed through whole. A table keeps its `border`, `cellpadding` and `cellspacing` (as plain numbers) and its caption (as plain text), and each part keeps only these style properties, with values checked (no `url()`, `calc()`, `var()`, negative length or CSS-wide keyword):
+
+- **Table** — `width`, `height`, `border-collapse`, `float`, `margin-left`, `margin-right`, `background-color`, `border-width`, `border-style`, `border-color`
+- **Row** — `height`, `text-align`, `vertical-align`, `background-color`, `border-width`, `border-style`, `border-color`
+- **Cell** — `height`, `vertical-align`, `background-color`, `border-width`, `border-style`, `border-color`, plus `text-align`, `scope`, `colspan`, `rowspan` and the column width
+
+The legacy `bgcolor`, `valign`, `width`, `height` and `align` attributes common in email are read into the same style. Everything else — `class`, `id`, `data-*`, other properties — is dropped. This is also what keeps cell shading and borders pasted from Word and Excel.
+
+### Not supported
+
+- Inserting or deleting a single cell: neither TinyMCE nor this editor does it, as it would break the table's grid. Merge, split, and clearing selected cells with Delete cover those cases.
+- `<thead>`, `<tfoot>` and footer rows: header rows are kept as header cells (`<th>`) in `<tbody>`, which is TinyMCE's `table_header_type: 'cells'`. Their content is kept; only the grouping is lost.
+- Table, row and cell classes (`table_class_list`, `table_cell_class_list`, `table_row_class_list`, `tableclass`, `tablecellclass`, `mceTableToggleClass`, `mceTableCellToggleClass`), because classes from content are not kept.
+- `table_sizing_mode`, `mceTableSizingMode`, `table_column_resizing`, `table_use_colgroups: false` and dragging row heights: column widths are pixels, written to a `<colgroup>`, and only columns can be dragged.
+- `table_clone_elements`, `table_header_type`, `table_style_by_css: false`, and the premium `advtable` features (sorting, series).
 
 ## Lists & Indentation
 
@@ -865,8 +964,9 @@ The `searchreplace` toolbar button (or **Ctrl/Cmd+F**) opens a Find & Replace di
 | Ctrl/Cmd+Shift+Z | Redo |
 | Ctrl/Cmd+F | Open Find & Replace |
 | Ctrl/Cmd+Alt+C | Toggle code sample on the lines the selection touches (same as the `codesample` button) |
-| Tab | Always handled (never escapes the editor). Nests the current list item (or, for an item that can't nest, indents its content), inserts a tab in a code block, moves to the next cell in a table, or adds a left margin to the current paragraph/heading |
+| Tab | Always handled (never escapes the editor). Nests the current list item (or, for an item that can't nest, indents its content), inserts a tab in a code block, moves to the next cell in a table (adding a row in the last cell; with `table_tab_navigation: false` it indents the paragraph in the cell instead), or adds a left margin to the current paragraph/heading |
 | Shift+Tab | Inverse of Tab: reduces the current block's left margin, lifts the current list item, or moves to the previous table cell |
+| Shift+Arrow keys (in a table) | Extend a cell selection across cells |
 | Esc, then Tab | Moves focus out of the editor to the next focusable element (Shift+Tab → previous), so Tab is not a keyboard trap. Esc arms this for the next key press only; any other key cancels it |
 
 ## Localization
@@ -978,12 +1078,15 @@ console.log(resolver('/img/photo.jpg')); // 'https://cdn.example.com/img/photo.j
 ### Exported constants
 
 ```ts
-import { fontNames, CHAR_MAP, EMOJI_CATEGORIES, TRANSLATION_KEYS } from '@mdaemon/html-editor';
+import { fontNames, CHAR_MAP, EMOJI_CATEGORIES, TRANSLATION_KEYS, DEFAULT_TABLE_TOOLBAR, TABLE_BUTTON_NAMES } from '@mdaemon/html-editor';
 
 // fontNames — default semicolon-separated font family string
 // CHAR_MAP — array of character categories for the character map dialog
 // EMOJI_CATEGORIES — array of emoji categories for the emoji picker
 // TRANSLATION_KEYS — array of all translation key strings
+// DEFAULT_TABLE_TOOLBAR — the default table_toolbar string
+// TABLE_BUTTON_NAMES — every table toolbar button name
+// TABLE_STYLE_RULES, ROW_STYLE_RULES, CELL_STYLE_RULES — the style properties a table, row and cell keep
 ```
 
 ## Custom Toolbar Button API
@@ -1102,6 +1205,11 @@ The editor DOM uses BEM-style classes you can target for further customization:
 - `.md-image-resize` / `.md-image-resizable` / `.md-image-resize-active` — wrapper around an image in the editor, the class it has when the image can be resized, and the class it has while being resized. Set `--md-image-resize-color` on it to change the outline and handle color
 - `.md-image-resize-handle` — a resize handle (`data-handle` is `nw`, `n`, `ne`, `e`, `se`, `s`, `sw` or `w`)
 - `.md-image-resize-size` — the size label shown while resizing
+- `.md-table-menu`, `.md-table-submenu`, `.md-table-grid` — the table menu, its submenus and its size grid; `.md-context-menu` — the right-click menu
+- `.md-table-toolbar` — the table context toolbar
+- `.md-table-dialog` — the table dialogs
+- `.selectedCell` — a cell in a cell selection; set `--md-table-selection-color` on the editor to change its highlight
+- `.column-resize-handle` — the column border being dragged; set `--md-table-resize-color` to change its color
 
 ## Browser Support
 

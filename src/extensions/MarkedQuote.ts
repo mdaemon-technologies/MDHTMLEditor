@@ -26,41 +26,33 @@ import { Fragment, Slice } from '@tiptap/pm/model';
 import type { Node as PMNode, NodeType } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { isMarkedQuote, normalizeQuoteMarkerClass } from '../utils/markedQuote';
+import { CSS_COLOR, CSS_LENGTH, pickStyle } from '../utils/cssValues';
+import type { StyleRules } from '../utils/cssValues';
 
 export interface MarkedQuoteOptions extends BlockquoteOptions {
   /** The class that marks a reply's quoted original; null turns marking off. */
   markerClass: string | null;
 }
 
-const LENGTH = /^(0|\d+(\.\d+)?(px|pt|em))$/;
 const BORDER_STYLE = /^(none|solid|dashed|dotted|double)$/;
-// A color name, but not a CSS-wide keyword, which is not a color.
-const COLOR = /^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.]+%?(\s*,\s*[\d.]+%?){2,3}\s*\)|(?!(inherit|initial|unset|revert|revert-layer)$)[a-z]+)$/i;
 
 /**
  * The style a marked quote may keep: its box
  * (`PADDING-LEFT: 5px; MARGIN-LEFT: 5px; BORDER-LEFT: #000000 2px solid`).
- * Values are read through the CSSOM, so they are already parsed and
- * normalized, and then matched: no url(), calc(), var() or negative length.
  */
-const QUOTE_STYLE_RULES: Array<[string, RegExp]> = ['top', 'right', 'bottom', 'left'].flatMap(
+const QUOTE_STYLE_RULES: StyleRules = ['top', 'right', 'bottom', 'left'].flatMap(
   (side): Array<[string, RegExp]> => [
-    [`margin-${side}`, LENGTH],
-    [`padding-${side}`, LENGTH],
-    [`border-${side}-width`, LENGTH],
+    [`margin-${side}`, CSS_LENGTH],
+    [`padding-${side}`, CSS_LENGTH],
+    [`border-${side}-width`, CSS_LENGTH],
     [`border-${side}-style`, BORDER_STYLE],
-    [`border-${side}-color`, COLOR],
+    [`border-${side}-color`, CSS_COLOR],
   ]
 );
 
 /** The allowed part of a marked quote's style, or null when nothing is allowed. */
 function quoteStyle(element: HTMLElement): string | null {
-  const kept = element.ownerDocument.createElement('div').style;
-  for (const [property, allowed] of QUOTE_STYLE_RULES) {
-    const value = element.style.getPropertyValue(property).trim();
-    if (value && allowed.test(value)) kept.setProperty(property, value);
-  }
-  return kept.cssText || null;
+  return pickStyle(element.style, QUOTE_STYLE_RULES, element.ownerDocument);
 }
 
 /** True when `fragment` holds a marked quote of `type` at any depth. */

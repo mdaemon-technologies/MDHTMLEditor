@@ -522,6 +522,20 @@ describe('PasteFromOffice', () => {
       );
       expect(ext).toBeDefined();
     });
+
+    it('keeps the shading and height of pasted Office table cells', () => {
+      editor = new HTMLEditor(container);
+      editor.setContent(transformOfficeHTML(`
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"><body>
+        <table class=MsoTableGrid border=1 cellpadding=0 style='border-collapse:collapse;mso-yfti-tbllook:1184'>
+        <tr><td style='background:#FFC000;height:20.0pt;mso-border-alt:solid windowtext .5pt'><p class=MsoNormal>Shaded</p></td></tr>
+        </table></body></html>`));
+      const out = editor.getContent();
+      expect(out).toMatch(/background-color: (#FFC000|rgb\(255, 192, 0\))/i);
+      expect(out).toContain('height: 20pt');
+      expect(out).toContain('border="1"');
+      expect(out).not.toContain('mso-');
+    });
   });
 
   // --- Edge cases ---

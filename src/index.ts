@@ -4,7 +4,17 @@
  */
 
 // Core
-export { HTMLEditor, fontNames, setTranslate, getTranslate, resetTranslate, setGetFileSrc, getGetFileSrc } from './core/HTMLEditor';
+export {
+  HTMLEditor,
+  fontNames,
+  setTranslate,
+  getTranslate,
+  resetTranslate,
+  setGetFileSrc,
+  getGetFileSrc,
+  DEFAULT_TABLE_TOOLBAR,
+} from './core/HTMLEditor';
+export type { TableChange } from './core/HTMLEditor';
 export { Toolbar } from './core/Toolbar';
 
 // Icons
@@ -46,6 +56,39 @@ export { ResizableImage, computeImageResize, isImageResizable, MIN_IMAGE_SIZE } 
 export type { ResizableImageOptions, ImageResizeInput } from './extensions/ImageResize';
 export { ImageMap } from './extensions/ImageMap';
 export type { ImageMapArea, ImageMapOptions } from './extensions/ImageMap';
+export {
+  StyledTable,
+  StyledTableRow,
+  StyledTableCell,
+  StyledTableHeader,
+  StyledTableView,
+  TABLE_STYLE_RULES,
+  ROW_STYLE_RULES,
+  CELL_STYLE_RULES,
+} from './extensions/TableAttributes';
+export type { StyledTableOptions, InsertStyledTableOptions } from './extensions/TableAttributes';
+export {
+  TableCommands,
+  getTableRowType,
+  getTableColumnType,
+  getTableCellType,
+  selectedCellPositions,
+  selectedTable,
+} from './extensions/TableCommands';
+export type {
+  TableClipboard,
+  TableCommandsStorage,
+  TableAttributeChanges,
+  CellAttributeChanges,
+} from './extensions/TableCommands';
+export { TableDialog, BORDER_STYLE_CHOICES } from './extensions/TableDialog';
+export type { TableDialogOptions, TableDialogKind } from './extensions/TableDialog';
+export { TableMenu, TABLE_ACTIONS, TABLE_BUTTON_NAMES } from './extensions/TableMenu';
+export type { TableAction, TableMenuOptions } from './extensions/TableMenu';
+export { TableToolbar } from './extensions/TableToolbar';
+export type { TableToolbarOptions } from './extensions/TableToolbar';
+export { ContextMenu } from './extensions/ContextMenu';
+export type { ContextMenuOptions } from './extensions/ContextMenu';
 export { SpeechToText, isSpeechRecognitionSupported } from './extensions/SpeechToText';
 export type { SpeechToTextOptions } from './extensions/SpeechToText';
 export { Dictation } from './extensions/Dictation';
@@ -81,6 +124,12 @@ export type {
   ImageResizeHandle,
   ObjectResizeEvent,
   ObjectResizeCallback,
+  TableModifiedEvent,
+  TableModifiedCallback,
+  NewRowEvent,
+  NewRowCallback,
+  NewCellEvent,
+  NewCellCallback,
 } from './types';
 
 // Import styles

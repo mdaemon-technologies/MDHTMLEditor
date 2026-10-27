@@ -65,6 +65,11 @@ export interface BlockIndentOptions {
   step: number;
   /** Maximum indent in pixels. */
   max: number;
+  /**
+   * In a table, leave Tab and Shift+Tab to the Table extension, which moves
+   * between cells. When false they indent the block in the cell, as elsewhere.
+   */
+  tableTabNavigation: boolean;
 }
 
 /**
@@ -171,6 +176,7 @@ export const BlockIndent = Extension.create<BlockIndentOptions>({
       types: ['paragraph', 'heading', 'listItem'],
       step: 40,
       max: 400,
+      tableTabNavigation: true,
     };
   },
 
@@ -282,7 +288,7 @@ export const BlockIndent = Extension.create<BlockIndentOptions>({
           return true;
         }
         // Let the Table extension use Tab to move between cells.
-        if (editor.isActive('table')) {
+        if (this.options.tableTabNavigation && editor.isActive('table')) {
           return false;
         }
         // A tab in a code block, a nesting level in a list, a margin elsewhere.
@@ -298,7 +304,7 @@ export const BlockIndent = Extension.create<BlockIndentOptions>({
           moveFocusOut(editor, -1);
           return true;
         }
-        if (editor.isActive('table')) {
+        if (this.options.tableTabNavigation && editor.isActive('table')) {
           return false;
         }
         // Reduce a margin indent, else lift the list item out a level. Always
