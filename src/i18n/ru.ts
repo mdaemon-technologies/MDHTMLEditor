@@ -112,6 +112,7 @@
   'Anchor name': 'Имя якоря',
   'Anchor name is required': 'Требуется имя якоря',
   'Anchor name cannot contain spaces': 'Имя якоря не может содержать пробелы',
+  'Image map: hotspots work in the saved content, not while editing': 'Карта изображения: активные области работают в сохранённом содержимом, а не при редактировании',
   'Table': 'Таблица',
   'Insert table': 'Вставить таблицу',
   'Insert row before': 'Вставить строку выше',

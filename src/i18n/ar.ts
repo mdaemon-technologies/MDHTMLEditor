@@ -112,6 +112,7 @@
   'Anchor name': 'اسم المرساة',
   'Anchor name is required': 'اسم المرساة مطلوب',
   'Anchor name cannot contain spaces': 'لا يمكن أن يحتوي اسم المرساة على مسافات',
+  'Image map: hotspots work in the saved content, not while editing': 'خريطة الصورة: تعمل المناطق النشطة في المحتوى المحفوظ، وليس أثناء التحرير',
   'Table': 'جدول',
   'Insert table': 'إدراج جدول',
   'Insert row before': 'إدراج صف قبل',

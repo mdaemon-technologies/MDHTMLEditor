@@ -112,6 +112,7 @@
   'Anchor name': 'ชื่อจุดยึด',
   'Anchor name is required': 'ต้องระบุชื่อจุดยึด',
   'Anchor name cannot contain spaces': 'ชื่อจุดยึดต้องไม่มีช่องว่าง',
+  'Image map: hotspots work in the saved content, not while editing': 'แผนที่รูปภาพ: ฮอตสปอตทำงานในเนื้อหาที่บันทึกแล้ว ไม่ใช่ระหว่างการแก้ไข',
   'Table': 'ตาราง',
   'Insert table': 'แทรกตาราง',
   'Insert row before': 'แทรกแถวก่อนหน้า',

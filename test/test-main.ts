@@ -455,6 +455,24 @@ $('#btn-load-image-links').addEventListener('click', () => {
   log('info', 'loaded linked images — check the links in the HTML Output panel');
 });
 
+// ── Image maps ───────────────────────────────────────
+// The image keeps usemap and the map keeps its areas; the javascript: area
+// keeps its shape but loses its href. In the editor the map is a marker whose
+// tooltip says the hotspots only work in the saved content.
+$('#btn-load-image-map').addEventListener('click', () => {
+  editor.setContent(
+    '<p>Hover the marker after the image:</p>' +
+    '<img src="https://picsum.photos/seed/office/400/240" alt="Office" width="400" height="240" usemap="#office">' +
+    '<map name="office">' +
+    '<area shape="rect" coords="20,20,180,220" href="https://www.example.com/desk" alt="Desk" target="_blank">' +
+    '<area shape="circle" coords="300,120,60" href="mailto:info@example.com" alt="Contact">' +
+    '<area shape="rect" coords="0,0,10,10" href="javascript:alert(1)" alt="Rejected">' +
+    '</map>'
+  );
+  refreshHtml();
+  log('info', 'loaded an image map — the <map> and its areas are in the HTML Output panel');
+});
+
 // ── Quoted original of a reply ───────────────────────
 // A reply: a signature, then the quoted original with the marker class
 // (nested for an earlier reply), then the indented div form.

@@ -44,6 +44,8 @@ export type { PasteMarkdownOptions } from './extensions/PasteMarkdown';
 export { CodeSample } from './extensions/CodeSample';
 export { ResizableImage, computeImageResize, isImageResizable, MIN_IMAGE_SIZE } from './extensions/ImageResize';
 export type { ResizableImageOptions, ImageResizeInput } from './extensions/ImageResize';
+export { ImageMap } from './extensions/ImageMap';
+export type { ImageMapArea, ImageMapOptions } from './extensions/ImageMap';
 export { SpeechToText, isSpeechRecognitionSupported } from './extensions/SpeechToText';
 export type { SpeechToTextOptions } from './extensions/SpeechToText';
 export { Dictation } from './extensions/Dictation';

@@ -6,7 +6,6 @@
  * height attributes, so the output HTML is the same as TinyMCE's.
  */
 
-import { getRenderedAttributes, mergeAttributes } from '@tiptap/core';
 import type { Editor, ExtensionAttribute } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import type { NodeView } from '@tiptap/pm/view';
@@ -14,6 +13,7 @@ import { closeHistory } from '@tiptap/pm/history';
 import { Image } from '@tiptap/extension-image';
 import type { ImageOptions } from '@tiptap/extension-image';
 import type { ImageResizeHandle, ObjectResizeCallback } from '../types';
+import { editorImageAttributes } from './ImageMap';
 
 export interface ImageResizeInput {
   handle: ImageResizeHandle;
@@ -175,10 +175,7 @@ class ImageResizeView implements NodeView {
 
   /** Copy the node's rendered attributes onto the img, as renderHTML would. */
   private render(): void {
-    const attrs = mergeAttributes(
-      this.options.HTMLAttributes,
-      getRenderedAttributes(this.node, this.attributes)
-    );
+    const attrs = editorImageAttributes(this.node, this.attributes, this.options.HTMLAttributes);
 
     // style belongs to this view (aspect ratio, drag preview), not the node.
     for (const name of this.img.getAttributeNames()) {
@@ -202,7 +199,10 @@ class ImageResizeView implements NodeView {
   }
 
   private refreshResizable(): void {
-    this.setResizable(isImageResizable(this.img, this.options.objectResizing));
+    // An image map's coords are in the image's shown pixels, so a new size
+    // would move the hotspots off what they mark (see ImageMap).
+    const mapped = Boolean(this.node.attrs.usemap);
+    this.setResizable(!mapped && isImageResizable(this.img, this.options.objectResizing));
     // A drag owns the inline sizes until it ends.
     if (!this.drag) this.layOut();
   }

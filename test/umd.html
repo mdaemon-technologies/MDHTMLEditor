@@ -167,7 +167,12 @@
         // Images are inline, so a link around one is kept ("Get content" shows
         // the <a> around the <img>).
         '<p>A linked image: <a href="https://www.example.com/">' +
-        '<img src="https://picsum.photos/seed/umdlink/120/40" alt="Linked" width="120" height="40"><\\/a><\\/p>'
+        '<img src="https://picsum.photos/seed/umdlink/120/40" alt="Linked" width="120" height="40"><\\/a><\\/p>' +
+        // An image map is kept: "Get content" shows usemap and the <map> with
+        // its area. In the editor the map is a marker; its tooltip says the
+        // hotspot works in the saved content, not while editing.
+        '<p>An image map: <img src="https://picsum.photos/seed/umdmap/120/40" alt="Mapped" width="120" height="40" usemap="#umdmap">' +
+        '<map name="umdmap"><area shape="rect" coords="0,0,60,40" href="https://www.example.com/" alt="Left half"><\\/map><\\/p>'
       );
 
       editor.on('objectresized', function (e) {

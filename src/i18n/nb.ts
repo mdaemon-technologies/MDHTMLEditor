@@ -112,6 +112,7 @@
   'Anchor name': 'Ankernavn',
   'Anchor name is required': 'Ankernavn er påkrevd',
   'Anchor name cannot contain spaces': 'Ankernavn kan ikke inneholde mellomrom',
+  'Image map: hotspots work in the saved content, not while editing': 'Bildekart: aktive områder fungerer i det lagrede innholdet, ikke under redigering',
   'Table': 'Tabell',
   'Insert table': 'Sett inn tabell',
   'Insert row before': 'Sett inn rad før',

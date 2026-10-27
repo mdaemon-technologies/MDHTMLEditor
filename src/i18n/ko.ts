@@ -112,6 +112,7 @@
   'Anchor name': '앵커 이름',
   'Anchor name is required': '앵커 이름은 필수입니다',
   'Anchor name cannot contain spaces': '앵커 이름에 공백을 포함할 수 없습니다',
+  'Image map: hotspots work in the saved content, not while editing': '이미지 맵: 핫스폿은 편집 중이 아니라 저장된 콘텐츠에서 작동합니다',
   'Table': '표',
   'Insert table': '표 삽입',
   'Insert row before': '위에 행 삽입',

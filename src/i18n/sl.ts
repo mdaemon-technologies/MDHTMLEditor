@@ -112,6 +112,7 @@
   'Anchor name': 'Ime sidra',
   'Anchor name is required': 'Ime sidra je obvezno',
   'Anchor name cannot contain spaces': 'Ime sidra ne sme vsebovati presledkov',
+  'Image map: hotspots work in the saved content, not while editing': 'Slikovni zemljevid: aktivna območja delujejo v shranjeni vsebini, ne med urejanjem',
   'Table': 'Tabela',
   'Insert table': 'Vstavi tabelo',
   'Insert row before': 'Vstavi vrstico pred',

@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0] - 2026-10-27
+
+### Added
+
+- **`ImageMap` extension.** The TipTap node behind image maps is exported, along with the `ImageMapArea` and `ImageMapOptions` types. It also adds the `usemap` attribute to the `image` node.
+- **Translation key** `Image map: hotspots work in the saved content, not while editing`, translated in every locale. It is the tooltip and accessible name of the image-map marker in the editor.
+
+### Fixed
+
+- **Image maps are kept.** An `<img usemap="#name">` and the `<map name="name">` with its `<area>` hotspots were dropped when content was loaded, inserted, pasted or saved from the Source view, so `getContent()` returned the image with no map. They are now kept in the full editor. Each `<area>` keeps `shape`, `coords`, `href`, `alt`, `target`, `title` and `rel`, in that order, including an area nested inside other content of the map. A map written in the same line as its image stays there, and a line holding only a map is not treated as a blank line. Content a map holds besides its areas, such as text links repeating the hotspots, is kept just after the map. Values are checked when content is loaded and again when it is written out: an area `href` gets the same check as a link's, so `javascript:` and `data:` targets are dropped and the area kept; `target` must be `_blank`, `_self`, `_parent` or `_top`, and `_blank` gets `rel="noopener noreferrer"` added, as links do; `shape` must be one HTML defines; `coords` must be numbers; and `usemap` must be `#` followed by a name. A `<map>` with only an `id`, which browsers also match, keeps it as its `name`. A `<map>` with no usable `name` or `id` is dropped with its areas, as is an `<area>` outside a map. `id`, `class`, `style`, `data-*` and event attributes are not kept on either element. The editor's content is part of the host page rather than an iframe, and a map name is global to the page. So in the editor a map is shown as a small marker instead of a live map, and the image is shown without its `usemap`, so it can't pick up a map from elsewhere on the page. The hotspots work in the saved HTML, not while editing, as the marker's tooltip says. An image with a map has no resize handles, because a new size would move its hotspots off what they mark. The basic editor has no images, so it still drops maps.
+
 ## [1.16.0] - 2026-10-23
 
 ### Added
@@ -440,6 +451,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.17.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.17.0
 [1.16.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.16.0
 [1.15.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.15.0
 [1.14.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.14.0

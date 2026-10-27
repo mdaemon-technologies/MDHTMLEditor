@@ -112,6 +112,7 @@
   'Anchor name': 'Nome da âncora',
   'Anchor name is required': 'O nome da âncora é obrigatório',
   'Anchor name cannot contain spaces': 'O nome da âncora não pode conter espaços',
+  'Image map: hotspots work in the saved content, not while editing': 'Mapa de imagem: as áreas ativas funcionam no conteúdo salvo, não durante a edição',
   'Table': 'Tabela',
   'Insert table': 'Inserir tabela',
   'Insert row before': 'Inserir linha antes',

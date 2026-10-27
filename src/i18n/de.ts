@@ -112,6 +112,7 @@
   'Anchor name': 'Ankername',
   'Anchor name is required': 'Ankername ist erforderlich',
   'Anchor name cannot contain spaces': 'Ankername darf keine Leerzeichen enthalten',
+  'Image map: hotspots work in the saved content, not while editing': 'Imagemap: Die Hotspots funktionieren im gespeicherten Inhalt, nicht beim Bearbeiten',
   'Table': 'Tabelle',
   'Insert table': 'Tabelle einfügen',
   'Insert row before': 'Zeile davor einfügen',

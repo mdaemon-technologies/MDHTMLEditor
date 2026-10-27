@@ -112,6 +112,7 @@
   'Anchor name': 'Çapa adı',
   'Anchor name is required': 'Çapa adı gereklidir',
   'Anchor name cannot contain spaces': 'Çapa adı boşluk içeremez',
+  'Image map: hotspots work in the saved content, not while editing': 'Görüntü haritası: etkin alanlar düzenleme sırasında değil, kaydedilen içerikte çalışır',
   'Table': 'Tablo',
   'Insert table': 'Tablo ekle',
   'Insert row before': 'Üste satır ekle',

@@ -112,6 +112,7 @@
   'Anchor name': 'Naziv sidra',
   'Anchor name is required': 'Naziv sidra je obavezan',
   'Anchor name cannot contain spaces': 'Naziv sidra ne može sadržati razmake',
+  'Image map: hotspots work in the saved content, not while editing': 'Mapa slike: aktivne oblasti funkcionišu u sačuvanom sadržaju, ne tokom uređivanja',
   'Table': 'Tabela',
   'Insert table': 'Umetni tabelu',
   'Insert row before': 'Umetni red iznad',

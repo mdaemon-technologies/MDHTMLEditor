@@ -91,6 +91,19 @@ describe('fillEmptyBlocks', () => {
   it('returns empty input unchanged', () => {
     expect(fillEmptyBlocks('')).toBe('');
   });
+
+  it('does not fill a line that holds an image map', () => {
+    // The map belongs to an image on another line; a <br> would add a blank line.
+    const html = '<p><map name="m"><area shape="rect" coords="0,0,1,1"></map></p>';
+    expect(fillEmptyBlocks(html)).toBe(html);
+    expect(stripEmptyLineBreaks(html)).toBe(html);
+  });
+
+  it('keeps a line break the user typed next to an image map', () => {
+    // fillEmptyBlocks never adds a <br> beside a map, so one there is content.
+    const html = '<p><map name="m"></map><br></p>';
+    expect(stripEmptyLineBreaks(html)).toBe(html);
+  });
 });
 
 describe('stripEmptyLineBreaks', () => {

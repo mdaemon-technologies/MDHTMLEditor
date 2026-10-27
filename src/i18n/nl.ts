@@ -112,6 +112,7 @@
   'Anchor name': 'Ankernaam',
   'Anchor name is required': 'Ankernaam is verplicht',
   'Anchor name cannot contain spaces': 'Ankernaam mag geen spaties bevatten',
+  'Image map: hotspots work in the saved content, not while editing': 'Afbeeldingskaart: klikbare gebieden werken in de opgeslagen inhoud, niet tijdens het bewerken',
   'Table': 'Tabel',
   'Insert table': 'Tabel invoegen',
   'Insert row before': 'Rij ervoor invoegen',

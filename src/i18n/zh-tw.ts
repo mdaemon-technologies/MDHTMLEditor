@@ -112,6 +112,7 @@
   'Anchor name': '錨點名稱',
   'Anchor name is required': '錨點名稱為必填',
   'Anchor name cannot contain spaces': '錨點名稱不能包含空格',
+  'Image map: hotspots work in the saved content, not while editing': '影像地圖：熱點在儲存的內容中有效，編輯時無效',
   'Table': '表格',
   'Insert table': '插入表格',
   'Insert row before': '在上方插入列',

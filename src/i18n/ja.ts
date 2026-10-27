@@ -112,6 +112,7 @@
   'Anchor name': 'アンカー名',
   'Anchor name is required': 'アンカー名は必須です',
   'Anchor name cannot contain spaces': 'アンカー名にスペースを含めることはできません',
+  'Image map: hotspots work in the saved content, not while editing': 'イメージマップ：ホットスポットは保存したコンテンツで機能し、編集中は機能しません',
   'Table': 'テーブル',
   'Insert table': 'テーブルの挿入',
   'Insert row before': '上に行を挿入',

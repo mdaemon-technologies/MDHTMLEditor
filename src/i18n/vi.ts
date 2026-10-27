@@ -112,6 +112,7 @@
   'Anchor name': 'Tên neo',
   'Anchor name is required': 'Tên neo là bắt buộc',
   'Anchor name cannot contain spaces': 'Tên neo không được chứa khoảng trắng',
+  'Image map: hotspots work in the saved content, not while editing': 'Bản đồ hình ảnh: các vùng liên kết hoạt động trong nội dung đã lưu, không hoạt động khi đang chỉnh sửa',
   'Table': 'Bảng',
   'Insert table': 'Chèn bảng',
   'Insert row before': 'Chèn hàng phía trên',

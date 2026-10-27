@@ -112,6 +112,7 @@
   'Anchor name': 'Ankkurin nimi',
   'Anchor name is required': 'Ankkurin nimi vaaditaan',
   'Anchor name cannot contain spaces': 'Ankkurin nimi ei voi sisältää välilyöntejä',
+  'Image map: hotspots work in the saved content, not while editing': 'Kuvakartta: aktiiviset alueet toimivat tallennetussa sisällössä, eivät muokattaessa',
   'Table': 'Taulukko',
   'Insert table': 'Lisää taulukko',
   'Insert row before': 'Lisää rivi ennen',

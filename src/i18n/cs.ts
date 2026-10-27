@@ -112,6 +112,7 @@
   'Anchor name': 'Název kotvy',
   'Anchor name is required': 'Název kotvy je povinný',
   'Anchor name cannot contain spaces': 'Název kotvy nesmí obsahovat mezery',
+  'Image map: hotspots work in the saved content, not while editing': 'Mapa obrázku: aktivní oblasti fungují v uloženém obsahu, ne při úpravách',
   'Table': 'Tabulka',
   'Insert table': 'Vložit tabulku',
   'Insert row before': 'Vložit řádek před',

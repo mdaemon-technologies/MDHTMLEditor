@@ -329,6 +329,26 @@ An `<a href="">` — a link whose target the author has not filled in yet, or th
 
 Images are inline, as in TinyMCE and in mail HTML: an image sits in a line of text, so a link around it is kept on import and paste (`<p><a href="https://example.com/"><img src="logo.png"></a></p>` comes back unchanged), and an image between words stays in its paragraph. Select an image and use the Link dialog or `unlink` to link or unlink it. An `<img>` that is not already in a line of text (at the top level, or directly in a table cell, list item, quote or the signature) is put in one (`<p>`, or `<div>` with `forced_root_block: 'div'`); with `<p>` lines it then has the paragraph's margin in the saved HTML. When the selection holds an image (or a mention or named anchor), the Link dialog's "Text to display" is disabled, as in TinyMCE, so the selection is relinked rather than replaced by text. A link the editor rejects, such as `javascript:`, is dropped and the image kept.
 
+### Image maps
+
+In the full editor, an image map survives loading, `insertContent()`, paste and the Source view: the image keeps its `usemap`, and the `<map>` keeps its `name` and its `<area>` hotspots.
+
+```html
+<p><img src="https://example.com/office.jpg" alt="Office" usemap="#office"><map name="office"><area shape="rect" coords="34,44,270,350" href="https://example.com/desk" alt="Desk" target="_blank"></map></p>
+```
+
+A map written in the same line as its image stays in that line; one written after the image's paragraph gets a line of its own, which adds no blank line to the saved HTML. Content a `<map>` holds besides its areas (text links repeating the hotspots, say) is kept, just after the map. Each `<area>` keeps `shape`, `coords`, `href`, `alt`, `target`, `title` and `rel`, and each value is checked:
+
+- `href` gets the same check as a link's, so a `javascript:` or `data:` target is dropped and the area kept.
+- `target` must be `_blank`, `_self`, `_parent` or `_top`. An area with `target="_blank"` gets `rel="noopener noreferrer"` added, as the editor's links do. `shape` must be one HTML defines, and `coords` must be numbers.
+- `usemap` must be `#` followed by a name. A `<map>` with only an `id` (the older XHTML form, which browsers also match) keeps it, written out as `name`. A `<map>` with neither usable is dropped with its areas.
+- The values are checked again when the content is written out, so an area added through a command or JSON content gets the same checks.
+- `id`, `class`, `style`, `data-*` and event attributes are not kept, and neither is an `<area>` outside a `<map>`.
+
+The editor's content is part of the host page rather than an iframe, and a map name is global to the page. So while editing, a map is shown as a small marker instead of a live map, and the image is shown without its `usemap` (so it can't pick up a map from elsewhere on the page): the hotspots do nothing. They work in the saved HTML. The marker's tooltip says so, translated into the editor's language (`Image map: hotspots work in the saved content, not while editing`). Maps have no toolbar button: edit them in the Source view. An image with a map has no resize handles (see [Resizing images](#resizing-images)). The basic editor has no images, so it drops maps.
+
+The TipTap node behind this, `ImageMap`, is exported along with its `ImageMapArea` and `ImageMapOptions` types. It also adds the `usemap` attribute to the `image` node, and shows an image that has no node view of its own without that attribute. If you give the `image` node your own node view, leave `usemap` off the element it shows.
+
 ### Quoted original of a reply
 
 A host can mark the quoted original of a reply or forward with a class of its choosing and find the quote again by that class in `getContent()`. Name the class in `quote_marker_class` and the editor keeps it:
@@ -510,6 +530,7 @@ Click an image in the full editor to select it. Eight handles appear, one on eac
 - **Corners** keep the aspect ratio. Hold **Shift** to stretch freely instead. With `resize_img_proportional: false`, corners stretch freely and Shift keeps the ratio.
 - **Sides** change only the width (left and right) or only the height (top and bottom).
 - A label shows the size in pixels while you drag. An image can't be made smaller than 20px on either side, or wider than the space it sits in (the editor, or a table cell).
+- An image with an [image map](#image-maps) (`usemap`) has no handles: its hotspots' `coords` are in the image's pixels, so a new size would move them off what they mark.
 - Press **Escape** during a drag to put the image back to its starting size.
 - Touch and pen work too. The handles are larger on touch screens.
 

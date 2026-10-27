@@ -112,6 +112,7 @@
   'Anchor name': 'Ankarnamn',
   'Anchor name is required': 'Ankarnamn krävs',
   'Anchor name cannot contain spaces': 'Ankarnamn får inte innehålla mellanslag',
+  'Image map: hotspots work in the saved content, not while editing': 'Bildkarta: aktiva områden fungerar i det sparade innehållet, inte under redigering',
   'Table': 'Tabell',
   'Insert table': 'Infoga tabell',
   'Insert row before': 'Infoga rad före',

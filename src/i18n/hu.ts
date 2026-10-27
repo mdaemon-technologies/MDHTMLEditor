@@ -112,6 +112,7 @@
   'Anchor name': 'Horgony neve',
   'Anchor name is required': 'A horgony neve kötelező',
   'Anchor name cannot contain spaces': 'A horgony neve nem tartalmazhat szóközöket',
+  'Image map: hotspots work in the saved content, not while editing': 'Képtérkép: az aktív területek a mentett tartalomban működnek, szerkesztés közben nem',
   'Table': 'Táblázat',
   'Insert table': 'Táblázat beszúrása',
   'Insert row before': 'Sor beszúrása fölé',

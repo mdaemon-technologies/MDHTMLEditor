@@ -112,6 +112,7 @@
   'Anchor name': 'Anchor name',
   'Anchor name is required': 'Anchor name is required',
   'Anchor name cannot contain spaces': 'Anchor name cannot contain spaces',
+  'Image map: hotspots work in the saved content, not while editing': 'Image map: hotspots work in the saved content, not while editing',
   'Table': 'Table',
   'Insert table': 'Insert table',
   'Insert row before': 'Insert row before',

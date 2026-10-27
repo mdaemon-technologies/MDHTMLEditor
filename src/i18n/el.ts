@@ -112,6 +112,7 @@
   'Anchor name': 'Όνομα άγκυρας',
   'Anchor name is required': 'Απαιτείται όνομα άγκυρας',
   'Anchor name cannot contain spaces': 'Το όνομα της άγκυρας δεν μπορεί να περιέχει κενά',
+  'Image map: hotspots work in the saved content, not while editing': 'Χάρτης εικόνας: οι ενεργές περιοχές λειτουργούν στο αποθηκευμένο περιεχόμενο, όχι κατά την επεξεργασία',
   'Table': 'Πίνακας',
   'Insert table': 'Εισαγωγή πίνακα',
   'Insert row before': 'Εισαγωγή γραμμής πριν',

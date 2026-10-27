@@ -112,6 +112,7 @@
   'Anchor name': 'Nom de l\'àncora',
   'Anchor name is required': 'El nom de l\'àncora és obligatori',
   'Anchor name cannot contain spaces': 'El nom de l\'àncora no pot contenir espais',
+  'Image map: hotspots work in the saved content, not while editing': 'Mapa d\'imatge: les zones actives funcionen al contingut desat, no mentre s\'edita',
   'Table': 'Taula',
   'Insert table': 'Inserir taula',
   'Insert row before': 'Inserir fila a sobre',

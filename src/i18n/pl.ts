@@ -112,6 +112,7 @@
   'Anchor name': 'Nazwa kotwicy',
   'Anchor name is required': 'Nazwa kotwicy jest wymagana',
   'Anchor name cannot contain spaces': 'Nazwa kotwicy nie może zawierać spacji',
+  'Image map: hotspots work in the saved content, not while editing': 'Mapa obrazu: aktywne obszary działają w zapisanej treści, a nie podczas edycji',
   'Table': 'Tabela',
   'Insert table': 'Wstaw tabelę',
   'Insert row before': 'Wstaw wiersz przed',

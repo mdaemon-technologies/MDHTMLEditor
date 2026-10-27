@@ -14,6 +14,14 @@ export const CONTENT_BEARING =
   'br, img, hr, input, video, audio, iframe, object, embed, canvas, svg, table, picture, source';
 
 /**
+ * Elements that show nothing but make a line more than blank. A line holding
+ * an image's map belongs to that image: a <br> there would add a blank line,
+ * and a <br> already there is the user's. Kept out of CONTENT_BEARING, which
+ * also decides what flattenWrapperBlocks puts in a line of its own.
+ */
+const KEPT_WITHOUT_TEXT = 'map';
+
+/**
  * Whitespace that collapses to nothing when HTML is rendered: the ASCII set the
  * HTML spec calls "space characters". Deliberately NOT `\s` and NOT
  * `String#trim()` — both of those also match U+00A0, the non-breaking space,
@@ -43,6 +51,7 @@ function hasVisibleText(el: Element): boolean {
 function isBlankLine(el: Element): boolean {
   if (hasVisibleText(el)) return false;
   if (el.querySelector(CONTENT_BEARING)) return false;
+  if (el.querySelector(KEPT_WITHOUT_TEXT)) return false;
   if (el.querySelector(BLOCK_SELECTOR)) return false; // container of blocks, not a line
   return true;
 }
@@ -89,6 +98,7 @@ export function fillEmptyBlocks(html: string): string {
  */
 function isFilledBlankLine(el: Element): { br: Element } | null {
   if (hasVisibleText(el)) return null;
+  if (el.querySelector(KEPT_WITHOUT_TEXT)) return null;
   if (el.querySelector(BLOCK_SELECTOR)) return null; // container of blocks, not a line
   const contentBearing = el.querySelectorAll(CONTENT_BEARING);
   if (contentBearing.length === 1 && contentBearing[0].tagName === 'BR') {

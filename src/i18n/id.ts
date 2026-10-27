@@ -112,6 +112,7 @@
   'Anchor name': 'Nama jangkar',
   'Anchor name is required': 'Nama jangkar wajib diisi',
   'Anchor name cannot contain spaces': 'Nama jangkar tidak boleh mengandung spasi',
+  'Image map: hotspots work in the saved content, not while editing': 'Peta gambar: area aktif berfungsi di konten yang disimpan, bukan saat mengedit',
   'Table': 'Tabel',
   'Insert table': 'Sisipkan tabel',
   'Insert row before': 'Sisipkan baris sebelum',

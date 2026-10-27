@@ -112,6 +112,7 @@
   'Anchor name': '锚点名称',
   'Anchor name is required': '锚点名称为必填项',
   'Anchor name cannot contain spaces': '锚点名称不能包含空格',
+  'Image map: hotspots work in the saved content, not while editing': '图像映射：热点在保存的内容中有效，编辑时无效',
   'Table': '表格',
   'Insert table': '插入表格',
   'Insert row before': '在上方插入行',

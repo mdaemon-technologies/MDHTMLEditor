@@ -74,8 +74,11 @@ $md-dark-hover: #2d3e50;
     }
   }
 
-  // Named anchor marker (Anchor extension renders an empty <a id>)
-  .md-anchor {
+  // Markers for content that shows nothing itself: a named anchor (Anchor
+  // extension renders an empty <a id>) and an image map (ImageMap extension;
+  // its hotspots are not live in the editor, as the marker's title says).
+  .md-anchor,
+  .md-image-map {
     display: inline-block;
     width: 12px;
     height: 14px;
@@ -88,6 +91,14 @@ $md-dark-hover: #2d3e50;
       content: '\2693'; // anchor symbol
       font-size: 11px;
       opacity: 0.6;
+    }
+  }
+
+  .md-image-map {
+    cursor: help;
+
+    &::after {
+      content: '\2316'; // position indicator
     }
   }
 }

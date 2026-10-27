@@ -112,6 +112,7 @@
   'Anchor name': 'Nume ancoră',
   'Anchor name is required': 'Numele ancorei este obligatoriu',
   'Anchor name cannot contain spaces': 'Numele ancorei nu poate conține spații',
+  'Image map: hotspots work in the saved content, not while editing': 'Hartă de imagine: zonele active funcționează în conținutul salvat, nu în timpul editării',
   'Table': 'Tabel',
   'Insert table': 'Inserare tabel',
   'Insert row before': 'Inserare rând înainte',

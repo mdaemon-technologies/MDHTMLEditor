@@ -322,6 +322,16 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
       </div>
 
       <div class="card">
+        <div class="card-header">Image maps</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads an image with a two-hotspot <code>&lt;map&gt;</code>, plus a third area with a <code>javascript:</code> link. In the editor the map is a small marker; hover it for the note that the hotspots work in the saved content, not while editing. The HTML Output panel shows <code>usemap="#office"</code> on the image and the <code>&lt;map&gt;</code> with all three areas, the third one without its <code>href</code>. Open Source code, save it, and the map is still there.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-load-image-map">Load image map</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Quoted original of a reply</div>
         <div class="card-body">
           <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads a reply: the signature, then the quoted original in a <code>&lt;blockquote&gt;</code> carrying the marker class (the demo sets <code>quote_marker_class: 'quoted-original'</code>) and its border, with an earlier quote nested inside, followed by the indented <code>&lt;div&gt;</code> form. The HTML Output panel shows both markers kept, the class written first, and only the box style kept; the <code>id</code>, the <code>data-*</code> attribute and the <code>background</code>/<code>position</code> declarations are dropped.</p>

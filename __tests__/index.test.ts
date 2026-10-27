@@ -23,8 +23,9 @@ import {
   computeImageResize,
   isImageResizable,
   MarkedQuote,
+  ImageMap,
 } from '../src';
-import type { ObjectResizeEvent, ImageResizeHandle, ResizableImageOptions, EditorEvents } from '../src';
+import type { ObjectResizeEvent, ImageResizeHandle, ResizableImageOptions, EditorEvents, ImageMapArea } from '../src';
 
 describe('Package Exports', () => {
   describe('Core Exports', () => {
@@ -98,6 +99,12 @@ describe('Package Exports', () => {
     it('should export the MarkedQuote extension', () => {
       expect(MarkedQuote.name).toBe('blockquote');
       expect(MarkedQuote.configure({ markerClass: 'quoted-original' }).options.markerClass).toBe('quoted-original');
+    });
+
+    it('should export the ImageMap extension', () => {
+      expect(ImageMap.name).toBe('imageMap');
+      const area: ImageMapArea = { shape: 'rect', coords: '0,0,1,1', href: 'https://example.com/' };
+      expect(area.shape).toBe('rect');
     });
   });
 

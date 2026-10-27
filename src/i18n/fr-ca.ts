@@ -112,6 +112,7 @@
   'Anchor name': 'Nom de l\'ancre',
   'Anchor name is required': 'Le nom de l\'ancre est requis',
   'Anchor name cannot contain spaces': 'Le nom de l\'ancre ne peut pas contenir d\'espaces',
+  'Image map: hotspots work in the saved content, not while editing': 'Image cliquable : les zones actives fonctionnent dans le contenu sauvegardé, pas pendant la modification',
   'Table': 'Tableau',
   'Insert table': 'Insérer un tableau',
   'Insert row before': 'Insérer une ligne avant',

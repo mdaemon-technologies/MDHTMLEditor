@@ -47,9 +47,11 @@ import { ListPasteNormalizer } from '../extensions/ListPasteNormalizer';
 import { PasteMarkdown } from '../extensions/PasteMarkdown';
 import { CodeSample } from '../extensions/CodeSample';
 import { ResizableImage, isObjectResizingOn } from '../extensions/ImageResize';
+import { ImageMap, relabelImageMapMarkers } from '../extensions/ImageMap';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
+import { liftMapContent } from '../utils/liftMapContent';
 import { normalizeQuoteMarkerClass } from '../utils/markedQuote';
 import { ImageUpload } from '../extensions/ImageUpload';
 
@@ -734,7 +736,9 @@ export class HTMLEditor implements IMDHTMLEditor {
               onResizeStart: (e) => this.fire('objectresizestart', e),
               onResized: (e) => this.fire('objectresized', e),
             })
-          : Image.configure(imageOptions)
+          : Image.configure(imageOptions),
+        // <map>/<area> hotspots for the images, and their usemap attribute.
+        ImageMap.configure({ trans: globalTranslate })
       );
     }
     
@@ -795,18 +799,19 @@ export class HTMLEditor implements IMDHTMLEditor {
   /**
    * The single parse pass every path that brings HTML *into* the editor must run
    * — setContent(), insertContent(). Repairs backslash-escaped closing tags
-   * (`<\/p>` → `</p>`, see unescapeTagSlashes), dissolves block-only wrapper
+   * (`<\/p>` → `</p>`, see unescapeTagSlashes), moves what a `<map>` holds
+   * besides its areas out of it (see liftMapContent), dissolves block-only wrapper
    * `<div>`s that would otherwise each import as a stray blank line (see
    * flattenWrapperBlocks), and strips the export-only <br> from empty blocks so
    * a blank line does not import as a hardBreak (which would render as two
    * lines). Inverse of formatOutput().
    *
-   * Order matters: the tag repair has to run first or the wrapper pass parses a
-   * half-broken tree, and flattening has to precede the blank-line strip so the
+   * Order matters: the tag repair has to run first or the map and wrapper passes
+   * parse a half-broken tree, and flattening has to precede the blank-line strip so the
    * latter judges the real lines rather than the wrappers around them.
    */
   private formatInput(html: string): string {
-    const normalized = flattenWrapperBlocks(unescapeTagSlashes(html), this.config.quote_marker_class);
+    const normalized = flattenWrapperBlocks(liftMapContent(unescapeTagSlashes(html)), this.config.quote_marker_class);
     return this.config.format_empty_lines ? stripEmptyLineBreaks(normalized) : normalized;
   }
 
@@ -1184,6 +1189,7 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.config.language = code;
     builtInTranslate = createTranslateFunction(code);
     this.toolbar?.rebuild();
+    if (this.tiptap) relabelImageMapMarkers(this.tiptap.view.dom, globalTranslate);
     this.fire('languagechange', code);
   }
 
