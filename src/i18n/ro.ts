@@ -52,6 +52,7 @@
   'Next': 'Următor',
   'Replace All': 'Înlocuire totală',
   'Search...': 'Căutare...',
+  'No emoticons found': 'Nu s-au găsit emoticoane',
   'Special Character': 'Caracter special',
   'Upload': 'Încarcă',
   'URL': 'URL',

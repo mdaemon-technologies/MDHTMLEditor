@@ -33,6 +33,7 @@ import type { IconSet } from '../icons';
 import { FontSize } from '../extensions/FontSize';
 import { BlockFontStyle } from '../extensions/BlockFontStyle';
 import { BlockIndent } from '../extensions/BlockIndent';
+import { TabCharacter } from '../extensions/TabCharacter';
 import { LineHeight } from '../extensions/LineHeight';
 import { TextDirection } from '../extensions/TextDirection';
 import { LinkEscape, LINK_ESCAPE_META } from '../extensions/LinkEscape';
@@ -602,6 +603,8 @@ export class HTMLEditor implements IMDHTMLEditor {
       MarkedQuote.configure({ markerClass: this.config.quote_marker_class ?? null }),
       Mention,
       Anchor,
+      // A tab typed in a line of text (BlockIndent's Tab key inserts it).
+      TabCharacter,
       Subscript,
       Superscript,
       Underline,
@@ -621,7 +624,8 @@ export class HTMLEditor implements IMDHTMLEditor {
         defaultFontSize: this.config.fontSize ?? DEFAULT_FONT_SIZE,
       }),
       // Block indentation (margin-left) for paragraphs/headings, plus the Tab /
-      // Shift+Tab keymap that indents the block when the cursor is not in a list.
+      // Shift+Tab keymap: a tab at the caret in a line of text, a nesting level
+      // in a list, a block indent for a selection.
       BlockIndent.configure({ tableTabNavigation: this.config.table_tab_navigation !== false }),
       LineHeight,
       Color,

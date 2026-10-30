@@ -1,3 +1,5 @@
+import { containsTabSpan } from './tabSpan';
+
 /**
  * Root-block elements the editor emits for a line. An empty one of these
  * represents a blank line the user typed.
@@ -33,9 +35,14 @@ const KEPT_WITHOUT_TEXT = 'map';
  */
 const COLLAPSIBLE_WHITESPACE = /[ \t\n\r\f\v]+/g;
 
-/** True when the element renders any text at all, `&nbsp;` included. */
-function hasVisibleText(el: Element): boolean {
-  return (el.textContent ?? '').replace(COLLAPSIBLE_WHITESPACE, '') !== '';
+/**
+ * True when the element renders any text at all, `&nbsp;` included. So does a
+ * tab kept by `white-space: pre` (see tabSpan), though `\t` is collapsible
+ * elsewhere. Shared with flattenWrapperBlocks, so the passes agree on what a
+ * line of text is.
+ */
+export function hasVisibleText(el: Element): boolean {
+  return (el.textContent ?? '').replace(COLLAPSIBLE_WHITESPACE, '') !== '' || containsTabSpan(el);
 }
 
 /**

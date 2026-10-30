@@ -52,6 +52,7 @@
   'Next': 'Volgende',
   'Replace All': 'Alles vervangen',
   'Search...': 'Zoeken...',
+  'No emoticons found': 'Geen emoticons gevonden',
   'Special Character': 'Speciaal teken',
   'Upload': 'Uploaden',
   'URL': 'URL',

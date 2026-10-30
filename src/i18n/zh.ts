@@ -52,6 +52,7 @@
   'Next': '下一个',
   'Replace All': '全部替换',
   'Search...': '搜索...',
+  'No emoticons found': '未找到表情符号',
   'Special Character': '特殊字符',
   'Upload': '上传',
   'URL': 'URL',

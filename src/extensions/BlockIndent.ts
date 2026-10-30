@@ -2,14 +2,14 @@
  * BlockIndent Extension
  *
  * Adds CKEditor-style block indentation to paragraphs, headings and list items:
- * an `indent` toolbar command / Tab key increases a left margin on the block(s)
- * in the selection, and outdent / Shift+Tab decreases it. The indent is stored
- * as a pixel value and inlined as `margin-left` on the block — the same block-
- * attribute approach BlockFontStyle uses — so exported HTML carries the indent
- * on the element itself and survives in mail clients and other consumers that
- * do not load the editor's stylesheet. Inside a list the margin goes on the
- * `<li>`, not the paragraph within it, so the bullet or number moves with the
- * text.
+ * an `indent` toolbar command / Tab with a selection increases a left margin on
+ * the block(s) in the selection, and outdent / Shift+Tab decreases it. The
+ * indent is stored as a pixel value and inlined as `margin-left` on the block —
+ * the same block-attribute approach BlockFontStyle uses — so exported HTML
+ * carries the indent on the element itself and survives in mail clients and
+ * other consumers that do not load the editor's stylesheet. Inside a list the
+ * margin goes on the `<li>`, not the paragraph within it, so the bullet or
+ * number moves with the text.
  *
  * `indentSelection` / `outdentSelection` hold that context-dependent behavior in
  * one place, so the Tab key, the toolbar buttons and `execCommand` cannot drift
@@ -22,11 +22,17 @@
  * Outdent is the inverse, and unwinds a margin indent before it un-nests: from
  * the innermost state outwards, margin → nesting level → out of the list.
  *
- * Keyboard behavior (mirrors CKEditor): Tab is ALWAYS handled, so it never
- * escapes the editor and moves focus to the next element on the page. It adds
- * one exception to the above — in a table it is deferred to the Table extension
- * so Tab moves between cells (the toolbar button still indents the paragraph in
- * the cell). Shift+Tab is likewise always handled.
+ * Keyboard behavior: Tab is ALWAYS handled, so it never escapes the editor and
+ * moves focus to the next element on the page. It departs from the above in
+ * two places:
+ * - The caret (no selection) in a paragraph or heading types a tab character
+ *   there (TabCharacter), as a word processor does; a selection still indents
+ *   its blocks.
+ * - In a table it is deferred to the Table extension so Tab moves between
+ *   cells (the toolbar button still indents the paragraph in the cell).
+ * Shift+Tab is likewise always handled. Backspace at the start of an indented
+ * paragraph or heading takes back one indent step instead of joining the line
+ * to the one above.
  *
  * Keyboard escape (WCAG 2.1.2 "No Keyboard Trap"): because Tab is captured, the
  * editor would otherwise trap keyboard focus. Pressing `Esc` arms a one-shot
@@ -152,6 +158,17 @@ function moveFocusOut(editor: Editor, dir: number): void {
 
   editor.commands.blur();
   target?.focus();
+}
+
+/**
+ * True for a caret (no selection) in a line of text this extension indents —
+ * a paragraph or heading by default — outside a list. There Tab types a tab
+ * and Backspace can take back an indent; a selection, a list and a code block
+ * keep the behavior of `indentSelection` / `outdentSelection`.
+ */
+function caretInIndentableLine(editor: Editor, options: BlockIndentOptions): boolean {
+  const { empty, $from } = editor.state.selection;
+  return empty && options.types.includes($from.parent.type.name) && !editor.isActive('listItem');
 }
 
 export const BlockIndent = Extension.create<BlockIndentOptions>({
@@ -291,6 +308,11 @@ export const BlockIndent = Extension.create<BlockIndentOptions>({
         if (this.options.tableTabNavigation && editor.isActive('table')) {
           return false;
         }
+        // The caret in a line of text: a tab character there, as a word
+        // processor does.
+        if (caretInIndentableLine(editor, this.options) && editor.commands.insertTab?.()) {
+          return true;
+        }
         // A tab in a code block, a nesting level in a list, a margin elsewhere.
         // Consume Tab regardless of whether anything changed (e.g. a paragraph
         // already at max indent) so focus never leaves the editor.
@@ -311,6 +333,25 @@ export const BlockIndent = Extension.create<BlockIndentOptions>({
         // consumed, so Shift+Tab never escapes the editor either.
         editor.commands.outdentSelection();
         return true;
+      },
+      // At the start of an indented paragraph or heading, take back an indent
+      // step rather than joining the line to the one above, as word processors
+      // do. Lists keep their own Backspace, and so does an input rule that just
+      // fired ("> " wrapping the line in a quote): Backspace undoes it. An empty
+      // line (Enter carries the indent to it) is removed in one press, as before.
+      Backspace: () => {
+        const editor = this.editor;
+        const { $from } = editor.state.selection;
+        if (!caretInIndentableLine(editor, this.options) || $from.parentOffset !== 0 || !$from.parent.attrs.blockIndent) {
+          return false;
+        }
+        if ($from.parent.content.size === 0) {
+          return false;
+        }
+        if (editor.can().undoInputRule()) {
+          return false;
+        }
+        return editor.commands.outdentBlock();
       },
     };
   },

@@ -52,6 +52,7 @@
   'Next': 'Seuraava',
   'Replace All': 'Korvaa kaikki',
   'Search...': 'Etsi...',
+  'No emoticons found': 'Hymiöitä ei löytynyt',
   'Special Character': 'Erikoismerkki',
   'Upload': 'Lataa',
   'URL': 'URL',

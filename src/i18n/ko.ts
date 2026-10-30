@@ -52,6 +52,7 @@
   'Next': '다음',
   'Replace All': '모두 바꾸기',
   'Search...': '검색...',
+  'No emoticons found': '이모티콘을 찾을 수 없습니다',
   'Special Character': '특수 문자',
   'Upload': '업로드',
   'URL': 'URL',

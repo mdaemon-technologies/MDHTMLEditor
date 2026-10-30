@@ -1,4 +1,4 @@
-import { CONTENT_BEARING } from './fillEmptyBlocks';
+import { CONTENT_BEARING, hasVisibleText } from './fillEmptyBlocks';
 import { isMarkedQuote, normalizeQuoteMarkerClass } from './markedQuote';
 
 /**
@@ -121,8 +121,9 @@ function hasInheritedStyle(el: Element): boolean {
 const NOT_RENDERED = 'style, script, template, meta, link, title';
 
 /**
- * True when the node would show something in a line: visible text, or one of
- * the elements fillEmptyBlocks counts as content (a line break, an image…).
+ * True when the node would show something in a line: visible text, a tab kept
+ * by `white-space: pre`, or one of the elements fillEmptyBlocks counts as
+ * content (a line break, an image…).
  * Comments, `<style>` and whitespace-only inline elements between blocks are
  * not a line of text.
  */
@@ -132,7 +133,7 @@ function rendersInline(node: Node): boolean {
   const el = node as Element;
   if (el.matches(NOT_RENDERED)) return false;
   if (el.matches(CONTENT_BEARING) || el.querySelector(CONTENT_BEARING)) return true;
-  return (el.textContent ?? '').replace(COLLAPSIBLE_WHITESPACE, '') !== '';
+  return hasVisibleText(el);
 }
 
 /**

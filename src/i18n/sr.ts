@@ -52,6 +52,7 @@
   'Next': 'Следеће',
   'Replace All': 'Замени све',
   'Search...': 'Претрага...',
+  'No emoticons found': 'Нису пронађени емотикони',
   'Special Character': 'Специјални знак',
   'Upload': 'Отпреми',
   'URL': 'URL',

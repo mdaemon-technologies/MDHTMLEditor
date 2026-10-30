@@ -52,6 +52,7 @@
   'Next': '次へ',
   'Replace All': 'すべて置換',
   'Search...': '検索...',
+  'No emoticons found': '絵文字が見つかりません',
   'Special Character': '特殊文字',
   'Upload': 'アップロード',
   'URL': 'URL',

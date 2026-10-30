@@ -132,7 +132,7 @@ const editor = new HTMLEditor(container, {
 | `table_default_styles` | Record\<string, string\> | `{ 'border-collapse': 'collapse', width: '100%' }` | Style of a table the user inserts, as CSS property/value pairs. Only properties and values a table keeps are used (see [Formatting a table keeps](#formatting-a-table-keeps)) |
 | `table_default_header_rows` | number | 0 | Header rows of a table inserted from the menu, grid or dialog |
 | `table_default_header_cols` | number | 0 | Header columns of a table inserted from the menu, grid or dialog |
-| `table_tab_navigation` | boolean | true | Tab and Shift+Tab move between table cells. `false` makes them indent the paragraph in the cell, as they do outside a table |
+| `table_tab_navigation` | boolean | true | Tab and Shift+Tab move between table cells. `false` makes them work in a cell as they do outside a table: Tab types a tab at the cursor, and Shift+Tab outdents |
 | `table_appearance_options` | boolean | true | Show Cell spacing, Cell padding, Border width and Caption in the Table properties dialog |
 | `table_advtab` | boolean | true | Show the Advanced tab (border style, border color, background color) in the Table properties dialog |
 | `table_row_advtab` | boolean | true | Show the Advanced tab in the Row properties dialog |
@@ -452,7 +452,7 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `redo` | Redo last undo |
 | `image` | Insert image dialog (upload file or enter URL) |
 | `charmap` | Special character picker (currency, math, arrows, symbols, Greek, punctuation) |
-| `emoticons` | Emoji picker with search (smileys, gestures, hearts, objects, symbols, arrows) |
+| `emoticons` | Emoji picker (smileys, gestures, hearts, objects, symbols, arrows). Its search matches English emoji names and keywords, such as "heart" or "happy" |
 | `code` | Open HTML source code editor dialog |
 | `link` | Open Insert/Edit Link dialog |
 | `unlink` | Remove the link at the cursor |
@@ -702,7 +702,7 @@ The legacy `bgcolor`, `valign`, `width`, `height` and `align` attributes common 
 
 ### Increase / decrease indent
 
-`indent` and `outdent` — the toolbar's **Increase indent** / **Decrease indent** buttons, `execCommand('indent' | 'outdent')`, and the <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> keys — all resolve to the same behavior, chosen by what is under the cursor:
+`indent` and `outdent` — the toolbar's **Increase indent** / **Decrease indent** buttons, `execCommand('indent' | 'outdent')`, and the <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> keys — all resolve to the same behavior, chosen by what is under the cursor (with one exception for <kbd>Tab</kbd>, below):
 
 | Context | Increase indent | Decrease indent |
 | --- | --- | --- |
@@ -712,6 +712,14 @@ The legacy `bgcolor`, `valign`, `width`, `height` and `align` attributes common 
 | Paragraph, heading | Adds a `margin-left` in 40px steps (max 400px) | Removes one step |
 
 Inside a list the indent is written to the `<li>` rather than to the paragraph inside it, so the bullet or number moves with the text. Because it is an inline `margin-left`, it survives in exported HTML — in a mail client, say — without the editor's stylesheet. In a table, <kbd>Tab</kbd> still moves between cells; the toolbar buttons indent the paragraph in the cell.
+
+<kbd>Backspace</kbd> at the start of an indented paragraph or heading removes one indent step, instead of joining the line to the one above. An empty line is still removed in one press.
+
+### Tab characters
+
+In a paragraph or heading, <kbd>Tab</kbd> with nothing selected types a tab at the cursor, wherever it is in the line, as a word processor does. To indent the whole paragraph, select text in it first, or use the **Increase indent** button. In a list, a code block or a table, <kbd>Tab</kbd> works as described above.
+
+A tab is written as `<span style="white-space: pre;">&#9;</span>`, the form other editors use too, so it keeps its tab stops in exported HTML instead of collapsing to a space. The same span is read back as a tab by `setContent()`, `insertContent()` and paste, keeping any font set on it; a span holding several tabs reads as that many tabs. Any other tab that reaches a line of text becomes one too: a tab in text that keeps its whitespace (`white-space: pre-wrap`, as Google Docs writes), in pasted plain text, or in a code block turned into a paragraph. Inside a code block a tab stays a plain tab in the code, and a line turned into a code block keeps its tabs that way. A tab is one character: one <kbd>Backspace</kbd> or <kbd>Delete</kbd> removes it, and one undo takes it back.
 
 ### Ordered list numbering
 
@@ -964,8 +972,9 @@ The `searchreplace` toolbar button (or **Ctrl/Cmd+F**) opens a Find & Replace di
 | Ctrl/Cmd+Shift+Z | Redo |
 | Ctrl/Cmd+F | Open Find & Replace |
 | Ctrl/Cmd+Alt+C | Toggle code sample on the lines the selection touches (same as the `codesample` button) |
-| Tab | Always handled (never escapes the editor). Nests the current list item (or, for an item that can't nest, indents its content), inserts a tab in a code block, moves to the next cell in a table (adding a row in the last cell; with `table_tab_navigation: false` it indents the paragraph in the cell instead), or adds a left margin to the current paragraph/heading |
-| Shift+Tab | Inverse of Tab: reduces the current block's left margin, lifts the current list item, or moves to the previous table cell |
+| Tab | Always handled (never escapes the editor). Types a tab at the cursor in a paragraph or heading, adds a left margin to the selected paragraphs/headings when there is a selection, nests the current list item (or, for an item that can't nest, indents its content), inserts a tab in a code block, or moves to the next cell in a table (adding a row in the last cell; with `table_tab_navigation: false` it works in the cell as it does outside a table) |
+| Shift+Tab | Reduces the current block's left margin, lifts the current list item, or moves to the previous table cell |
+| Backspace | Removes a tab in one press. At the start of an indented paragraph or heading, removes one indent step |
 | Shift+Arrow keys (in a table) | Extend a cell selection across cells |
 | Esc, then Tab | Moves focus out of the editor to the next focusable element (Shift+Tab → previous), so Tab is not a keyboard trap. Esc arms this for the next key press only; any other key cancels it |
 
@@ -1078,11 +1087,12 @@ console.log(resolver('/img/photo.jpg')); // 'https://cdn.example.com/img/photo.j
 ### Exported constants
 
 ```ts
-import { fontNames, CHAR_MAP, EMOJI_CATEGORIES, TRANSLATION_KEYS, DEFAULT_TABLE_TOOLBAR, TABLE_BUTTON_NAMES } from '@mdaemon/html-editor';
+import { fontNames, CHAR_MAP, EMOJI_CATEGORIES, EMOJI_DATA, TRANSLATION_KEYS, DEFAULT_TABLE_TOOLBAR, TABLE_BUTTON_NAMES } from '@mdaemon/html-editor';
 
 // fontNames — default semicolon-separated font family string
 // CHAR_MAP — array of character categories for the character map dialog
 // EMOJI_CATEGORIES — array of emoji categories for the emoji picker
+// EMOJI_DATA — English name and search keywords for each emoji, keyed by the emoji: EMOJI_DATA['😀'].name is 'grinning face'
 // TRANSLATION_KEYS — array of all translation key strings
 // DEFAULT_TABLE_TOOLBAR — the default table_toolbar string
 // TABLE_BUTTON_NAMES — every table toolbar button name

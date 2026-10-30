@@ -52,6 +52,7 @@
   'Next': 'Berikutnya',
   'Replace All': 'Ganti semua',
   'Search...': 'Cari...',
+  'No emoticons found': 'Emotikon tidak ditemukan',
   'Special Character': 'Karakter khusus',
   'Upload': 'Unggah',
   'URL': 'URL',

@@ -59,6 +59,15 @@ describe('fillEmptyBlocks', () => {
       .toBe('<p style="font-family:Arial">&nbsp;</p>');
   });
 
+  it('leaves a tab-only block alone (a tab kept by white-space: pre is visible content)', () => {
+    const html = '<p><span style="white-space: pre">\t</span></p>';
+    expect(fillEmptyBlocks(html)).toBe(html);
+  });
+
+  it('still fills a block whose only tab is in a span without white-space: pre', () => {
+    expect(fillEmptyBlocks('<p><span>\t</span></p>')).toBe('<p><span>\t</span><br></p>');
+  });
+
   it('leaves an &nbsp; surrounded by collapsible whitespace alone', () => {
     expect(fillEmptyBlocks('<div> &nbsp; </div>')).toBe('<div> &nbsp; </div>');
   });
@@ -177,6 +186,13 @@ describe('stripEmptyLineBreaks', () => {
 
   it('returns empty input unchanged', () => {
     expect(stripEmptyLineBreaks('')).toBe('');
+  });
+
+  it('leaves the line break of a line holding only a tab', () => {
+    // A tab kept by white-space: pre renders, so the line is not blank and its
+    // <br> is the user's.
+    const html = '<p><span style="white-space: pre">\t</span><br></p>';
+    expect(stripEmptyLineBreaks(html)).toBe(html);
   });
 
   it('is the inverse of fillEmptyBlocks (strip ∘ fill = identity on blank lines)', () => {

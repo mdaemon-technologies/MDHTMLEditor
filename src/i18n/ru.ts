@@ -52,6 +52,7 @@
   'Next': 'Следующий',
   'Replace All': 'Заменить все',
   'Search...': 'Поиск...',
+  'No emoticons found': 'Смайлики не найдены',
   'Special Character': 'Специальный символ',
   'Upload': 'Загрузить',
   'URL': 'URL',

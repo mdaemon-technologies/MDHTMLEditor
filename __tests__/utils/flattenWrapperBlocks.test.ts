@@ -126,6 +126,16 @@ describe('flattenWrapperBlocks', () => {
       expect(lines.map((line) => line.textContent)).toEqual(['From: a', 'a', 'b']);
     });
 
+    it('gives a tab between blocks in a styled quote its own line', () => {
+      // A tab kept by white-space: pre renders, unlike other whitespace.
+      const html = flattenQuotes(
+        `<div class="${MARKER}" style="font-family: Georgia">` +
+          '<p>a</p><span style="white-space: pre">\t</span><p>b</p></div>',
+      );
+      const lines = Array.from(new DOMParser().parseFromString(html, 'text/html').querySelectorAll('p'));
+      expect(lines.map((line) => line.textContent)).toEqual(['a', '\t', 'b']);
+    });
+
     it('does not wrap an inline element holding blocks in a line of its own', () => {
       // <p><span><p>…</p></span></p> would re-parse as empty lines.
       const html = flattenQuotes(

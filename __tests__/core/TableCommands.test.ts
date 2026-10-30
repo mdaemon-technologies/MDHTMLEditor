@@ -548,13 +548,14 @@ describe('Table commands', () => {
       expect($from.parent.textContent).toBe('b');
     });
 
-    it('indents the paragraph in the cell instead when false', () => {
+    it('inserts a tab in the cell instead when false', () => {
       create({ table_tab_navigation: false });
       cursorIn(editor, 0, 0);
       pressTab();
       const { $from } = editor.getTipTap()!.state.selection;
       expect($from.parent.textContent).toBe('a');
-      expect(editor.getContent()).toContain('margin-left: 40px');
+      expect($from.nodeBefore?.type.name).toBe('tabCharacter');
+      expect(editor.getContent()).not.toContain('margin-left');
     });
   });
 });

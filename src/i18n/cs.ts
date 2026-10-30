@@ -52,6 +52,7 @@
   'Next': 'Další',
   'Replace All': 'Nahradit vše',
   'Search...': 'Hledat...',
+  'No emoticons found': 'Nebyly nalezeny žádné emotikony',
   'Special Character': 'Speciální znak',
   'Upload': 'Nahrát',
   'URL': 'URL',

@@ -52,6 +52,7 @@
   'Next': 'Næste',
   'Replace All': 'Erstat alle',
   'Search...': 'Søg...',
+  'No emoticons found': 'Ingen emotikoner fundet',
   'Special Character': 'Specialtegn',
   'Upload': 'Upload',
   'URL': 'URL',

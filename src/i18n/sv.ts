@@ -52,6 +52,7 @@
   'Next': 'Nästa',
   'Replace All': 'Ersätt alla',
   'Search...': 'Sök...',
+  'No emoticons found': 'Inga emojier hittades',
   'Special Character': 'Specialtecken',
   'Upload': 'Ladda upp',
   'URL': 'URL',

@@ -52,6 +52,7 @@
   'Next': 'Επόμενο',
   'Replace All': 'Αντικατάσταση όλων',
   'Search...': 'Αναζήτηση...',
+  'No emoticons found': 'Δεν βρέθηκαν emoticons',
   'Special Character': 'Ειδικός χαρακτήρας',
   'Upload': 'Μεταφόρτωση',
   'URL': 'URL',

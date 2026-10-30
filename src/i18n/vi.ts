@@ -52,6 +52,7 @@
   'Next': 'Tiếp',
   'Replace All': 'Thay thế tất cả',
   'Search...': 'Tìm kiếm...',
+  'No emoticons found': 'Không tìm thấy biểu tượng cảm xúc',
   'Special Character': 'Ký tự đặc biệt',
   'Upload': 'Tải lên',
   'URL': 'URL',

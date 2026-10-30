@@ -52,6 +52,7 @@
   'Next': 'ถัดไป',
   'Replace All': 'แทนที่ทั้งหมด',
   'Search...': 'ค้นหา...',
+  'No emoticons found': 'ไม่พบอีโมติคอน',
   'Special Character': 'อักขระพิเศษ',
   'Upload': 'อัปโหลด',
   'URL': 'URL',

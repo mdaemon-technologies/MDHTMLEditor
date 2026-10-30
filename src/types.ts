@@ -196,7 +196,7 @@ export interface EditorConfig {
   table_default_header_rows?: number;
   /** Header columns of a table inserted from the toolbar, menu or dialog. Default 0. */
   table_default_header_cols?: number;
-  /** Tab and Shift+Tab move between table cells (default true); false indents the paragraph in the cell instead. */
+  /** Tab and Shift+Tab move between table cells (default true); false gives them their behavior outside a table (a tab at the caret, Shift+Tab outdents). */
   table_tab_navigation?: boolean;
   /** Show cell spacing, cell padding, border width and caption in the Table properties dialog. Default true. */
   table_appearance_options?: boolean;

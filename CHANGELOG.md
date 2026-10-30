@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2026-10-28
+
+### Added
+
+- **`EMOJI_DATA`** is exported: an English name and search keywords for every emoji in `EMOJI_CATEGORIES`, keyed by the emoji. `EMOJI_CATEGORIES` itself is unchanged.
+- **Emoji name tooltips.** Each emoji button in the picker shows the emoji's English name, such as "grinning face", as its tooltip, as the character map does for its characters. The emoji itself stays the button's accessible name.
+- **Translation key** `No emoticons found`, translated in every locale. The emoji picker shows it when a search matches nothing.
+- **`TabCharacter` extension** is exported: the TipTap node behind a typed tab, with an `insertTab` command.
+
+### Fixed
+
+- **Tab types a tab at the cursor.** With the cursor in a paragraph or heading, Tab added a left margin to the whole line, so the line moved as if the tab had gone in at its start, wherever the cursor was. It now types a tab at the cursor, written as `<span style="white-space: pre;">\t</span>` so it keeps its tab stops in exported HTML instead of collapsing to a space; `setContent()`, `insertContent()` and paste read that span, which other editors write too, back as a tab, keeping a font set on it; a span holding several tabs reads as that many tabs. Any other tab that reaches a line of text becomes a tab the same way, whether it is in text that keeps its whitespace (`white-space: pre-wrap`, as Google Docs writes), in pasted plain text, or in a code block turned into a paragraph; inside a code block a tab stays a plain tab in the code, and a line turned into a code block keeps its tabs that way. A line holding only a tab is not treated as blank, so it gets no filler `<br>`. With a selection, Tab still indents the selected paragraphs, and lists, code blocks and tables keep their own Tab. The Increase indent button and `execCommand('indent')` still indent the paragraph. With `table_tab_navigation: false`, Tab in a cell types a tab too.
+- **Backspace removes a tab.** A tab is one character: one Backspace (or Shift+Backspace) or Delete removes it, and one undo takes it back. Backspace at the start of an indented paragraph or heading now removes one indent step, instead of joining the line to the one above with the indent left in place. An empty line is still removed in one press, and right after an input rule (such as `> ` making a quote) it still undoes the rule.
+- **Emoji picker search.** Typing in the search box showed every emoji, whatever the query. It now shows only the emojis whose English name or keywords have a word starting with each word of the query, in any order (so "heart" finds ❤️ and 💔, "happy" finds 😀, "heart broken" finds 💔, and "up" finds ⬆️ but not the "cupid" in 💘), across all categories in category order. A word can start after a space, hyphen or other punctuation, so "eyes" finds "heart-eyes" and "1" finds "+1". Case and extra spaces are ignored. A pasted emoji finds itself, with or without its presentation selector or a skin tone. A query of only spaces shows the first category again, and a query that matches nothing says so. Opening the picker again starts with an empty search instead of the last one's results.
+
 ## [1.17.0] - 2026-10-27
 
 ### Added
@@ -479,6 +494,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.18.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.18.0
 [1.17.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.17.0
 [1.16.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.16.0
 [1.15.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.15.0

@@ -52,6 +52,7 @@
   'Next': 'التالي',
   'Replace All': 'استبدال الكل',
   'Search...': 'بحث...',
+  'No emoticons found': 'لم يتم العثور على رموز تعبيرية',
   'Special Character': 'حرف خاص',
   'Upload': 'رفع',
   'URL': 'رابط',

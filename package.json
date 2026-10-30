@@ -1,11 +1,11 @@
 {
   "name": "@mdaemon/html-editor",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "description": "A TinyMCE-compatible HTML editor built on TipTap",
   "homepage": "https://github.com/mdaemon-technologies/MDHTMLEditor",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mdaemon-technologies/MDHTMLEditor.git"
+    "url": "git+https://github.com/mdaemon-technologies/MDHTMLEditor.git"
   },
   "bugs": {
     "url": "https://github.com/mdaemon-technologies/MDHTMLEditor/issues"

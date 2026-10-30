@@ -18,6 +18,7 @@ import {
   CHAR_MAP,
   EmojiPicker,
   EMOJI_CATEGORIES,
+  EMOJI_DATA,
   SearchReplace,
   ResizableImage,
   computeImageResize,
@@ -192,6 +193,11 @@ describe('Package Exports', () => {
     it('should export EmojiPicker class', () => {
       expect(EmojiPicker).toBeDefined();
       expect(typeof EmojiPicker).toBe('function');
+    });
+
+    it('should export EMOJI_DATA names and keywords', () => {
+      expect(EMOJI_DATA['😀'].name).toBe('grinning face');
+      expect(Array.isArray(EMOJI_DATA['😀'].keywords)).toBe(true);
     });
 
     it('should export EMOJI_CATEGORIES data', () => {

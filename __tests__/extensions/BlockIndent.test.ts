@@ -7,9 +7,11 @@ import { Document } from '@tiptap/extension-document';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { Text } from '@tiptap/extension-text';
 import { CodeBlock } from '@tiptap/extension-code-block';
+import { Heading } from '@tiptap/extension-heading';
 
 import { HTMLEditor } from '../../src/core/HTMLEditor';
 import { BlockIndent } from '../../src/extensions/BlockIndent';
+import { TabCharacter } from '../../src/extensions/TabCharacter';
 
 function pressKey(tt: any, key: string, shift = false): KeyboardEvent {
   const event = new KeyboardEvent('keydown', {
@@ -100,11 +102,20 @@ describe('BlockIndent', () => {
     });
   });
 
+  /** Select the whole text node `word`. */
+  function select(word: string): void {
+    const tt = editor.getTipTap()!;
+    tt.commands.focus();
+    let pos = 0;
+    tt.state.doc.descendants((n, p) => { if (n.isText && n.text === word) pos = p; return true; });
+    tt.commands.setTextSelection({ from: pos, to: pos + word.length });
+  }
+
   describe('Tab key', () => {
-    it('Tab indents a paragraph instead of escaping the editor', () => {
+    it('Tab with a selection indents the paragraph instead of escaping the editor', () => {
       const tt = editor.getTipTap()!;
       editor.setContent('<p>hello</p>');
-      caretIn('hello');
+      select('hello');
       const ev = pressTab(tt);
       expect(editor.getContent()).toContain('margin-left: 40px');
       // Tab is consumed — it does not bubble out to move focus.
@@ -113,10 +124,52 @@ describe('BlockIndent', () => {
       expect(editor.getContent()).not.toContain('margin-left');
     });
 
+    it('Tab with the caret in a paragraph inserts a tab there instead of indenting the paragraph', () => {
+      const tt = editor.getTipTap()!;
+      editor.setContent('<p>hello</p>');
+      caretIn('hello');
+      const ev = pressTab(tt);
+      expect(ev.defaultPrevented).toBe(true);
+      expect(editor.getContent()).toContain('h<span style="white-space: pre;">\t</span>ello');
+      expect(editor.getContent()).not.toContain('margin-left');
+    });
+
+    it('Tab with a selection across paragraphs indents each of them', () => {
+      const tt = editor.getTipTap()!;
+      editor.setContent('<p>one</p><p>two</p>');
+      tt.commands.focus();
+      tt.commands.setTextSelection({ from: 2, to: tt.state.doc.content.size - 2 });
+      pressTab(tt);
+      expect(editor.getContent().match(/margin-left: 40px/g)).toHaveLength(2);
+      expect(editor.getContent()).not.toContain('white-space');
+    });
+
+    it('Tab types a tab only in the block types configured for indenting', () => {
+      const tt = new Editor({
+        extensions: [Document, Paragraph, Text, Heading, TabCharacter, BlockIndent.configure({ types: ['paragraph'] })],
+        content: '<h2>title</h2>',
+      });
+      tt.commands.setTextSelection(3);
+      pressTab(tt);
+      expect(tt.getHTML()).not.toContain('white-space');
+      tt.destroy();
+    });
+
+    it('Tab falls back to indenting when the editor has no tab node', () => {
+      const tt = new Editor({
+        extensions: [Document, Paragraph, Text, BlockIndent],
+        content: '<p>hello</p>',
+      });
+      tt.commands.setTextSelection(3);
+      pressTab(tt);
+      expect(tt.getHTML()).toContain('margin-left: 40px');
+      tt.destroy();
+    });
+
     it('Tab is always consumed, even in a paragraph already at max indent', () => {
       const tt = editor.getTipTap()!;
       editor.setContent('<p style="margin-left: 400px">hello</p>');
-      caretIn('hello');
+      select('hello');
       const ev = pressTab(tt);
       // Capped (no change past 400px) but still consumed — never escapes.
       expect(editor.getContent()).toContain('margin-left: 400px');
@@ -159,6 +212,78 @@ describe('BlockIndent', () => {
       expect(editor.getContent()).toContain('<li>');
       pressTab(tt, true);                 // lift the item out of the list
       expect(editor.getContent()).not.toContain('<li>');
+    });
+  });
+
+  describe('Backspace at the start of an indented block', () => {
+    it('removes one indent step instead of joining the line above', () => {
+      const tt = editor.getTipTap()!;
+      editor.setContent('<p>one</p><p style="margin-left: 80px">two</p>');
+      caretIn('two');
+      tt.commands.setTextSelection(tt.state.selection.from - 1);
+      const ev = pressKey(tt, 'Backspace');
+      expect(ev.defaultPrevented).toBe(true);
+      expect(tt.state.doc.childCount).toBe(2);
+      expect(editor.getContent()).toContain('margin-left: 40px');
+    });
+
+    it('removes the indent of a heading the same way', () => {
+      const tt = editor.getTipTap()!;
+      editor.setContent('<p>one</p><h2 style="margin-left: 40px">two</h2>');
+      caretIn('two');
+      tt.commands.setTextSelection(tt.state.selection.from - 1);
+      pressKey(tt, 'Backspace');
+      expect(tt.state.doc.childCount).toBe(2);
+      expect(editor.getContent()).not.toContain('margin-left');
+    });
+
+    it('removes an empty indented line in one press, as before', () => {
+      // Enter at the end of an indented line carries the indent to the new,
+      // empty line; Backspace there should take the line away, not step the
+      // indent down ten times first.
+      const tt = editor.getTipTap()!;
+      editor.setContent('<p style="margin-left: 400px">one</p><p style="margin-left: 400px"></p>');
+      tt.commands.focus();
+      tt.commands.setTextSelection(tt.state.doc.content.size - 1);
+      pressKey(tt, 'Backspace');
+      expect(tt.state.doc.childCount).toBe(1);
+      expect(tt.state.doc.textContent).toBe('one');
+    });
+
+    it('is left to the editor at zero indent', () => {
+      const tt = editor.getTipTap()!;
+      editor.setContent('<p>one</p><p>two</p>');
+      caretIn('two');
+      tt.commands.setTextSelection(tt.state.selection.from - 1);
+      pressKey(tt, 'Backspace');
+      // The stock behavior: the line joins the one above.
+      expect(tt.state.doc.childCount).toBe(1);
+      expect(tt.state.doc.textContent).toBe('onetwo');
+    });
+
+    it('leaves Backspace right after an input rule to undo the rule', () => {
+      const tt = editor.getTipTap()!;
+      editor.setContent('<p style="margin-left: 40px">&gt;</p>');
+      caretIn('>');
+      // Type the space that completes "> ": the blockquote input rule wraps the
+      // paragraph, which keeps its indent, and leaves the caret at its start.
+      const { from } = tt.state.selection;
+      tt.view.someProp('handleTextInput', (f) => f(tt.view, from, from, ' ', () => tt.state.tr.insertText(' ', from, from)));
+      expect(tt.state.doc.firstChild!.type.name).toBe('blockquote');
+      pressKey(tt, 'Backspace');
+      // Undone: back to the paragraph holding "> ", indent untouched.
+      expect(tt.state.doc.firstChild!.type.name).toBe('paragraph');
+      expect(tt.state.doc.textContent).toBe('> ');
+      expect(editor.getContent()).toContain('margin-left: 40px');
+    });
+
+    it('is left to the editor away from the start of the line', () => {
+      const tt = editor.getTipTap()!;
+      editor.setContent('<p style="margin-left: 40px">two</p>');
+      caretIn('two');
+      const ev = pressKey(tt, 'Backspace');
+      expect(ev.defaultPrevented).toBe(false);
+      expect(editor.getContent()).toContain('margin-left: 40px');
     });
   });
 
@@ -324,7 +449,7 @@ describe('BlockIndent', () => {
       caretIn('hello');
       pressKey(tt, 'Escape');
       pressTab(tt);               // escapes (consumes the armed flag)
-      caretIn('hello');
+      select('hello');
       pressTab(tt);               // normal indent again
       expect(editor.getContent()).toContain('margin-left: 40px');
     });
@@ -332,7 +457,7 @@ describe('BlockIndent', () => {
     it('any other key disarms the escape, so a later Tab still indents', () => {
       const tt = editor.getTipTap()!;
       editor.setContent('<p>hello</p>');
-      caretIn('hello');
+      select('hello');
       pressKey(tt, 'Escape');
       pressKey(tt, 'a');          // disarms
       expect((tt as any).storage.blockIndent.escapeArmed).toBe(false);

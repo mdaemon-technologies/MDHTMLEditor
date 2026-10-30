@@ -52,6 +52,7 @@
   'Next': 'Sonraki',
   'Replace All': 'Tümünü değiştir',
   'Search...': 'Ara...',
+  'No emoticons found': 'İfade bulunamadı',
   'Special Character': 'Özel karakter',
   'Upload': 'Yükle',
   'URL': 'URL',

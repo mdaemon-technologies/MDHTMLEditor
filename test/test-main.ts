@@ -317,10 +317,13 @@ function createEditorInstance(skin: typeof currentSkin) {
         '<span style="font-family: georgia, palatino; font-size: 24pt;">Georgia 24pt</span>, ' +
         '<span style="font-family: Calibri, sans-serif;">and Calibri, which is not in the font list</span>.</p>' +
         '<p>A named anchor target: <a id="welcome"></a> (insert more with the anchor button).</p>' +
-        // Put the cursor in this paragraph and press Tab / Shift+Tab: it indents
-        // and outdents the block (margin-left), CKEditor-style, instead of moving
-        // focus out of the editor. The indent/outdent toolbar buttons do the same.
-        '<p>Press Tab here to indent this paragraph.</p>' +
+        // Tab with the cursor in a line types a tab there (a white-space: pre
+        // span), and one Backspace removes it. Select text first and Tab /
+        // Shift+Tab indent and outdent the paragraph (margin-left), as the
+        // indent/outdent toolbar buttons do; Backspace at the start of an
+        // indented paragraph outdents it. Tab never moves focus out of the editor.
+        '<p>Name:<span style="white-space: pre;">\t</span>Ada. Click after a word and press Tab, then Backspace.</p>' +
+        '<p>Select this paragraph and press Tab to indent it.</p>' +
         '<ul><li>Bullet one</li><li>Bullet two</li></ul>' +
         '<blockquote><p>A block quote for testing.</p></blockquote>' +
         '<table><tbody><tr><th>Feature</th><th>Status</th></tr>' +

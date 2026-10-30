@@ -52,6 +52,7 @@
   'Next': 'Következő',
   'Replace All': 'Összes cseréje',
   'Search...': 'Keresés...',
+  'No emoticons found': 'Nem található hangulatjel',
   'Special Character': 'Speciális karakter',
   'Upload': 'Feltöltés',
   'URL': 'URL',
