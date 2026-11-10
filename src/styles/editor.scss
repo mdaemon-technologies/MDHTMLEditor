@@ -297,9 +297,11 @@ $md-dark-hover: #2d3e50;
   }
 }
 
-// Body-appended menus: scoped resets since they live outside .md-editor
+// Menus and dialogs added to document.body live outside .md-editor, so they
+// get its font and scoped resets here instead.
 .md-toolbar-dropdown-menu,
-.md-toolbar-colorpicker-menu {
+.md-toolbar-colorpicker-menu,
+.md-dialog-overlay {
   font-family: $md-font-family;
   font-size: $md-font-size;
   box-sizing: border-box;
@@ -1239,12 +1241,17 @@ $md-dark-hover: #2d3e50;
   margin-top: 16px;
 }
 
-// Link editor dialog
+// Link editor dialog, and the anchor dialog laid out like it
 .md-link-editor-dialog {
   width: 480px;
 }
 
-.md-link-editor-row {
+.md-anchor-dialog {
+  width: 360px;
+}
+
+.md-link-editor-row,
+.md-anchor-dialog-row {
   margin-bottom: 12px;
 
   label {
@@ -1256,7 +1263,8 @@ $md-dark-hover: #2d3e50;
 }
 
 .md-link-editor-input,
-.md-link-editor-select {
+.md-link-editor-select,
+.md-anchor-dialog-input {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid $md-border-color;
@@ -1276,11 +1284,18 @@ $md-dark-hover: #2d3e50;
   appearance: auto;
 }
 
-.md-link-editor-footer {
+.md-link-editor-footer,
+.md-anchor-dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
+}
+
+.md-anchor-dialog-error {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #cc0000;
 }
 
 // Table menu: the toolbar's table dropdown and the right-click menu
@@ -1533,11 +1548,21 @@ $md-dark-hover: #2d3e50;
     border-color: $md-dark-border;
   }
   
+  // The hover outranks the base selected and disabled rules, so restate them.
   .md-toolbar-dropdown-item {
     color: $md-dark-text;
-    
+
     &:hover {
       background: $md-dark-hover;
+    }
+
+    &.md-toolbar-dropdown-item-selected {
+      background: $md-primary;
+      color: #fff;
+    }
+
+    &:disabled {
+      background: transparent;
     }
   }
   
@@ -1617,6 +1642,10 @@ $md-dark-hover: #2d3e50;
     color: #ff8888;
   }
 
+  .md-anchor-dialog-error {
+    color: #ff8888;
+  }
+
   .md-image-upload-progress-bar {
     background: $md-dark-border;
   }
@@ -1673,7 +1702,11 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-link-editor-input,
-  .md-link-editor-select {
+  .md-link-editor-select,
+  .md-anchor-dialog-input,
+  .md-emoji-search-input,
+  .md-searchreplace-input,
+  .md-image-upload-row input {
     background: $md-dark-toolbar-bg;
     border-color: $md-dark-border;
     color: $md-dark-text;
@@ -1683,8 +1716,60 @@ $md-dark-hover: #2d3e50;
     }
   }
 
-  .md-link-editor-row label {
+  .md-link-editor-row label,
+  .md-anchor-dialog-row label,
+  .md-searchreplace-row label,
+  .md-searchreplace-count,
+  .md-image-upload-row label,
+  .md-image-upload-progress-text,
+  .md-charmap-preview-name,
+  .md-emoji-empty,
+  .md-toolbar-dropdown-item-desc {
     color: #aaa;
+  }
+
+  .md-image-upload-tabs,
+  .md-charmap-preview {
+    border-color: $md-dark-border;
+  }
+
+  // Tabs and character buttons: light text, the dark hover, and the active
+  // tab restated after them so it keeps its color.
+  .md-emoji-tab,
+  .md-charmap-tab,
+  .md-charmap-char,
+  .md-image-upload-tab {
+    color: $md-dark-text;
+
+    &:hover {
+      background: $md-dark-hover;
+    }
+  }
+
+  .md-charmap-tab,
+  .md-charmap-char,
+  .md-image-upload-tab {
+    border-color: $md-dark-border;
+  }
+
+  .md-emoji-btn:hover {
+    background: $md-dark-hover;
+  }
+
+  .md-emoji-tab.md-emoji-tab-active {
+    border-color: $md-primary;
+    background: rgba($md-primary, 0.25);
+  }
+
+  .md-charmap-tab.md-charmap-tab-active,
+  .md-image-upload-tab.md-image-upload-tab-active {
+    background: $md-primary;
+    border-color: $md-primary;
+    color: #fff;
+  }
+
+  .md-charmap-char:hover {
+    border-color: $md-primary;
   }
 }
 
@@ -1746,6 +1831,7 @@ $md-dark-hover: #2d3e50;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 
+  // The hover outranks the base selected and disabled rules, so restate them.
   .md-toolbar-dropdown-item {
     color: var(--color-confab-gray-900, #111827);
 
@@ -1756,6 +1842,10 @@ $md-dark-hover: #2d3e50;
     &.md-toolbar-dropdown-item-selected {
       background: var(--theme-primary, #0066cc);
       color: #fff;
+    }
+
+    &:disabled {
+      background: transparent;
     }
   }
 
@@ -1898,7 +1988,8 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-link-editor-input,
-  .md-link-editor-select {
+  .md-link-editor-select,
+  .md-anchor-dialog-input {
     border-color: var(--color-confab-gray-300, #d1d5db);
     border-radius: 6px;
 
@@ -1968,6 +2059,7 @@ $md-dark-hover: #2d3e50;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   }
 
+  // The hover outranks the base selected and disabled rules, so restate them.
   .md-toolbar-dropdown-item {
     color: var(--color-dark-text-primary, #fff);
 
@@ -1978,6 +2070,10 @@ $md-dark-hover: #2d3e50;
     &.md-toolbar-dropdown-item-selected {
       background: var(--theme-primary, #0066cc);
       color: #fff;
+    }
+
+    &:disabled {
+      background: transparent;
     }
   }
 
@@ -2047,8 +2143,18 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-dialog-header {
+    background: var(--color-dark-bg-secondary, #1e1e1e);
     border-color: var(--color-dark-border, #333);
     color: var(--color-dark-text-primary, #fff);
+  }
+
+  .md-dialog-close {
+    color: var(--color-dark-text-secondary, #aaa);
+
+    &:hover {
+      background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+      color: var(--color-dark-text-primary, #fff);
+    }
   }
 
   .md-btn {
@@ -2074,7 +2180,8 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-searchreplace-input,
-  .md-image-upload-row input {
+  .md-image-upload-row input,
+  .md-emoji-search-input {
     border-color: var(--color-dark-border, #333);
     background: var(--color-dark-bg-tertiary, #2a2a2a);
     color: var(--color-dark-text-primary, #fff);
@@ -2090,8 +2197,15 @@ $md-dark-hover: #2d3e50;
   .md-searchreplace-count,
   .md-image-upload-dropzone-text,
   .md-image-upload-row label,
-  .md-image-upload-progress-text {
+  .md-image-upload-progress-text,
+  .md-charmap-preview-name,
+  .md-emoji-empty,
+  .md-toolbar-dropdown-item-desc {
     color: var(--color-dark-text-muted, #888);
+  }
+
+  .md-image-upload-tabs {
+    border-color: var(--color-dark-border, #333);
   }
 
   .md-image-upload-tab {
@@ -2136,18 +2250,55 @@ $md-dark-hover: #2d3e50;
     color: #ff8888;
   }
 
+  .md-anchor-dialog-error {
+    color: #ff8888;
+  }
+
   .md-image-upload-progress-bar {
     background: var(--color-dark-border, #333);
   }
 
-  // Emoji & character map
-  .md-emoji-btn:hover,
-  .md-charmap-btn:hover {
+  // Emoji & character map: light text, the dark hover, and the active tab
+  // restated after them so it keeps its color.
+  .md-emoji-btn:hover {
     background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+  }
+
+  .md-emoji-tab,
+  .md-charmap-tab,
+  .md-charmap-char {
+    color: var(--color-dark-text-primary, #fff);
+
+    &:hover {
+      background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+    }
+  }
+
+  .md-charmap-tab,
+  .md-charmap-char {
+    border-color: var(--color-dark-border, #333);
+  }
+
+  .md-charmap-char:hover {
+    border-color: var(--theme-primary, #0066cc);
+  }
+
+  .md-emoji-tab.md-emoji-tab-active {
+    border-color: var(--theme-primary, #0066cc);
+    // For browsers without color-mix(), which drop the line after it.
+    background: rgba(0, 102, 204, 0.25);
+    background: color-mix(in srgb, var(--theme-primary, #0066cc) 25%, transparent);
+  }
+
+  .md-charmap-tab.md-charmap-tab-active {
+    background: var(--theme-primary, #0066cc);
+    border-color: var(--theme-primary, #0066cc);
+    color: #fff;
   }
 
   .md-charmap-preview {
     background: var(--color-dark-bg-tertiary, #2a2a2a);
+    border-color: var(--color-dark-border, #333);
     color: var(--color-dark-text-primary, #fff);
   }
 
@@ -2164,7 +2315,8 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-link-editor-input,
-  .md-link-editor-select {
+  .md-link-editor-select,
+  .md-anchor-dialog-input {
     background: var(--color-dark-bg-tertiary, #2a2a2a);
     border-color: var(--color-dark-border, #333);
     color: var(--color-dark-text-primary, #fff);
@@ -2176,7 +2328,8 @@ $md-dark-hover: #2d3e50;
     }
   }
 
-  .md-link-editor-row label {
+  .md-link-editor-row label,
+  .md-anchor-dialog-row label {
     color: var(--color-dark-text-muted, #888);
   }
 }
@@ -2501,8 +2654,14 @@ $md-dark-hover: #2d3e50;
     color: #777;
   }
 
-  .md-speechtotext-label {
+  .md-speechtotext-label,
+  .md-speechtotext-status {
     color: #aaa;
+  }
+
+  // Restated after the rule above, which outranks the base active color.
+  .md-speechtotext-status.md-speechtotext-status-active {
+    color: $md-primary;
   }
 
   .md-speechtotext-confidence {
@@ -2557,9 +2716,9 @@ $md-dark-hover: #2d3e50;
   50% { opacity: 0.3; }
 }
 
-// Table menus, context toolbar and dialogs in the dark and confab skins. The
-// right-click menu, context toolbar and dialogs carry the skin class; the
-// toolbar's own dropdown is themed like the other dropdowns.
+// Table menus, context toolbar and dialogs in the dark and confab skins. They
+// are added to document.body inside a wrapper carrying the skin class, as the
+// toolbar's dropdown and color menus are.
 .md-editor-oxide-dark {
   .md-table-submenu,
   .md-table-toolbar {

@@ -3,9 +3,14 @@
  * Emoji selection dialog
  */
 
+import type { EditorConfig } from '../types';
+import { createSkinHost } from '../utils/skinHost';
+
 export interface EmojiPickerOptions {
   onSelect: (emoji: string) => void;
   trans: (key: string) => string;
+  /** The editor's skin, so the dialog takes its styles. Defaults to 'oxide'. */
+  skin?: EditorConfig['skin'];
 }
 
 // Emoji categories with commonly used emojis
@@ -576,7 +581,7 @@ export class EmojiPicker {
     
     this.dialog.appendChild(header);
     this.dialog.appendChild(body);
-    this.overlay.appendChild(this.dialog);
+    this.overlay.appendChild(createSkinHost(this.options.skin, this.dialog));
     document.body.appendChild(this.overlay);
     
     this.searchInput.focus();

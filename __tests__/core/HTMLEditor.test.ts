@@ -464,6 +464,16 @@ describe('HTMLEditor', () => {
       const retrieved = editor.ui.registry.getButton('nonexistent');
       expect(retrieved).toBeUndefined();
     });
+
+    it('should add custom icons to registry', () => {
+      const svg = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>';
+      editor.ui.registry.addIcon('clock', svg);
+      expect(editor.ui.registry.getIcon('clock')).toBe(svg);
+    });
+
+    it('should return undefined for non-existent icons', () => {
+      expect(editor.ui.registry.getIcon('nonexistent')).toBeUndefined();
+    });
   });
 
   describe('Font Resolution', () => {

@@ -107,6 +107,22 @@ describe('EmojiPicker', () => {
     });
   });
 
+  describe('Theme Integration', () => {
+    it('puts the dialog inside an oxide skin wrapper by default', () => {
+      emojiPicker.open();
+      const dialog = document.querySelector('.md-dialog-overlay .md-emoji-dialog');
+      expect(dialog?.parentElement?.className).toBe('md-editor-oxide');
+      expect(dialog?.parentElement?.style.display).toBe('contents');
+    });
+
+    it('puts the dialog inside the given skin, so the dark styles reach it', () => {
+      emojiPicker.destroy();
+      emojiPicker = new EmojiPicker({ onSelect: onSelectMock, trans: transMock, skin: 'oxide-dark' });
+      emojiPicker.open();
+      expect(document.querySelector('.md-dialog-overlay .md-editor-oxide-dark .md-emoji-search-input')).not.toBeNull();
+    });
+  });
+
   describe('Dialog Open/Close', () => {
     it('should open dialog', () => {
       emojiPicker.open();

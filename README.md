@@ -159,7 +159,7 @@ const editor = new HTMLEditor(container, {
 | `min_height` | string \| number | - | Minimum editor height |
 | `max_height` | string \| number | - | Maximum editor height |
 | `auto_focus` | string | - | Auto-focus the editor on init |
-| `skin` | 'oxide' \| 'oxide-dark' \| 'confab' \| 'confab-dark' | 'oxide' | Theme (see Theming section) |
+| `skin` | 'oxide' \| 'oxide-dark' \| 'confab' \| 'confab-dark' | 'oxide' | Theme of the editor and of its menus and dialogs (see [Theming](#theming)) |
 | `content_css` | 'default' \| 'dark' \| 'confab' \| 'confab-dark' | 'default' | Content area styling |
 | `content_style` | string | - | Custom CSS injected into the content area |
 | `toolbar` | string | *(see Toolbar section)* | Custom toolbar button layout |
@@ -1101,16 +1101,17 @@ import { fontNames, CHAR_MAP, EMOJI_CATEGORIES, EMOJI_DATA, TRANSLATION_KEYS, DE
 
 ## Custom Toolbar Button API
 
-The `setup` callback receives a TinyMCE-compatible editor API. Use `ui.registry.addButton()` to register custom buttons.
+The `setup` callback receives a TinyMCE-compatible editor API. Use `ui.registry.addButton()` to register custom buttons, and `ui.registry.addIcon()` to register SVG icons for them.
 
 ```ts
 const editor = new HTMLEditor(container, {
   toolbar: 'bold italic | myButton | undo redo',
   setup: (ed) => {
+    ed.ui.registry.addIcon('my-icon', '<svg viewBox="0 0 24 24" stroke="currentColor">…</svg>');
     ed.ui.registry.addButton('myButton', {
       tooltip: 'My Custom Button',
       text: 'Click Me',        // text label on the button
-      icon: '/icons/custom.svg', // image URL (alternative to text)
+      icon: 'my-icon',         // icon name (alternative to text; see Icons below)
       disabled: false,
       onSetup: (api) => {
         // Called when the button is created
@@ -1138,6 +1139,23 @@ The `api` object passed to `onSetup` and `onAction`:
 | `isActive()` | Whether the button is in an active/pressed state |
 | `setActive(active)` | Toggle the active/pressed visual state |
 
+### Icons
+
+A custom button's `icon` can be:
+
+| Value | Example | Drawn as |
+|-------|---------|----------|
+| The name of an icon registered with `ui.registry.addIcon(name, svg)` | `'my-icon'` | Inline SVG |
+| The name of a built-in toolbar icon | `'link'` | Inline, like the built-in button |
+| SVG markup | `'<svg …>…</svg>'` | Inline SVG |
+| Anything else: an image URL | `'/icons/custom.png'` | An `<img>` |
+
+Inline icons are drawn the same way as the built-in buttons' icons, so an SVG that uses `currentColor` takes the button's text color and follows the skin (light in the dark skins). An image URL keeps its own colors in every skin, because a browser can't apply the page's colors to an image, even an SVG one. Use a URL only for icons that should keep fixed colors, such as a full-color logo. A registered icon takes precedence over a built-in icon of the same name. `ui.registry.getIcon(name)` returns a registered icon's markup.
+
+Icon markup, registered or given directly, is cleaned before it is drawn: only the `<svg>` and its drawing elements (shapes, paths, groups, text, gradients, clip paths, masks, markers, patterns and `<use>`) are kept. Script, event-handler attributes, links, animations, `<foreignObject>`, `<image>`, `<style>` and anything outside the `<svg>` are removed, and an `href` is kept only when it points inside the document (`#id`). An icon can't run script, whatever markup it is given.
+
+A button's `text` is different: it is inserted as HTML without cleaning, so build it only from your own strings, never from user input.
+
 ## Theming
 
 ### Light and dark themes
@@ -1150,6 +1168,14 @@ const editor = new HTMLEditor(container, {
   content_css: 'dark', // dark content area
 });
 ```
+
+### Menus and dialogs
+
+The toolbar's dropdown and color menus, the table toolbar and right-click menu, and every dialog are added to `document.body` rather than inside the editor, so a container with `overflow: hidden` cannot clip them. Each one sits inside a wrapper carrying the editor's skin class (`md-editor-oxide-dark`, ...), with `display: contents` so the wrapper has no box of its own, and so takes the same skin as the editor. Two editors on one page with different skins each get menus and dialogs in their own skin.
+
+To style them from your own CSS, scope the rule to the skin class just as the editor's own rules are, for example `.md-editor-oxide-dark .md-dialog`.
+
+Using `EmojiPicker` or `CharacterMap` on their own, outside an editor's toolbar, pass the `skin` option to give the dialog that skin; it defaults to `oxide`.
 
 ### Confab skin
 

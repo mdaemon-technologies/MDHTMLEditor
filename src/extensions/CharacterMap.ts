@@ -3,9 +3,14 @@
  * Special character picker dialog
  */
 
+import type { EditorConfig } from '../types';
+import { createSkinHost } from '../utils/skinHost';
+
 export interface CharMapOptions {
   onSelect: (char: string) => void;
   trans: (key: string) => string;
+  /** The editor's skin, so the dialog takes its styles. Defaults to 'oxide'. */
+  skin?: EditorConfig['skin'];
 }
 
 // Character map data organized by category
@@ -234,7 +239,7 @@ export class CharacterMap {
     
     this.dialog.appendChild(header);
     this.dialog.appendChild(body);
-    this.overlay.appendChild(this.dialog);
+    this.overlay.appendChild(createSkinHost(this.options.skin, this.dialog));
     document.body.appendChild(this.overlay);
   }
   

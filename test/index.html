@@ -193,6 +193,10 @@
               <option value="confab-dark">Confab (dark)</option>
             </select>
           </div>
+          <div class="toggle-row" style="margin-top:10px;">
+            <span>Emoji picker on its own, in this skin</span>
+            <button class="btn" id="btn-standalone-emoji" style="margin-left:auto;">Open</button>
+          </div>
         </div>
       </div>
 
@@ -562,9 +566,10 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
     onAction: () =&gt; { /* ... */ },
   });
 
-  // Icon (SVG data-URI) button
+  // Icon button: a registered SVG icon follows the skin's text color
+  ed.ui.registry.addIcon('clock', '&lt;svg ... stroke="currentColor"&gt;...&lt;/svg&gt;');
   ed.ui.registry.addButton('timestamp', {
-    icon: 'data:image/svg+xml,...',
+    icon: 'clock',
     tooltip: 'Insert timestamp',
     onAction: () =&gt; { /* ... */ },
   });

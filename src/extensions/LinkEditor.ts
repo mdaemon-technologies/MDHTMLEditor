@@ -4,6 +4,7 @@
  */
 
 import type { HTMLEditor } from '../core/HTMLEditor';
+import { createSkinHost } from '../utils/skinHost';
 import { getMarkRange } from '@tiptap/core';
 import type { Editor as TipTapEditor } from '@tiptap/core';
 import { LINK_ESCAPE_META } from './LinkEscape';
@@ -189,7 +190,6 @@ export class LinkEditor {
 
   private createDialog(): void {
     const trans = this.options.trans;
-    const skin = this.options.editor.getConfig().skin ?? 'oxide';
 
     // Create overlay
     this.overlay = document.createElement('div');
@@ -201,9 +201,7 @@ export class LinkEditor {
     });
 
     // Theme wrapper
-    const themeWrapper = document.createElement('div');
-    themeWrapper.className = `md-editor-${skin}`;
-    themeWrapper.style.display = 'contents';
+    const themeWrapper = createSkinHost(this.options.editor.getConfig().skin);
 
     // Create dialog
     this.dialog = document.createElement('div');

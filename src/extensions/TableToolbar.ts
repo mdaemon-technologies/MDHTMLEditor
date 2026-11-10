@@ -16,6 +16,7 @@ import type { HTMLEditor } from '../core/HTMLEditor';
 import { Toolbar } from '../core/Toolbar';
 import type { IconSet } from '../icons';
 import type { EditorConfig, ToolbarButtonSpec } from '../types';
+import { createSkinHost } from '../utils/skinHost';
 import { tableElementAtSelection } from './TableCommands';
 
 export interface TableToolbarOptions {
@@ -71,10 +72,8 @@ export class TableToolbar {
   constructor(options: TableToolbarOptions) {
     this.options = options;
     this.menuClass = `md-table-toolbar-menu-${options.editor.id}`;
-    const skin = options.config.skin ?? 'oxide';
-
-    this.host = document.createElement('div');
-    this.host.className = `md-editor-${skin} md-table-toolbar-host`;
+    this.host = createSkinHost(options.config.skin);
+    this.host.classList.add('md-table-toolbar-host');
     this.container = document.createElement('div');
     this.container.className = 'md-table-toolbar';
     this.container.setAttribute('role', 'toolbar');

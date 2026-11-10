@@ -20,7 +20,20 @@ export interface Template {
  */
 export interface ToolbarButtonSpec {
   tooltip?: string;
+  /**
+   * The button's icon: the name of an icon added with `ui.registry.addIcon`
+   * or of a built-in icon, or SVG markup. These are drawn inline, like the
+   * built-in buttons, so they take the button's text color. Markup is cleaned
+   * first: only SVG drawing elements are kept, without script, event handlers,
+   * links, or any `href` other than an `#id` reference. Anything else is used
+   * as an image URL, which
+   * keeps its own colors in every skin.
+   */
   icon?: string;
+  /**
+   * The button's label. It is inserted as HTML, not cleaned, so it must never
+   * contain user input or other untrusted text.
+   */
   text?: string;
   onSetup?: (api: ToolbarButtonAPI) => void | (() => void);
   onAction?: (api: ToolbarButtonAPI) => void;
@@ -35,11 +48,14 @@ export interface ToolbarButtonAPI {
 }
 
 /**
- * UI Registry for custom buttons (TinyMCE-compatible)
+ * UI Registry for custom buttons and icons (TinyMCE-compatible)
  */
 export interface UIRegistry {
   addButton: (name: string, spec: ToolbarButtonSpec) => void;
   getButton: (name: string) => ToolbarButtonSpec | undefined;
+  /** Register SVG markup under a name, for a custom button's `icon`. */
+  addIcon: (name: string, svg: string) => void;
+  getIcon: (name: string) => string | undefined;
 }
 
 /**

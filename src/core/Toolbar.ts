@@ -28,6 +28,8 @@ import { TableMenu, TABLE_ACTIONS, runTableAction } from '../extensions/TableMen
 import type { TableAction } from '../extensions/TableMenu';
 import { BORDER_STYLE_CHOICES } from '../extensions/TableDialog';
 import { isInTable } from '@tiptap/pm/tables';
+import { createSkinHost } from '../utils/skinHost';
+import { parseSvgIcon } from '../utils/svgIcon';
 
 interface ToolbarOptions {
   editor: HTMLEditor;
@@ -289,7 +291,8 @@ export class Toolbar {
   private dropdowns: Map<string, HTMLElement> = new Map();
   private labelSyncers: LabelSyncer[] = [];
   private tableControls: TableControl[] = [];
-  private bodyMenus: HTMLElement[] = [];
+  /** Holds the menus in document.body, under the editor's skin class (see createSkinHost). */
+  private menuHost: HTMLElement | null = null;
   private charMap: CharacterMap | null = null;
   private emojiPicker: EmojiPicker | null = null;
   private imageUpload: ImageUpload | null = null;
@@ -331,7 +334,33 @@ export class Toolbar {
   private icon(name: string): string {
     return this.options.iconSet[name] ?? name;
   }
-  
+
+  /**
+   * The inline icon for a custom button's `icon`, in the same span as the
+   * built-in buttons' icons: an icon added with `ui.registry.addIcon`, a
+   * built-in icon (with its `md-icon-<name>` styling class), or SVG markup
+   * given directly, which is anything starting with `<` (so a copied file's
+   * `<?xml?>` prolog or a comment is fine; a URL never starts that way).
+   * Undefined for anything else, which is an image URL. Markup from the app
+   * goes through `parseSvgIcon`, so only its SVG drawing elements are kept.
+   */
+  private customIconElement(icon: string): HTMLElement | undefined {
+    const span = document.createElement('span');
+    span.className = 'md-toolbar-btn-icon';
+    const registered = this.options.editor.ui.registry.getIcon(icon);
+    if (registered !== undefined) {
+      span.appendChild(parseSvgIcon(registered));
+    } else if (Object.prototype.hasOwnProperty.call(this.options.iconSet, icon)) {
+      span.classList.add(`md-icon-${icon}`);
+      span.innerHTML = this.options.iconSet[icon];
+    } else if (/^\s*</.test(icon)) {
+      span.appendChild(parseSvgIcon(icon));
+    } else {
+      return undefined;
+    }
+    return span;
+  }
+
   private render(): void {
     this.container.innerHTML = '';
     this.container.className = `md-toolbar md-toolbar-${this.options.mode}${this.options.sticky ? ' md-toolbar-sticky' : ''}`;
@@ -1046,7 +1075,15 @@ export class Toolbar {
     }
     
     if (spec.icon) {
-      button.innerHTML = `<img src="${spec.icon}" class="md-toolbar-btn-icon-img" />`;
+      const iconEl = this.customIconElement(spec.icon);
+      if (iconEl) {
+        button.appendChild(iconEl);
+      } else {
+        const img = document.createElement('img');
+        img.src = spec.icon;
+        img.className = 'md-toolbar-btn-icon-img';
+        button.appendChild(img);
+      }
     } else if (spec.text) {
       button.innerHTML = `<span class="md-toolbar-btn-text">${spec.text}</span>`;
     }
@@ -1373,10 +1410,26 @@ export class Toolbar {
     });
 
     wrapper.appendChild(button);
-    document.body.appendChild(menu);
-    this.bodyMenus.push(menu);
+    this.addBodyMenu(menu);
 
     this.dropdowns.set(name, wrapper);
+  }
+
+  /**
+   * Put `menu` in document.body, inside this toolbar's skin host so the skin's
+   * menu rules reach it.
+   */
+  private addBodyMenu(menu: HTMLElement): void {
+    if (!this.menuHost) {
+      this.menuHost = createSkinHost(this.options.config.skin);
+      document.body.appendChild(this.menuHost);
+    }
+    this.menuHost.appendChild(menu);
+  }
+
+  /** The dropdown and color menus in document.body. */
+  private get bodyMenus(): HTMLElement[] {
+    return Array.from(this.menuHost?.children ?? []) as HTMLElement[];
   }
   
   private createColorPicker(
@@ -1509,9 +1562,8 @@ export class Toolbar {
     });
     
     wrapper.appendChild(button);
-    document.body.appendChild(menu);
-    this.bodyMenus.push(menu);
-    
+    this.addBodyMenu(menu);
+
     this.dropdowns.set(name, wrapper);
     
     return wrapper;
@@ -1525,7 +1577,7 @@ export class Toolbar {
     this.boundClickHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const inDropdown = target.closest('.md-toolbar-dropdown, .md-toolbar-colorpicker');
-      const inBodyMenu = this.bodyMenus.some(m => m.contains(target));
+      const inBodyMenu = !!this.menuHost?.contains(target);
       if (!inDropdown && !inBodyMenu) {
         this.closeAllDropdowns();
       }
@@ -1734,6 +1786,7 @@ export class Toolbar {
         onError: this.options.config.images_upload_error,
         errorMessage: this.options.config.images_upload_error_message,
         trans: this.trans,
+        skin: this.options.config.skin,
       });
     }
     this.imageUpload.open();
@@ -1777,6 +1830,7 @@ export class Toolbar {
           this.tiptap?.chain().focus().insertContent(char).run();
         },
         trans: this.trans,
+        skin: this.options.config.skin,
       });
     }
     this.charMap.open();
@@ -1789,6 +1843,7 @@ export class Toolbar {
           this.tiptap?.chain().focus().insertContent(emoji).run();
         },
         trans: this.trans,
+        skin: this.options.config.skin,
       });
     }
     this.emojiPicker.open();
@@ -1940,9 +1995,7 @@ export class Toolbar {
   }
 
   private removeBodyMenus(): void {
-    this.bodyMenus.forEach(menu => {
-      menu.remove();
-    });
-    this.bodyMenus = [];
+    this.menuHost?.remove();
+    this.menuHost = null;
   }
 }

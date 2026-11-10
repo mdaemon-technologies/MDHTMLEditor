@@ -4,6 +4,7 @@
  */
 
 import type { HTMLEditor } from '../core/HTMLEditor';
+import { createSkinHost } from '../utils/skinHost';
 
 export interface SourceEditorOptions {
   editor: HTMLEditor;
@@ -52,7 +53,6 @@ export class SourceEditor {
 
   private createDialog(): void {
     const trans = this.options.trans;
-    const skin = this.options.editor.getConfig().skin ?? 'oxide';
 
     // Create overlay
     this.overlay = document.createElement('div');
@@ -64,9 +64,7 @@ export class SourceEditor {
     });
 
     // Theme wrapper — carries the skin class so nested theme selectors match
-    const themeWrapper = document.createElement('div');
-    themeWrapper.className = `md-editor-${skin}`;
-    themeWrapper.style.display = 'contents';
+    const themeWrapper = createSkinHost(this.options.editor.getConfig().skin);
 
     // Create dialog
     this.dialog = document.createElement('div');

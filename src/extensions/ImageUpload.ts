@@ -3,6 +3,9 @@
  * Image upload dialog with drag-drop, file picker, and URL input
  */
 
+import type { EditorConfig } from '../types';
+import { createSkinHost } from '../utils/skinHost';
+
 const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp'];
 
@@ -98,6 +101,8 @@ export interface ImageUploadOptions {
   /** Words a failed upload's message from the reply (images_upload_error_message). */
   errorMessage?: (response: unknown, status: number) => string | null | undefined;
   trans: (key: string) => string;
+  /** The editor's skin, so the dialog takes its styles. Defaults to 'oxide'. */
+  skin?: EditorConfig['skin'];
 }
 
 export class ImageUpload {
@@ -373,7 +378,7 @@ export class ImageUpload {
 
     this.dialog.appendChild(header);
     this.dialog.appendChild(body);
-    this.overlay.appendChild(this.dialog);
+    this.overlay.appendChild(createSkinHost(this.options.skin, this.dialog));
     document.body.appendChild(this.overlay);
   }
 

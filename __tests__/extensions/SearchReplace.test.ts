@@ -32,6 +32,24 @@ describe('SearchReplace', () => {
     document.querySelectorAll('.md-dialog-overlay').forEach(el => el.remove());
   });
 
+  describe('Theme Integration', () => {
+    it("puts the dialog inside the editor's skin wrapper", () => {
+      searchReplace.open();
+      const dialog = document.querySelector('.md-dialog-overlay .md-searchreplace-dialog');
+      expect(dialog?.parentElement?.className).toBe('md-editor-oxide');
+      expect(dialog?.parentElement?.style.display).toBe('contents');
+    });
+
+    it('follows a dark skin', () => {
+      searchReplace.destroy();
+      editor.destroy();
+      editor = new HTMLEditor(container, { skin: 'confab-dark' });
+      searchReplace = new SearchReplace({ editor, trans: transMock });
+      searchReplace.open();
+      expect(document.querySelector('.md-dialog-overlay .md-editor-confab-dark .md-searchreplace-input')).not.toBeNull();
+    });
+  });
+
   describe('Dialog Open/Close', () => {
     it('should open dialog', () => {
       searchReplace.open();

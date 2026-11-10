@@ -4,6 +4,7 @@
  */
 
 import type { HTMLEditor } from '../core/HTMLEditor';
+import { createSkinHost } from '../utils/skinHost';
 
 // Web Speech API type declarations (not available in all TS lib targets)
 interface SpeechRecognitionResult {
@@ -299,7 +300,7 @@ export class SpeechToText {
     // Assemble dialog
     this.dialog.appendChild(header);
     this.dialog.appendChild(body);
-    this.overlay.appendChild(this.dialog);
+    this.overlay.appendChild(createSkinHost(this.options.editor.getConfig().skin, this.dialog));
     document.body.appendChild(this.overlay);
 
     // Keyboard handler

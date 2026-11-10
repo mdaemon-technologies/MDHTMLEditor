@@ -78,6 +78,22 @@ describe('CharacterMap', () => {
     });
   });
 
+  describe('Theme Integration', () => {
+    it('puts the dialog inside an oxide skin wrapper by default', () => {
+      charMap.open();
+      const dialog = document.querySelector('.md-dialog-overlay .md-charmap-dialog');
+      expect(dialog?.parentElement?.className).toBe('md-editor-oxide');
+      expect(dialog?.parentElement?.style.display).toBe('contents');
+    });
+
+    it('puts the dialog inside the given skin, so the dark styles reach it', () => {
+      charMap.destroy();
+      charMap = new CharacterMap({ onSelect: onSelectMock, trans: transMock, skin: 'confab-dark' });
+      charMap.open();
+      expect(document.querySelector('.md-dialog-overlay .md-editor-confab-dark .md-charmap-dialog')).not.toBeNull();
+    });
+  });
+
   describe('Dialog Open/Close', () => {
     it('should open dialog', () => {
       charMap.open();

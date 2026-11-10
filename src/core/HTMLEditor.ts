@@ -240,6 +240,7 @@ export class HTMLEditor implements IMDHTMLEditor {
   private pasteMarkdownEnabled = false;
   private dirty = false;
   private customButtons: Map<string, ToolbarButtonSpec> = new Map();
+  private customIcons: Map<string, string> = new Map();
   private eventListeners: Map<keyof EditorEventMap, Set<EditorEventMap[keyof EditorEventMap]>> = new Map();
   private changeTimeout: ReturnType<typeof setTimeout> | null = null;
   private imageUploadHelper: ImageUpload | null = null;
@@ -253,13 +254,17 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.config = this.normalizeConfig(config);
     this.pasteMarkdownEnabled = this.config.paste_markdown ?? false;
     
-    // UI registry for custom buttons
+    // UI registry for custom buttons and icons
     this.ui = {
       registry: {
         addButton: (name: string, spec: ToolbarButtonSpec) => {
           this.customButtons.set(name, spec);
         },
         getButton: (name: string) => this.customButtons.get(name),
+        addIcon: (name: string, svg: string) => {
+          this.customIcons.set(name, svg);
+        },
+        getIcon: (name: string) => this.customIcons.get(name),
       },
     };
     
@@ -508,6 +513,7 @@ export class HTMLEditor implements IMDHTMLEditor {
         onError: this.config.images_upload_error,
         errorMessage: this.config.images_upload_error_message,
         trans: globalTranslate,
+        skin: this.config.skin,
       });
     }
     return this.imageUploadHelper;
@@ -1460,6 +1466,7 @@ export class HTMLEditor implements IMDHTMLEditor {
     
     this.eventListeners.clear();
     this.customButtons.clear();
+    this.customIcons.clear();
   }
   
   /** Recreate the right-click menu, so its labels are in the current language. */

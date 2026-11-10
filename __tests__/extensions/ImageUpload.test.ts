@@ -24,6 +24,22 @@ describe('ImageUpload', () => {
     document.querySelectorAll('.md-dialog-overlay').forEach(el => el.remove());
   });
 
+  describe('Theme Integration', () => {
+    it('puts the dialog inside an oxide skin wrapper by default', () => {
+      imageUpload.open();
+      const dialog = document.querySelector('.md-dialog-overlay .md-image-upload-dialog');
+      expect(dialog?.parentElement?.className).toBe('md-editor-oxide');
+      expect(dialog?.parentElement?.style.display).toBe('contents');
+    });
+
+    it('puts the dialog inside the given skin, so the dark styles reach it', () => {
+      imageUpload.destroy();
+      imageUpload = new ImageUpload({ onInsert: onInsertMock, trans: transMock, skin: 'oxide-dark' });
+      imageUpload.open();
+      expect(document.querySelector('.md-dialog-overlay .md-editor-oxide-dark .md-image-upload-dialog')).not.toBeNull();
+    });
+  });
+
   describe('Dialog Open/Close', () => {
     it('should open dialog', () => {
       imageUpload.open();

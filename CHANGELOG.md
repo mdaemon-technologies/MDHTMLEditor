@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0] - 2026-11-10
+
+### Added
+
+- **`skin` option** on `EmojiPicker` and `CharacterMap`, so a dialog opened outside an editor's toolbar can take a skin. It defaults to `oxide`; the toolbar passes the editor's own skin.
+- **`ui.registry.addIcon(name, svg)`** and **`ui.registry.getIcon(name)`**, as in TinyMCE: register SVG markup under a name and use that name as a custom button's `icon`. A custom button's `icon` can also be the name of a built-in toolbar icon, such as `'link'`, or SVG markup given directly. Icon markup is cleaned before it is drawn: only SVG drawing elements are kept, without script, event handlers, links, animations or `<foreignObject>`, so an icon can't run script.
+
+### Fixed
+
+- **Menus and dialogs follow the editor's skin.** The toolbar's dropdown menus (Format, Styles, Font, Font size, Line height, Templates and the Table menu), its color menus, the table toolbar's own menus, and the Emoticons, Special character, Insert image, Find and replace and Speech to Text dialogs always showed the light styles, whatever the `skin`. They are added to `document.body`, outside the editor, and the skin rules only reach elements inside the skin class. Each now sits inside a `display: contents` wrapper carrying that class, as the link, anchor, source code and table dialogs and the right-click menu already did. In the `confab` skin this also gives the menus their confab borders, corners and shadow.
+- **Dark styles for every dialog control.** In `oxide-dark`, the emoji search box, tabs and buttons, the character map's tabs, characters and preview, the find and replace fields, and the image dialog's tabs and fields kept their light colors; in `confab-dark`, so did the emoji search box and tabs, the character map's tabs and characters, the dialog header and its close button. Muted text such as field labels, a dropdown item's description, "No emoticons found" and the Speech to Text status line is lightened to stay readable in both dark skins.
+- **Dialogs use the editor's font and sizing.** Like the menus, the dialogs now get the editor's font and its `box-sizing: border-box` baseline instead of the page's, so the emoji search box no longer runs past the dialog's edge.
+- **Menu items on hover.** In the `oxide-dark`, `confab` and `confab-dark` skins, hovering a disabled item in a menu, such as Paste row before in the table menu with no row copied, gave it the hover background as if it could be chosen; it now stays plain. In `oxide-dark`, hovering the selected item of a dropdown, such as the current font size, no longer hides its highlight.
+- **Custom button icons follow the skin.** A custom button's `icon` was always drawn as an `<img>`, so an SVG icon drawn with `currentColor` came out black in every skin, including the dark ones. An icon given by name or as SVG markup is now drawn inline, the same way as the built-in buttons' icons, so it takes the button's text color. Any other value is still used as an image URL, which keeps its own colors.
+- **Anchor dialog layout.** The Insert anchor dialog had no styles of its own: its name field, error and buttons now match the link dialog, in every skin.
+
 ## [1.18.0] - 2026-10-28
 
 ### Added
@@ -494,6 +510,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.19.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.19.0
 [1.18.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.18.0
 [1.17.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.17.0
 [1.16.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.16.0

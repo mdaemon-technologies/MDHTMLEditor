@@ -15,6 +15,7 @@ import type { Editor as TipTapEditor } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
 import { CellSelection, cellAround } from '@tiptap/pm/tables';
 import type { HTMLEditor } from '../core/HTMLEditor';
+import { createSkinHost } from '../utils/skinHost';
 import { TableMenu } from './TableMenu';
 
 export interface ContextMenuOptions {
@@ -41,10 +42,7 @@ export class ContextMenu {
 
   constructor(options: ContextMenuOptions) {
     this.options = options;
-    const skin = options.editor.getConfig().skin ?? 'oxide';
-    this.host = document.createElement('div');
-    this.host.className = `md-editor-${skin}`;
-    this.host.style.display = 'contents';
+    this.host = createSkinHost(options.editor.getConfig().skin);
     this.menu = new TableMenu({ editor: options.editor, trans: options.trans, withInsert: false, onClose: () => this.close() });
     this.menu.element.classList.add('md-toolbar-dropdown-menu', 'md-context-menu');
     this.menu.element.style.display = 'none';

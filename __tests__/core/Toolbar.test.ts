@@ -4,6 +4,7 @@
 
 import { HTMLEditor, setTranslate, resetTranslate } from '../../src/core/HTMLEditor';
 import { Toolbar, PREVIEW_CSP } from '../../src/core/Toolbar';
+import { CONFAB_ICONS } from '../../src/icons';
 
 describe('Toolbar', () => {
   let container: HTMLElement;
@@ -735,6 +736,116 @@ describe('Toolbar', () => {
       
       buttonApi.setActive(false);
       expect(customBtn.classList.contains('md-toolbar-btn-active')).toBe(false);
+    });
+
+    // Built-in icons are inline, so they take the button's text color (light
+    // in the dark skins). A custom icon given as SVG must be drawn the same
+    // way: inside an <img> its currentColor is always black.
+    describe('icon', () => {
+      const svg = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor"/></svg>';
+
+      const buttonWithIcon = (icon: string, config: Record<string, unknown> = {}) => {
+        editor.destroy();
+        editor = new HTMLEditor(container, {
+          toolbar: 'mybutton',
+          ...config,
+          setup: (ed) => {
+            ed.ui.registry.addIcon('clock', svg);
+            ed.ui.registry.addButton('mybutton', { icon, tooltip: 'Clock', onAction: jest.fn() });
+          },
+        });
+        return container.querySelector('[data-button="mybutton"]') as HTMLButtonElement;
+      };
+
+      it('draws an icon registered with addIcon inline, like the built-in icons', () => {
+        const btn = buttonWithIcon('clock');
+        expect(btn.querySelector('img')).toBeNull();
+        expect(btn.querySelector('.md-toolbar-btn-icon > svg circle')).not.toBeNull();
+      });
+
+      it('draws SVG markup given as the icon inline', () => {
+        const btn = buttonWithIcon(svg);
+        expect(btn.querySelector('img')).toBeNull();
+        expect(btn.querySelector('.md-toolbar-btn-icon > svg circle')).not.toBeNull();
+      });
+
+      it.each([
+        ['registered with addIcon', 'evil'],
+        ['given as markup', '<svg onload="alert(1)"><script>alert(2)</script><circle r="1" onclick="alert(3)"/></svg>'],
+      ])('draws an icon %s without its script or event handlers', (_label, icon) => {
+        editor.destroy();
+        editor = new HTMLEditor(container, {
+          toolbar: 'mybutton',
+          setup: (ed) => {
+            ed.ui.registry.addIcon('evil', '<svg onload="alert(1)"><script>alert(2)</script><circle r="1" onclick="alert(3)"/></svg>');
+            ed.ui.registry.addButton('mybutton', { icon, onAction: jest.fn() });
+          },
+        });
+        const btn = container.querySelector('[data-button="mybutton"]')!;
+        expect(btn.querySelector('.md-toolbar-btn-icon circle')).not.toBeNull();
+        expect(btn.querySelector('script')).toBeNull();
+        expect(btn.innerHTML).not.toMatch(/alert/);
+      });
+
+      it('draws SVG markup copied from a file, with its XML prolog, inline', () => {
+        const btn = buttonWithIcon(`<?xml version="1.0" encoding="UTF-8"?>\n<!-- clock -->\n${svg}`);
+        expect(btn.querySelector('img')).toBeNull();
+        expect(btn.querySelector('.md-toolbar-btn-icon svg circle')).not.toBeNull();
+      });
+
+      it('draws a built-in icon name as that icon', () => {
+        const btn = buttonWithIcon('link', { skin: 'confab-dark' });
+        const builtIn = container.ownerDocument.createElement('span');
+        builtIn.innerHTML = CONFAB_ICONS.link;
+        expect(btn.querySelector('img')).toBeNull();
+        expect(btn.querySelector('.md-toolbar-btn-icon')?.innerHTML).toBe(builtIn.innerHTML);
+      });
+
+      it('gives a built-in icon name the same styling class as the built-in button', () => {
+        const btn = buttonWithIcon('bold');
+        const builtIn = container.ownerDocument.createElement('div');
+        editor.destroy();
+        editor = new HTMLEditor(builtIn, { toolbar: 'bold' });
+        const expected = builtIn.querySelector('[data-button="bold"] .md-toolbar-btn-icon');
+        expect(btn.querySelector('.md-toolbar-btn-icon')?.className).toBe(expected?.className);
+        expect(expected?.classList.contains('md-icon-bold')).toBe(true);
+      });
+
+      it('prefers a registered icon over a built-in one of the same name', () => {
+        editor.destroy();
+        editor = new HTMLEditor(container, {
+          toolbar: 'mybutton',
+          skin: 'confab',
+          setup: (ed) => {
+            ed.ui.registry.addIcon('link', svg);
+            ed.ui.registry.addButton('mybutton', { icon: 'link', onAction: jest.fn() });
+          },
+        });
+        expect(container.querySelector('[data-button="mybutton"] .md-toolbar-btn-icon circle')).not.toBeNull();
+      });
+
+      it('still draws anything else as an image URL', () => {
+        const btn = buttonWithIcon('/icons/custom.png');
+        const img = btn.querySelector('img.md-toolbar-btn-icon-img');
+        expect(img?.getAttribute('src')).toBe('/icons/custom.png');
+        expect(btn.querySelector('.md-toolbar-btn-icon')).toBeNull();
+      });
+
+      it('draws a registered icon inline on the table toolbar too', () => {
+        editor.destroy();
+        editor = new HTMLEditor(container, {
+          toolbar: 'bold',
+          table_toolbar: 'mybutton',
+          setup: (ed) => {
+            ed.ui.registry.addIcon('clock', svg);
+            ed.ui.registry.addButton('mybutton', { icon: 'clock', onAction: jest.fn() });
+          },
+        });
+        const btn = document.querySelector('.md-table-toolbar [data-button="mybutton"]');
+        expect(btn).not.toBeNull();
+        expect(btn?.querySelector('img')).toBeNull();
+        expect(btn?.querySelector('.md-toolbar-btn-icon > svg circle')).not.toBeNull();
+      });
     });
   });
 

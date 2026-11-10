@@ -85,6 +85,24 @@ describe('SpeechToText', () => {
     document.querySelectorAll('.md-dialog-overlay').forEach(el => el.remove());
   });
 
+  describe('Theme Integration', () => {
+    it("puts the dialog inside the editor's skin wrapper", () => {
+      speechToText.open();
+      const dialog = document.querySelector('.md-dialog-overlay .md-speechtotext-dialog');
+      expect(dialog?.parentElement?.className).toBe('md-editor-oxide');
+      expect(dialog?.parentElement?.style.display).toBe('contents');
+    });
+
+    it('follows a dark skin', () => {
+      speechToText.destroy();
+      editor.destroy();
+      editor = new HTMLEditor(container, { skin: 'oxide-dark' });
+      speechToText = new SpeechToText({ editor, trans: transMock });
+      speechToText.open();
+      expect(document.querySelector('.md-dialog-overlay .md-editor-oxide-dark .md-speechtotext-dialog')).not.toBeNull();
+    });
+  });
+
   describe('default language', () => {
     it('should default the Latin-script Serbian locale to Serbian', () => {
       editor.setLanguage('sr-latn');

@@ -5,6 +5,7 @@
  */
 
 import type { HTMLEditor } from '../core/HTMLEditor';
+import { createSkinHost } from '../utils/skinHost';
 import type { Editor as TipTapEditor } from '@tiptap/core';
 
 export interface AnchorDialogOptions {
@@ -76,7 +77,6 @@ export class AnchorDialog {
 
   private createDialog(): void {
     const trans = this.options.trans;
-    const skin = this.options.editor.getConfig().skin ?? 'oxide';
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'md-dialog-overlay';
@@ -86,9 +86,7 @@ export class AnchorDialog {
       }
     });
 
-    const themeWrapper = document.createElement('div');
-    themeWrapper.className = `md-editor-${skin}`;
-    themeWrapper.style.display = 'contents';
+    const themeWrapper = createSkinHost(this.options.editor.getConfig().skin);
 
     this.dialog = document.createElement('div');
     this.dialog.className = 'md-dialog md-anchor-dialog';

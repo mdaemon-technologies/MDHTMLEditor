@@ -1,4 +1,5 @@
-import { HTMLEditor, setTranslate, resetTranslate } from '../src/core/HTMLEditor';
+import { HTMLEditor, setTranslate, resetTranslate, getTranslate } from '../src/core/HTMLEditor';
+import { EmojiPicker } from '../src/extensions/Emoji';
 import '../src/styles/editor.scss';
 
 // ── Helpers ─────────────────────────────────────────
@@ -17,14 +18,12 @@ let customButtonApis: { name: string; api: { setEnabled: (v: boolean) => void } 
 // ── Create editor ───────────────────────────────────
 const container = $('#editor-container');
 
-// SVG data-URI for the timestamp button icon
+// SVG for the timestamp button icon. It is registered with addIcon and drawn
+// inline, so its currentColor follows the skin's text color.
 const clockSvg =
-  'data:image/svg+xml,' +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" ' +
-    'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-    '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
-  );
+  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" ' +
+  'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
 
 // ── Shared editor config & factory ──────────────────
 let currentSkin: 'oxide' | 'oxide-dark' | 'confab' | 'confab-dark' = 'oxide';
@@ -266,9 +265,10 @@ function createEditorInstance(skin: typeof currentSkin) {
       },
     });
 
-    // ── Custom button 2: Timestamp (icon via data-URI) ────
+    // ── Custom button 2: Timestamp (icon registered with addIcon) ────
+    ed.ui.registry.addIcon('clock', clockSvg);
     ed.ui.registry.addButton('timestamp', {
-      icon: clockSvg,
+      icon: 'clock',
       tooltip: 'Insert timestamp',
       onAction: () => {
         const ts = new Date().toLocaleString();
@@ -776,4 +776,21 @@ $<HTMLSelectElement>('#cmd-skin').addEventListener('change', (e) => {
     refreshHtml();
     log('info', `skin → ${val}`);
   }, 50);
+});
+
+// An EmojiPicker built outside the toolbar takes the skin through its `skin`
+// option; the toolbar's own menus and dialogs follow the editor's skin.
+let standaloneEmoji: EmojiPicker | null = null;
+$('#btn-standalone-emoji').addEventListener('click', () => {
+  standaloneEmoji?.destroy();
+  standaloneEmoji = new EmojiPicker({
+    onSelect: (emoji) => {
+      editor.insertContent(emoji);
+      refreshHtml();
+    },
+    trans: getTranslate(),
+    skin: currentSkin,
+  });
+  standaloneEmoji.open();
+  log('info', `standalone EmojiPicker opened (skin: ${currentSkin})`);
 });

@@ -14,6 +14,7 @@
 import type { HTMLEditor } from '../core/HTMLEditor';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { mergeStyle, styleProperty } from '../utils/cssValues';
+import { createSkinHost } from '../utils/skinHost';
 import { MAX_TABLE_SIZE, TABLE_STYLE_RULES, smallNumber } from './TableAttributes';
 import {
   getTableCellType,
@@ -343,7 +344,6 @@ export class TableDialog {
   private show(title: string, tabs: TabSpec[], onSave: SaveHandler): void {
     this.close();
     const t = this.trans;
-    const skin = this.options.editor.getConfig().skin ?? 'oxide';
     const id = `md-table-dialog-${++dialogCounter}`;
     const initial = new Map<string, string>();
     const inputs = new Map<string, HTMLInputElement | HTMLSelectElement>();
@@ -355,9 +355,7 @@ export class TableDialog {
       if (e.target === overlay) this.cancel();
     });
 
-    const themeWrapper = document.createElement('div');
-    themeWrapper.className = `md-editor-${skin}`;
-    themeWrapper.style.display = 'contents';
+    const themeWrapper = createSkinHost(this.options.editor.getConfig().skin);
 
     const dialog = document.createElement('div');
     dialog.className = 'md-dialog md-table-dialog';
