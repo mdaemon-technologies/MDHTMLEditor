@@ -12,6 +12,17 @@ import {
   getGetFileSrc,
   Toolbar,
   FontSize,
+  FormatPainter,
+  isFormatPainterActive,
+  MediaDialog,
+  parseVideoUrl,
+  ImageDialog,
+  imageSource,
+  ImageAttributes,
+  IMAGE_STYLE_RULES,
+  PasteAsText,
+  pastePlainText,
+  clipboardHtmlText,
   LineHeight,
   TextDirection,
   CharacterMap,
@@ -48,6 +59,8 @@ import type {
   ResizableImageOptions,
   EditorEvents,
   ImageMapArea,
+  ImageDialogOptions,
+  ImageUploader,
   TableModifiedEvent,
   NewRowEvent,
   NewCellEvent,
@@ -96,6 +109,23 @@ describe('Package Exports', () => {
   });
 
   describe('Extension Exports', () => {
+    it('should export the PasteAsText extension', () => {
+      expect(PasteAsText.name).toBe('pasteAsText');
+      expect(typeof pastePlainText).toBe('function');
+      expect(typeof clipboardHtmlText).toBe('function');
+    });
+
+    it('should export the Insert video dialog and its link parser', () => {
+      expect(typeof MediaDialog).toBe('function');
+      expect(parseVideoUrl('https://youtu.be/abcDEF12345')?.provider).toBe('youtube');
+    });
+
+    it('should export the FormatPainter extension and its state helper', () => {
+      expect(FormatPainter).toBeDefined();
+      expect(FormatPainter.name).toBe('formatPainter');
+      expect(typeof isFormatPainterActive).toBe('function');
+    });
+
     it('should export FontSize extension', () => {
       expect(FontSize).toBeDefined();
       expect(FontSize.name).toBe('fontSize');
@@ -129,6 +159,16 @@ describe('Package Exports', () => {
     it('should export the MarkedQuote extension', () => {
       expect(MarkedQuote.name).toBe('blockquote');
       expect(MarkedQuote.configure({ markerClass: 'quoted-original' }).options.markerClass).toBe('quoted-original');
+    });
+
+    it('should export the image dialog, its address check and the image attributes', () => {
+      expect(typeof ImageDialog).toBe('function');
+      expect(imageSource('javascript:alert(1)')).toBeNull();
+      expect(ImageAttributes.name).toBe('imageAttributes');
+      expect(IMAGE_STYLE_RULES.map(([property]) => property)).toContain('float');
+      const uploader: ImageUploader = { validateFile: () => null, uploadFile: async () => 'https://example.com/a.png' };
+      const options: Partial<ImageDialogOptions> = { uploader };
+      expect(options.uploader).toBe(uploader);
     });
 
     it('should export the ImageMap extension', () => {

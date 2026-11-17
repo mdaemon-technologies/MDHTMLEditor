@@ -157,6 +157,30 @@ $md-dark-hover: #2d3e50;
   }
 }
 
+// `||` in the toolbar string: a full-width, zero-height item, so the buttons
+// after it start a new line, which is hidden while the More toggle is closed.
+// The separator rendered beside it only shows where the buttons are one line
+// (narrow mode and the table toolbar, below), which hide the break instead.
+.md-toolbar-row-break {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.md-toolbar-row-separator {
+  display: none;
+}
+
+// For a toolbar whose buttons are one line: a `||` shows as a separator.
+@mixin md-toolbar-one-line-rows {
+  .md-toolbar-row-break {
+    display: none;
+  }
+
+  .md-toolbar-row-separator {
+    display: block;
+  }
+}
+
 .md-toolbar-toggle-btn {
   flex-shrink: 0;
   align-self: flex-start;
@@ -233,6 +257,15 @@ $md-dark-hover: #2d3e50;
   &.md-icon-italic { font-style: italic; }
   &.md-icon-underline { text-decoration: underline; }
   &.md-icon-strikethrough { text-decoration: line-through; }
+}
+
+// A button with a text label (a custom button's `text`) is as wide as its
+// label, on one line, rather than a square that wraps it.
+.md-toolbar-btn.md-toolbar-btn-labelled {
+  width: auto;
+  min-width: $md-btn-size;
+  padding: 0 8px;
+  white-space: nowrap;
 }
 
 .md-toolbar-btn-icon-img {
@@ -591,6 +624,12 @@ $md-dark-hover: #2d3e50;
     position: relative;
   }
 
+  // An image with margins (the image dialog's spacing) carries them on the
+  // wrapper, which takes vertical margins only as an inline-block.
+  .md-image-styled {
+    display: inline-block;
+  }
+
   .md-image-resizable {
     display: inline-block;
     max-width: 100%;
@@ -730,6 +769,67 @@ $md-dark-hover: #2d3e50;
       background: var(--md-table-resize-color, #{$md-primary});
       pointer-events: none;
       z-index: 3;
+    }
+  }
+}
+
+// Format painter: the FormatPainter plugin puts md-format-painter on the
+// editing root while it is on. A keyword cursor, not an image: a url() cursor
+// is an image load that a host page's Content Security Policy can refuse.
+.md-editor-body.md-format-painter,
+.md-editor-body.md-format-painter * {
+  cursor: copy;
+}
+
+// Show blocks: a dashed outline and a tag label on each block. The class is on
+// the editor wrapper, outside the ProseMirror root, so none of this reaches
+// getContent(). CSS cannot read a tag name, so each tag has its own label rule.
+// The table view wraps every table in div.tableWrapper, which carries the
+// table's outline. Widget decorations are not content: ProseMirror gives each
+// one the ProseMirror-widget class (the gap cursor, and the column-resize
+// handle a table shows in its cells while the pointer is on a column border).
+$md-visualblocks-labels: (
+  'p': 'P',
+  'h1': 'H1',
+  'h2': 'H2',
+  'h3': 'H3',
+  'h4': 'H4',
+  'h5': 'H5',
+  'h6': 'H6',
+  'blockquote': 'BLOCKQUOTE',
+  'ul': 'UL',
+  'ol': 'OL',
+  'pre': 'PRE',
+  'div:not(.tableWrapper):not(.ProseMirror-widget)': 'DIV',
+  '.tableWrapper': 'TABLE',
+);
+
+.md-editor-visualblocks .md-editor-body {
+  @each $block, $label in $md-visualblocks-labels {
+    #{$block} {
+      // Room above the text for the label, as TinyMCE's and CKEditor's modes
+      // make, so the label never covers the first words. !important because a
+      // block's own inline padding (a quoted reply often has padding: 0 0 0
+      // 4pt) would take the room away; this only applies while the mode is on.
+      position: relative;
+      padding-top: 14px !important;
+      outline: 1px dashed var(--md-visualblocks-color, #bbb);
+    }
+
+    #{$block}::before {
+      content: $label;
+      position: absolute;
+      top: 1px;
+      inset-inline-start: 0;
+      padding: 0 3px;
+      font: 9px/12px $md-font-family;
+      font-style: normal;
+      font-weight: normal;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--md-visualblocks-label-color, #888);
+      pointer-events: none;
+      user-select: none;
     }
   }
 }
@@ -1048,14 +1148,23 @@ $md-dark-hover: #2d3e50;
       background: $md-primary-hover;
     }
   }
+
+  // Disabled (Insert while a video is looked up): faded, and no hover in any
+  // skin, since the skins' hover rules would otherwise still light it up.
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+    pointer-events: none;
+  }
 }
 
-// Image upload dialog
-.md-image-upload-dialog {
-  width: 500px;
+// Image dialog: insert an image, or edit the selected one
+.md-image-dialog {
+  width: 560px;
+  max-width: calc(100vw - 32px);
 }
 
-.md-image-upload-tabs {
+.md-image-dialog-tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 16px;
@@ -1063,11 +1172,12 @@ $md-dark-hover: #2d3e50;
   padding-bottom: 8px;
 }
 
-.md-image-upload-tab {
+.md-image-dialog-tab {
   padding: 6px 16px;
   border: 1px solid $md-border-color;
   border-radius: $md-border-radius;
   background: transparent;
+  color: inherit;
   cursor: pointer;
   font-size: 13px;
 
@@ -1075,14 +1185,138 @@ $md-dark-hover: #2d3e50;
     background: #f0f0f0;
   }
 
-  &.md-image-upload-tab-active {
+  &[aria-selected="true"] {
     background: $md-primary;
     color: #fff;
     border-color: $md-primary;
   }
 }
 
-.md-image-upload-dropzone {
+.md-image-dialog-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  label {
+    width: 120px;
+    font-size: 13px;
+    color: #666;
+    flex-shrink: 0;
+  }
+}
+
+.md-image-dialog-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid $md-border-color;
+  border-radius: $md-border-radius;
+  background: #fff;
+  color: #333;
+  font-size: 14px;
+
+  &:focus {
+    outline: none;
+    border-color: $md-primary;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+
+  &[aria-invalid="true"] {
+    border-color: #cc0000;
+  }
+}
+
+// Image is decorative: the checkbox, then its label.
+.md-image-dialog-check {
+  label {
+    width: auto;
+  }
+
+  input {
+    margin: 0;
+  }
+}
+
+// Width and Height side by side, with Constrain proportions and Reset size.
+.md-image-dialog-size {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  .md-image-dialog-row {
+    flex: 1;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    margin-bottom: 0;
+
+    label {
+      width: auto;
+    }
+  }
+}
+
+.md-image-dialog-lock,
+.md-image-dialog-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid $md-border-color;
+  border-radius: $md-border-radius;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+
+  &:hover {
+    background: #f0f0f0;
+  }
+}
+
+.md-image-dialog-lock[aria-pressed="true"] {
+  color: $md-primary;
+  border-color: $md-primary;
+  background: rgba($md-primary, 0.08);
+}
+
+// The preview shows the image at the size it will have, so it scrolls
+// rather than growing the dialog.
+.md-image-dialog-preview {
+  margin-bottom: 12px;
+  border: 1px solid $md-border-color;
+  border-radius: $md-border-radius;
+  padding: 8px;
+  background: #fafafa;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.md-image-dialog-preview-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #888;
+}
+
+.md-image-dialog-preview-error {
+  color: #cc0000;
+  font-size: 13px;
+  margin-bottom: 8px;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.md-image-dialog-dropzone {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1100,17 +1334,13 @@ $md-dark-hover: #2d3e50;
     background: rgba($md-primary, 0.03);
   }
 
-  &.md-image-upload-dropzone-active {
+  &.md-image-dialog-dropzone-active {
     border-color: $md-primary;
     background: rgba($md-primary, 0.08);
   }
 }
 
-.md-image-upload-dropzone-icon {
-  color: #999;
-}
-
-.md-image-upload-dropzone-text {
+.md-image-dialog-dropzone-text {
   color: #666;
   font-size: 13px;
   max-width: 100%;
@@ -1119,66 +1349,32 @@ $md-dark-hover: #2d3e50;
   white-space: nowrap;
 }
 
-.md-image-upload-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-
-  label {
-    width: 60px;
-    font-size: 13px;
-    color: #666;
-    flex-shrink: 0;
-  }
-
-  input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid $md-border-color;
-    border-radius: $md-border-radius;
-    font-size: 14px;
-
-    &:focus {
-      outline: none;
-      border-color: $md-primary;
-    }
-  }
-}
-
-.md-image-upload-preview {
-  margin-bottom: 12px;
-  text-align: center;
-  border: 1px solid $md-border-color;
-  border-radius: $md-border-radius;
-  padding: 8px;
-  background: #fafafa;
-
-  img {
-    max-width: 100%;
-    max-height: 200px;
-    object-fit: contain;
-  }
-}
-
-.md-image-upload-error {
+.md-image-dialog-upload-error {
   color: #cc0000;
   font-size: 13px;
-  margin-bottom: 12px;
+  margin-top: 12px;
   padding: 8px;
   background: #fff0f0;
   border: 1px solid #ffcccc;
   border-radius: $md-border-radius;
+
+  &:empty {
+    display: none;
+  }
 }
 
-.md-image-upload-progress {
+.md-image-dialog-progress {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-top: 12px;
+
+  &[hidden] {
+    display: none;
+  }
 }
 
-.md-image-upload-progress-bar {
+.md-image-dialog-progress-bar {
   flex: 1;
   height: 8px;
   background: #e0e0e0;
@@ -1186,7 +1382,7 @@ $md-dark-hover: #2d3e50;
   overflow: hidden;
 }
 
-.md-image-upload-progress-fill {
+.md-image-dialog-progress-fill {
   height: 100%;
   width: 0%;
   background: $md-primary;
@@ -1194,13 +1390,13 @@ $md-dark-hover: #2d3e50;
   transition: width 0.2s;
 }
 
-.md-image-upload-progress-text {
+.md-image-dialog-progress-text {
   font-size: 12px;
   color: #666;
   min-width: 40px;
 }
 
-.md-image-upload-footer {
+.md-image-dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
@@ -1246,12 +1442,14 @@ $md-dark-hover: #2d3e50;
   width: 480px;
 }
 
-.md-anchor-dialog {
+.md-anchor-dialog,
+.md-media-dialog {
   width: 360px;
 }
 
 .md-link-editor-row,
-.md-anchor-dialog-row {
+.md-anchor-dialog-row,
+.md-media-dialog-row {
   margin-bottom: 12px;
 
   label {
@@ -1264,7 +1462,8 @@ $md-dark-hover: #2d3e50;
 
 .md-link-editor-input,
 .md-link-editor-select,
-.md-anchor-dialog-input {
+.md-anchor-dialog-input,
+.md-media-dialog-input {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid $md-border-color;
@@ -1285,17 +1484,26 @@ $md-dark-hover: #2d3e50;
 }
 
 .md-link-editor-footer,
-.md-anchor-dialog-footer {
+.md-anchor-dialog-footer,
+.md-media-dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
 }
 
-.md-anchor-dialog-error {
+.md-anchor-dialog-error,
+.md-media-dialog-error {
   margin-bottom: 12px;
   font-size: 13px;
   color: #cc0000;
+}
+
+// Which links the Insert video dialog takes, under its field.
+.md-media-dialog-hint {
+  margin: -6px 0 12px;
+  font-size: 12px;
+  color: #666;
 }
 
 // Table menu: the toolbar's table dropdown and the right-click menu
@@ -1421,6 +1629,9 @@ $md-dark-hover: #2d3e50;
     max-height: none;
     overflow: visible;
   }
+
+  // One line, so a `||` shows as a separator, not a new row
+  @include md-toolbar-one-line-rows;
 }
 
 // The table toolbar's own dropdown and color menus, above the toolbar.
@@ -1594,7 +1805,9 @@ $md-dark-hover: #2d3e50;
   
   .md-editor-body {
     color: $md-dark-text;
-    
+    --md-visualblocks-color: #666;
+    --md-visualblocks-label-color: #999;
+
     blockquote {
       border-color: $md-dark-border;
       color: #aaa;
@@ -1619,34 +1832,54 @@ $md-dark-hover: #2d3e50;
     }
   }
 
-  // Dark theme image upload dialog
-  .md-image-upload-dropzone {
+  // Dark theme image dialog
+  .md-image-dialog-lock,
+  .md-image-dialog-reset {
+    color: $md-dark-text;
     border-color: $md-dark-border;
-    &:hover, &.md-image-upload-dropzone-active {
+
+    &:hover {
+      background: $md-dark-hover;
+    }
+  }
+
+  // Restated after the hover, so it stays marked under the pointer.
+  .md-image-dialog-lock[aria-pressed="true"] {
+    color: $md-primary;
+    border-color: $md-primary;
+    background: rgba($md-primary, 0.2);
+  }
+
+  .md-image-dialog-preview-text { color: #aaa; }
+
+  .md-image-dialog-dropzone {
+    border-color: $md-dark-border;
+    &:hover, &.md-image-dialog-dropzone-active {
       border-color: $md-primary;
       background: rgba($md-primary, 0.1);
     }
   }
 
-  .md-image-upload-dropzone-icon { color: #666; }
-  .md-image-upload-dropzone-text { color: #aaa; }
+  .md-image-dialog-dropzone-text { color: #aaa; }
 
-  .md-image-upload-preview {
+  .md-image-dialog-preview {
     background: $md-dark-toolbar-bg;
     border-color: $md-dark-border;
   }
 
-  .md-image-upload-error {
+  .md-image-dialog-upload-error {
     background: #3a1c1c;
     border-color: #6b2c2c;
     color: #ff8888;
   }
 
-  .md-anchor-dialog-error {
+  .md-anchor-dialog-error,
+  .md-media-dialog-error,
+  .md-image-dialog-preview-error {
     color: #ff8888;
   }
 
-  .md-image-upload-progress-bar {
+  .md-image-dialog-progress-bar {
     background: $md-dark-border;
   }
 
@@ -1704,9 +1937,10 @@ $md-dark-hover: #2d3e50;
   .md-link-editor-input,
   .md-link-editor-select,
   .md-anchor-dialog-input,
+  .md-media-dialog-input,
   .md-emoji-search-input,
   .md-searchreplace-input,
-  .md-image-upload-row input {
+  .md-image-dialog-input {
     background: $md-dark-toolbar-bg;
     border-color: $md-dark-border;
     color: $md-dark-text;
@@ -1716,19 +1950,27 @@ $md-dark-hover: #2d3e50;
     }
   }
 
+  // Restated after the field rule above, which sets its own border color.
+  .md-image-dialog-input[aria-invalid="true"] {
+    border-color: #ff6b6b;
+  }
+
   .md-link-editor-row label,
   .md-anchor-dialog-row label,
+  .md-media-dialog-row label,
+  .md-media-dialog-hint,
   .md-searchreplace-row label,
   .md-searchreplace-count,
-  .md-image-upload-row label,
-  .md-image-upload-progress-text,
+  .md-image-dialog-row label,
+  .md-image-dialog-check label,
+  .md-image-dialog-progress-text,
   .md-charmap-preview-name,
   .md-emoji-empty,
   .md-toolbar-dropdown-item-desc {
     color: #aaa;
   }
 
-  .md-image-upload-tabs,
+  .md-image-dialog-tabs,
   .md-charmap-preview {
     border-color: $md-dark-border;
   }
@@ -1738,7 +1980,7 @@ $md-dark-hover: #2d3e50;
   .md-emoji-tab,
   .md-charmap-tab,
   .md-charmap-char,
-  .md-image-upload-tab {
+  .md-image-dialog-tab {
     color: $md-dark-text;
 
     &:hover {
@@ -1748,7 +1990,7 @@ $md-dark-hover: #2d3e50;
 
   .md-charmap-tab,
   .md-charmap-char,
-  .md-image-upload-tab {
+  .md-image-dialog-tab {
     border-color: $md-dark-border;
   }
 
@@ -1762,7 +2004,7 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-charmap-tab.md-charmap-tab-active,
-  .md-image-upload-tab.md-image-upload-tab-active {
+  .md-image-dialog-tab[aria-selected="true"] {
     background: $md-primary;
     border-color: $md-primary;
     color: #fff;
@@ -1878,6 +2120,8 @@ $md-dark-hover: #2d3e50;
 
   .md-editor-body {
     color: var(--color-confab-gray-900, #111827);
+    --md-visualblocks-color: var(--color-confab-gray-300, #d1d5db);
+    --md-visualblocks-label-color: var(--color-confab-gray-500, #6b7280);
 
     blockquote {
       border-color: var(--color-confab-gray-200, #e5e7eb);
@@ -1936,7 +2180,7 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-searchreplace-input,
-  .md-image-upload-row input {
+  .md-image-dialog-input {
     border-color: var(--color-confab-gray-300, #d1d5db);
     border-radius: 6px;
 
@@ -1946,7 +2190,12 @@ $md-dark-hover: #2d3e50;
     }
   }
 
-  .md-image-upload-tab {
+  // Restated after the field rule above, which sets its own border color.
+  .md-image-dialog-input[aria-invalid="true"] {
+    border-color: #cc0000;
+  }
+
+  .md-image-dialog-tab {
     border-color: var(--color-confab-gray-300, #d1d5db);
     border-radius: 6px;
 
@@ -1954,24 +2203,24 @@ $md-dark-hover: #2d3e50;
       background: var(--color-confab-gray-100, #f3f4f6);
     }
 
-    &.md-image-upload-tab-active {
+    &[aria-selected="true"] {
       background: var(--theme-primary, #0066cc);
       border-color: var(--theme-primary, #0066cc);
       color: #fff;
     }
   }
 
-  .md-image-upload-dropzone {
+  .md-image-dialog-dropzone {
     border-color: var(--color-confab-gray-300, #d1d5db);
     border-radius: 6px;
 
-    &:hover, &.md-image-upload-dropzone-active {
+    &:hover, &.md-image-dialog-dropzone-active {
       border-color: var(--theme-primary, #0066cc);
       background: rgba(0, 102, 204, 0.03);
     }
   }
 
-  .md-image-upload-preview {
+  .md-image-dialog-preview {
     border-color: var(--color-confab-gray-200, #e5e7eb);
     border-radius: 6px;
     background: var(--color-confab-gray-50, #f9fafb);
@@ -1989,7 +2238,8 @@ $md-dark-hover: #2d3e50;
 
   .md-link-editor-input,
   .md-link-editor-select,
-  .md-anchor-dialog-input {
+  .md-anchor-dialog-input,
+  .md-media-dialog-input {
     border-color: var(--color-confab-gray-300, #d1d5db);
     border-radius: 6px;
 
@@ -2106,6 +2356,8 @@ $md-dark-hover: #2d3e50;
 
   .md-editor-body {
     color: var(--color-dark-text-primary, #fff);
+    --md-visualblocks-color: var(--color-dark-text-muted, #888);
+    --md-visualblocks-label-color: var(--color-dark-text-muted, #888);
 
     blockquote {
       border-color: var(--color-dark-border, #333);
@@ -2180,7 +2432,7 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-searchreplace-input,
-  .md-image-upload-row input,
+  .md-image-dialog-input,
   .md-emoji-search-input {
     border-color: var(--color-dark-border, #333);
     background: var(--color-dark-bg-tertiary, #2a2a2a);
@@ -2193,22 +2445,28 @@ $md-dark-hover: #2d3e50;
     }
   }
 
+  // Restated after the field rule above, which sets its own border color.
+  .md-image-dialog-input[aria-invalid="true"] {
+    border-color: #ff6b6b;
+  }
+
   .md-searchreplace-row label,
   .md-searchreplace-count,
-  .md-image-upload-dropzone-text,
-  .md-image-upload-row label,
-  .md-image-upload-progress-text,
+  .md-image-dialog-dropzone-text,
+  .md-image-dialog-row label,
+  .md-image-dialog-check label,
+  .md-image-dialog-progress-text,
   .md-charmap-preview-name,
   .md-emoji-empty,
   .md-toolbar-dropdown-item-desc {
     color: var(--color-dark-text-muted, #888);
   }
 
-  .md-image-upload-tabs {
+  .md-image-dialog-tabs {
     border-color: var(--color-dark-border, #333);
   }
 
-  .md-image-upload-tab {
+  .md-image-dialog-tab {
     border-color: var(--color-dark-border, #333);
     color: var(--color-dark-text-secondary, #aaa);
     border-radius: 6px;
@@ -2217,44 +2475,65 @@ $md-dark-hover: #2d3e50;
       background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
     }
 
-    &.md-image-upload-tab-active {
+    &[aria-selected="true"] {
       background: var(--theme-primary, #0066cc);
       border-color: var(--theme-primary, #0066cc);
       color: #fff;
     }
   }
 
-  .md-image-upload-dropzone {
+  .md-image-dialog-lock,
+  .md-image-dialog-reset {
+    color: var(--color-dark-text-secondary, #aaa);
     border-color: var(--color-dark-border, #333);
     border-radius: 6px;
 
-    &:hover, &.md-image-upload-dropzone-active {
+    &:hover {
+      background: var(--color-dark-bg-hover, rgba(255, 255, 255, 0.08));
+    }
+  }
+
+  // Restated after the hover, so it stays marked under the pointer.
+  .md-image-dialog-lock[aria-pressed="true"] {
+    color: var(--theme-primary, #0066cc);
+    border-color: var(--theme-primary, #0066cc);
+    background: rgba(0, 102, 204, 0.2);
+  }
+
+  .md-image-dialog-preview-text {
+    color: var(--color-dark-text-muted, #888);
+  }
+
+  .md-image-dialog-dropzone {
+    border-color: var(--color-dark-border, #333);
+    border-radius: 6px;
+
+    &:hover, &.md-image-dialog-dropzone-active {
       border-color: var(--theme-primary, #0066cc);
       background: rgba(0, 102, 204, 0.1);
     }
   }
 
-  .md-image-upload-dropzone-icon {
-    color: var(--color-dark-text-muted, #888);
-  }
 
-  .md-image-upload-preview {
+  .md-image-dialog-preview {
     background: var(--color-dark-bg-tertiary, #2a2a2a);
     border-color: var(--color-dark-border, #333);
     border-radius: 6px;
   }
 
-  .md-image-upload-error {
+  .md-image-dialog-upload-error {
     background: #3a1c1c;
     border-color: #6b2c2c;
     color: #ff8888;
   }
 
-  .md-anchor-dialog-error {
+  .md-anchor-dialog-error,
+  .md-media-dialog-error,
+  .md-image-dialog-preview-error {
     color: #ff8888;
   }
 
-  .md-image-upload-progress-bar {
+  .md-image-dialog-progress-bar {
     background: var(--color-dark-border, #333);
   }
 
@@ -2316,7 +2595,8 @@ $md-dark-hover: #2d3e50;
 
   .md-link-editor-input,
   .md-link-editor-select,
-  .md-anchor-dialog-input {
+  .md-anchor-dialog-input,
+  .md-media-dialog-input {
     background: var(--color-dark-bg-tertiary, #2a2a2a);
     border-color: var(--color-dark-border, #333);
     color: var(--color-dark-text-primary, #fff);
@@ -2329,7 +2609,9 @@ $md-dark-hover: #2d3e50;
   }
 
   .md-link-editor-row label,
-  .md-anchor-dialog-row label {
+  .md-anchor-dialog-row label,
+  .md-media-dialog-row label,
+  .md-media-dialog-hint {
     color: var(--color-dark-text-muted, #888);
   }
 }
@@ -2378,6 +2660,9 @@ $md-dark-hover: #2d3e50;
   .md-toolbar-separator {
     flex-shrink: 0;
   }
+
+  // One scrolling line, so a `||` shows as a separator, not a new row
+  @include md-toolbar-one-line-rows;
 }
 
 // On touch devices, hide the scrollbar entirely — swipe is the interaction

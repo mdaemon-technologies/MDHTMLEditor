@@ -233,6 +233,11 @@
           <div class="control-group">
             <label>Narrow mode active: <strong id="state-narrow-mode">—</strong></label>
           </div>
+          <div class="toggle-row">
+            <strong>More (…) rows open:</strong> <span id="state-toolbar-expanded">false</span>
+            <button class="btn" id="btn-toggle-toolbar-expanded" style="margin-left:auto;">Toggle</button>
+          </div>
+          <p style="font-size:11px;color:#888;margin:4px 0 0;">The toolbar string has a <code>||</code>, so everything after Font size is on the rows the More toggle shows. The choice is saved from <code>toolbarexpandedchange</code> and passed back as <code>toolbar_expanded</code>, so it survives a skin change or a page reload.</p>
           <div class="control-group">
             <label>Tier 1 Buttons (always visible when narrow)</label>
             <input type="text" id="cmd-tier1-buttons" value="bold,italic,underline,undo,redo,link,forecolor" />
@@ -288,6 +293,16 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
       </div>
 
       <div class="card">
+        <div class="card-header">Paste from Excel</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Puts cells on the clipboard as Excel does: a table whose fills, borders, alignment, fonts and colors are class rules in a <code>&lt;style&gt;</code> block, not on the cells. Click, then paste into the editor (or copy cells from Excel itself). The table should keep its green bold header, the blue cell's white italic text, the gridlines, the yellow cell and the red <em>due</em>, and go in once, as one table.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-copy-excel">Copy Excel sample</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Link edges</div>
         <div class="card-body">
           <p style="font-size:11px;color:#888;margin:0;">Paste <code>https://example.com</code> (or <code>user@example.com</code>) into the editor and keep typing without pressing Enter: the URL is linked, and the words typed after it stay plain text. The same holds after pasting HTML that ends in a link, and after inserting a link from the <strong>Link</strong> dialog with nothing selected. Clicking at the end of an existing link and typing still extends it, and selecting a link's text and retyping it keeps the link. Check the HTML Output panel: the <code>&lt;/a&gt;</code> should close right after the URL.</p>
@@ -321,6 +336,16 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
           <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads a linked image, an image between words, and a <code>javascript:</code> link around an image. The HTML Output panel shows the first link kept around the <code>&lt;img&gt;</code>, the second image still in its sentence, and the <code>javascript:</code> link dropped. Select the linked image and use the Link or Unlink button to change it.</p>
           <div class="btn-row">
             <button class="btn btn-primary" id="btn-load-image-links">Load linked images</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Image properties</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads a floated, spaced, bordered and linked image, and one written with the older <code>align</code>, <code>hspace</code>, <code>vspace</code> and <code>border</code> attributes. Double-click an image, or select it and use the image button or <em>Image dialog</em>, to edit its size, alignment, link, spacing, border, direction and language.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-load-image-properties">Load styled images</button>
           </div>
         </div>
       </div>
@@ -420,6 +445,14 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
             <button class="btn" data-cmd="insertorderedlist">OL</button>
             <button class="btn" data-cmd="undo">Undo</button>
             <button class="btn" data-cmd="redo">Redo</button>
+            <button class="btn" data-cmd="SelectAll">Select all</button>
+            <button class="btn" data-cmd="mcePrint">Print</button>
+            <button class="btn" data-cmd="mceVisualBlocks">Show blocks</button>
+            <button class="btn" data-cmd="mceRetrieveFormats" title="Copy the inline formatting at the selection">Copy formatting</button>
+            <button class="btn" data-cmd="mcePaintFormats" title="Paint the copied formatting onto the selection">Paint formatting</button>
+            <button class="btn" data-cmd="mceImage">Image dialog</button>
+            <button class="btn" data-cmd="mceMedia">Insert video</button>
+            <button class="btn" data-cmd="mceTogglePlainTextPaste">Paste as text on/off</button>
           </div>
           <div class="control-group" style="margin-top:10px;">
             <label>Font Name</label>

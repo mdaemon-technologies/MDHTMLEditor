@@ -30,6 +30,27 @@ let currentSkin: 'oxide' | 'oxide-dark' | 'confab' | 'confab-dark' = 'oxide';
 let currentNarrowBreakpoint = 768;
 let currentPriorityOverrides: Record<string, number> = {};
 let currentForcedRootBlock: 'p' | 'div' = 'p';
+
+// User choices remembered the way a host would: saved from the editor's change
+// event, passed back as the matching option when the editor is created.
+// Whether the toolbar's More (…) rows are open: toolbarexpandedchange → toolbar_expanded.
+const TOOLBAR_EXPANDED_KEY = 'md-demo-toolbar-expanded';
+// Whether Show blocks is on: visualblocks → visualblocks_default_state.
+const VISUAL_BLOCKS_KEY = 'md-demo-visualblocks';
+function loadFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === 'true';
+  } catch {
+    return false;
+  }
+}
+function saveFlag(key: string, value: boolean): void {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch {
+    // Storage blocked: the choice lasts until the editor is recreated.
+  }
+}
 // When on, the text picker uses a custom palette instead of the 40-color default
 // (the highlight picker keeps its own default, showing the keys are independent).
 let useCustomTextPalette = false;
@@ -62,6 +83,23 @@ function createEditorInstance(skin: typeof currentSkin) {
   browser_spellcheck: true,
   toolbar_narrow_breakpoint: currentNarrowBreakpoint,
   toolbar_priority: currentPriorityOverrides,
+  // The rows after the toolbar string's `||` start open if the user left them open.
+  toolbar_expanded: loadFlag(TOOLBAR_EXPANDED_KEY),
+  // Show blocks starts on if the user left it on.
+  visualblocks_default_state: loadFlag(VISUAL_BLOCKS_KEY),
+  // Insert video asks this about each video. A host could fetch a title or a
+  // thumbnail through its own server here; the demo logs the call and keeps
+  // the defaults (null).
+  media_url_resolver: async (video) => {
+    log('info', `media_url_resolver: ${video.provider} ${video.id} → defaults`);
+    return null;
+  },
+  // The image dialog with every field: the Advanced tab (style, spacing,
+  // border, direction, language), Title on the General tab, and "Image is
+  // decorative".
+  image_advtab: true,
+  image_title: true,
+  a11y_advanced_options: true,
 
   // CKEditor-parity: Enter produces <p> or <div>
   forced_root_block: currentForcedRootBlock,
@@ -121,6 +159,13 @@ function createEditorInstance(skin: typeof currentSkin) {
       title: 'Status Update',
       description: 'Weekly status update template',
       content: '<h2>Status Update</h2><h3>Completed</h3><ul><li>Task 1</li></ul><h3>In Progress</h3><ul><li>Task 2</li></ul><h3>Blocked</h3><ul><li>None</li></ul>',
+    },
+    {
+      // Titles and descriptions are text: this one shows its <b> and & as written.
+      id: 'labels-as-text',
+      title: 'Q&A <b>draft</b>',
+      description: 'Markup in a title shows as written, not as bold',
+      content: '<h2>Q&amp;A</h2><p>Question:</p><p>Answer:</p>',
     },
     {
       // Demonstrates the <\/tag> repair: this body's closing-tag slashes are
@@ -244,8 +289,8 @@ function createEditorInstance(skin: typeof currentSkin) {
   toolbar:
     'bold italic underline strikethrough subscript superscript | blocks styles | bullist numlist outdent indent blockquote | fontfamily fontsize ' +
     '|| lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste ' +
-    '| undo redo | image table charmap emoticons hr | fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace ' +
-    '| template | pastemarkdown | dictate speechtotext | wordcount timestamp markpen ' +
+    '| undo redo selectall | image table charmap emoticons hr | fullscreen preview print visualblocks formatpainter | media code link unlink anchor codesample | ltr rtl | searchreplace ' +
+    '| template | pastetext pastemarkdown | dictate speechtotext | wordcount timestamp markpen ' +
     '| tablecellprops tablemergecells tablesplitcells tablerowheader tablecaption tablecellvalign tablecellborderstyle tablecellbackgroundcolor tablecellbordercolor',
 
   setup: (ed) => {
@@ -364,6 +409,22 @@ function createEditorInstance(skin: typeof currentSkin) {
       log('info', `template applied: "${template.title}" (id=${template.id})`);
     });
 
+    $('#state-toolbar-expanded').textContent = String(ed.isToolbarExpanded());
+    ed.on('toolbarexpandedchange', (expanded) => {
+      saveFlag(TOOLBAR_EXPANDED_KEY, expanded);
+      $('#state-toolbar-expanded').textContent = String(expanded);
+      log('info', `toolbarexpandedchange: ${expanded ? 'open' : 'closed'} (saved)`);
+    });
+
+    ed.on('visualblocks', ({ state }) => {
+      saveFlag(VISUAL_BLOCKS_KEY, state);
+      log('info', `visualblocks: ${state ? 'on' : 'off'} (saved)`);
+    });
+
+    ed.on('pasteplaintexttoggle', ({ state }) => {
+      log('info', `pasteplaintexttoggle: ${state ? 'on' : 'off'}`);
+    });
+
     ed.on('pastemarkdownchange', (enabled) => {
       log('info', `paste markdown: ${enabled ? 'on' : 'off'}`);
       const state = document.querySelector('#state-paste-markdown');
@@ -432,6 +493,36 @@ $('#btn-toggle-markdown').addEventListener('click', () => {
   editor.setPasteMarkdown(!editor.isPasteMarkdownEnabled());
 });
 
+// ── Paste from Excel ─────────────────────────────────
+// Excel's clipboard HTML keeps a cell's formatting as class rules in a <style>
+// block. Set through a copy event, not navigator.clipboard, which may
+// sanitize the HTML and drop that block.
+const EXCEL_SAMPLE_HTML = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta name=ProgId content=Excel.Sheet><style><!--
+td {color:black; font-size:11.0pt; font-weight:400; font-family:Calibri, sans-serif; mso-number-format:General; text-align:general; vertical-align:bottom; border:none; white-space:nowrap;}
+.xl65 {font-weight:700; text-align:center; border:.5pt solid windowtext; background:#92D050; mso-pattern:black none;}
+.xl66 {color:white; font-style:italic; border:.5pt solid windowtext; background:#0070C0; mso-pattern:black none;}
+.xl67 {color:windowtext; border:.5pt solid windowtext;}
+.font5 {color:#FF0000; font-weight:700; font-family:Calibri, sans-serif;}
+--></style></head>
+<body><table border=0 cellpadding=0 cellspacing=0 width=192 style='border-collapse:collapse;width:144pt'><!--StartFragment-->
+<col width=96 span=2 style='width:72pt'>
+<tr height=20 style='height:15.0pt'><td height=20 class=xl65 width=96 style='height:15.0pt;width:72pt'>Item</td><td class=xl65 width=96 style='border-left:none;width:72pt'>Total</td></tr>
+<tr height=20 style='height:15.0pt'><td height=20 class=xl66 style='height:15.0pt;border-top:none'>Widgets</td><td class=xl67 align=right style='border-top:none;border-left:none' x:num>42</td></tr>
+<tr height=20 style='height:15.0pt'><td height=20 class=xl67 style='height:15.0pt;border-top:none'>Amount <font class="font5">due</font></td><td class=xl67 align=right style='border-top:none;border-left:none;background:yellow' x:num>7</td></tr>
+<!--EndFragment--></table></body></html>`;
+
+$('#btn-copy-excel').addEventListener('click', () => {
+  const onCopy = (e: ClipboardEvent) => {
+    e.clipboardData?.setData('text/html', EXCEL_SAMPLE_HTML);
+    e.clipboardData?.setData('text/plain', 'Item\tTotal\r\nWidgets\t42\r\nAmount due\t7\r\n');
+    e.preventDefault();
+  };
+  document.addEventListener('copy', onCopy, { once: true });
+  document.execCommand('copy');
+  log('info', 'Excel sample copied — now paste into the editor');
+});
+
 // ── Code sample ──────────────────────────────────────
 // One paragraph of lines separated by <br>, caret on the last line. The Code
 // sample button (or Ctrl+Alt+C) converts only the caret's line.
@@ -468,6 +559,26 @@ $('#btn-load-image-links').addEventListener('click', () => {
   );
   refreshHtml();
   log('info', 'loaded linked images — check the links in the HTML Output panel');
+});
+
+// ── Image properties ─────────────────────────────────
+// Images whose float, spacing, border and link the image dialog edits:
+// double-click one (or select it and use the image button) to open it. The
+// second image uses the older align/hspace/vspace/border attributes, which
+// load as the same CSS.
+$('#btn-load-image-properties').addEventListener('click', () => {
+  editor.setContent(
+    '<p><a href="https://www.example.com/" target="_blank">' +
+    '<img src="https://picsum.photos/seed/float/160/100" alt="Floated, bordered and linked" width="160" height="100" ' +
+    'style="float: left; margin: 4px 12px 4px 0; border: 2px solid #2271b2"></a>' +
+    'This image floats left with space around it and a border, and links to example.com. ' +
+    'Double-click it to change its size, alignment, spacing, border or link in the image dialog.</p>' +
+    '<p><img src="https://picsum.photos/seed/legacy/120/80" alt="Older attributes" width="120" height="80" ' +
+    'align="right" hspace="10" vspace="4" border="1">' +
+    'This one is written with the older align, hspace, vspace and border attributes, which the HTML Output shows as CSS.</p>'
+  );
+  refreshHtml();
+  log('info', 'loaded images with float, spacing and border — double-click one to edit it');
 });
 
 // ── Image maps ───────────────────────────────────────
@@ -741,6 +852,11 @@ setInterval(() => {
     $('#state-narrow-mode').textContent = editorEl.classList.contains('md-editor-narrow') ? 'YES' : 'no';
   }
 }, 500);
+
+// ── More (…) rows, from code ─────────────────────────
+$('#btn-toggle-toolbar-expanded').addEventListener('click', () => {
+  editor.setToolbarExpanded(!editor.isToolbarExpanded());
+});
 
 // ── Read-only toggle ─────────────────────────────────
 $('#btn-toggle-readonly').addEventListener('click', () => {

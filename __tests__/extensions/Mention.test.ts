@@ -35,6 +35,14 @@ describe('Mention Extension', () => {
     element?.remove();
   });
 
+  describe('As text', () => {
+    it('reads as it shows, @ and the display name, in getText()', () => {
+      editor.commands.setContent(`<p>Hi ${mentionHTML} there</p>`);
+
+      expect(editor.getText()).toBe('Hi @Arron Caruth there');
+    });
+  });
+
   describe('Extension Configuration', () => {
     it('should have correct name', () => {
       const extension = editor.extensionManager.extensions.find(

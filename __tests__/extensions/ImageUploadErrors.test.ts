@@ -40,7 +40,7 @@ const pngFile = () => new File(['x'], 'a.png', { type: 'image/png' });
 const svgFile = (text: string) => new File([text], 'a.svg', { type: 'image/svg+xml' });
 
 const makeUpload = (options: Partial<ImageUploadOptions> = {}) =>
-  new ImageUpload({ onInsert: jest.fn(), uploadUrl: '/upload', trans: (k) => 'T:' + k, ...options });
+  new ImageUpload({ uploadUrl: '/upload', trans: (k) => 'T:' + k, ...options });
 
 describe('ImageUpload failure messages', () => {
   const originalXHR = window.XMLHttpRequest;
@@ -227,31 +227,30 @@ describe('ImageUpload failure messages', () => {
     });
 
     describe('image dialog', () => {
-      const createObjectURL = URL.createObjectURL;
-      const insertButton = () => document.querySelector('.md-image-upload-insert') as HTMLButtonElement;
-      // Opens the dialog, picks a PNG and clicks Insert, which starts the upload
+      const uploadError = () => document.querySelector('.md-image-dialog-upload-error')?.textContent;
+      const source = () => (document.querySelector('.md-image-dialog [name="src"]') as HTMLInputElement).value;
+      // Opens the dialog and picks a PNG on the Upload tab, which starts the upload
       const uploadFromDialog = () => {
         (container.querySelector('[data-button="image"]') as HTMLButtonElement).click();
-        const input = document.querySelector('.md-image-upload-panel-upload input[type="file"]') as HTMLInputElement;
-        Object.defineProperty(input, 'files', { value: [pngFile()] });
+        const input = document.querySelector('.md-image-dialog-upload input[type="file"]') as HTMLInputElement;
+        Object.defineProperty(input, 'files', { value: [pngFile()], configurable: true });
         input.dispatchEvent(new Event('change'));
-        insertButton().click();
       };
-
-      beforeEach(() => {
-        URL.createObjectURL = jest.fn(() => 'blob:preview');
-      });
-
-      afterEach(() => {
-        URL.createObjectURL = createObjectURL;
-      });
 
       it('words a failure with images_upload_error_message', async () => {
         createEditor({ images_upload_error_message: () => 'From config' });
         uploadFromDialog();
         FakeXHR.last.respond(200, '{"error":"ContentBlocked"}');
         await flush();
-        expect(document.querySelector('.md-image-upload-error')?.textContent).toBe('From config');
+        expect(uploadError()).toBe('From config');
+      });
+
+      it('fills Source with the address the server returns', async () => {
+        createEditor({});
+        uploadFromDialog();
+        FakeXHR.last.respond(200, '{"location":"https://example.com/up.png"}');
+        await flush();
+        expect(source()).toBe('https://example.com/up.png');
       });
 
       it.each([
@@ -261,22 +260,27 @@ describe('ImageUpload failure messages', () => {
       ])('lets the user retry after %s', async (_label, fail) => {
         createEditor({});
         uploadFromDialog();
-        expect(insertButton().disabled).toBe(true);
+        const save = document.querySelector('.md-image-dialog-save') as HTMLButtonElement;
+        expect(save.disabled).toBe(true);
         fail();
         await flush();
-        expect(insertButton().disabled).toBe(false);
+        expect(uploadError()).not.toBe('');
+        const input = document.querySelector('.md-image-dialog-upload input[type="file"]') as HTMLInputElement;
+        input.dispatchEvent(new Event('change'));
+        FakeXHR.last.respond(200, '{"location":"https://example.com/again.png"}');
+        await flush();
+        expect(source()).toBe('https://example.com/again.png');
       });
 
       it('ignores the failure of an upload from before the dialog was closed', async () => {
         createEditor({});
         uploadFromDialog();
         const staleUpload = FakeXHR.last;
-        (document.querySelector('.md-image-upload-cancel') as HTMLButtonElement).click();
+        (document.querySelector('.md-image-dialog-cancel') as HTMLButtonElement).click();
         (container.querySelector('[data-button="image"]') as HTMLButtonElement).click();
         staleUpload.respond(500, '');
         await flush();
-        expect(insertButton().disabled).toBe(true);
-        expect(document.querySelector('.md-image-upload-error')?.textContent).toBe('');
+        expect(uploadError()).toBe('');
       });
     });
 
@@ -293,6 +297,47 @@ describe('ImageUpload failure messages', () => {
       FakeXHR.last.fire('error');
       await flush();
       expect(onError).toHaveBeenLastCalledWith(getLocale('fr')['Network error']);
+    });
+  });
+
+  describe('progress', () => {
+    const flush = () => new Promise((resolve) => setTimeout(resolve));
+
+    /** Report upload progress as the browser would. */
+    function progress(loaded: number, total: number, lengthComputable = true): void {
+      const call = FakeXHR.last.upload.addEventListener.mock.calls.find(([type]) => type === 'progress');
+      (call?.[1] as (e: Partial<ProgressEvent>) => void)({ lengthComputable, loaded, total });
+    }
+
+    it('is reported to the callback in whole percent', async () => {
+      const onProgress = jest.fn();
+      const result = makeUpload().uploadFile(pngFile(), onProgress);
+      progress(1, 3);
+      progress(3, 3);
+      FakeXHR.last.respond(200, '{"location":"https://example.com/a.png"}');
+      await expect(result).resolves.toBe('https://example.com/a.png');
+      expect(onProgress.mock.calls).toEqual([[33], [100]]);
+    });
+
+    it('is not reported when the size is not known', async () => {
+      const onProgress = jest.fn();
+      const result = makeUpload().uploadFile(pngFile(), onProgress);
+      progress(5, 0, false);
+      FakeXHR.last.respond(200, '{"location":"https://example.com/a.png"}');
+      await result;
+      expect(onProgress).not.toHaveBeenCalled();
+    });
+
+    it('is reported for a cleaned SVG too', async () => {
+      const onProgress = jest.fn();
+      const before = FakeXHR.last;
+      const result = makeUpload().uploadFile(svgFile('<svg xmlns="http://www.w3.org/2000/svg"></svg>'), onProgress);
+      // The SVG is read and cleaned before its request starts.
+      for (let i = 0; i < 50 && FakeXHR.last === before; i++) await flush();
+      progress(1, 2);
+      FakeXHR.last.respond(200, '{"location":"https://example.com/a.svg"}');
+      await result;
+      expect(onProgress).toHaveBeenCalledWith(50);
     });
   });
 });

@@ -69,6 +69,19 @@ export const ROW_STYLE_RULES: StyleRules = [
 ];
 
 /**
+ * Each side's border, for a cell whose sides differ: a spreadsheet draws each
+ * gridline once, so most of its cells turn one or two sides off.
+ */
+const SIDE_BORDER_RULES: StyleRules = (['top', 'right', 'bottom', 'left'] as const).flatMap(
+  (side) =>
+    [
+      [`border-${side}-width`, CSS_LENGTH],
+      [`border-${side}-style`, CSS_BORDER_STYLE],
+      [`border-${side}-color`, CSS_COLOR],
+    ] as const
+);
+
+/**
  * The style a cell may keep. Its width is the column width TipTap already
  * keeps, and its text-align is TipTap's `align` attribute.
  */
@@ -76,6 +89,7 @@ export const CELL_STYLE_RULES: StyleRules = [
   ['height', CSS_LENGTH_OR_PERCENT],
   ['vertical-align', VERTICAL_ALIGN],
   ...BOX_RULES,
+  ...SIDE_BORDER_RULES,
 ];
 
 const SCOPE = /^(row|col|rowgroup|colgroup)$/;

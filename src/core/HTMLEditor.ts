@@ -6,7 +6,7 @@
 import { Editor as TipTapEditor, EditorOptions, AnyExtension, mergeAttributes } from '@tiptap/core';
 import type { ChainedCommands } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
-import { AllSelection, Plugin } from '@tiptap/pm/state';
+import { AllSelection, NodeSelection, Plugin } from '@tiptap/pm/state';
 import type { EditorState, Transaction } from '@tiptap/pm/state';
 import { Mapping, RemoveMarkStep } from '@tiptap/pm/transform';
 import { isInTable } from '@tiptap/pm/tables';
@@ -45,9 +45,14 @@ import { InlineStyle } from '../extensions/InlineStyle';
 import { PasteFromOffice } from '../extensions/PasteFromOffice';
 import { ListPasteNormalizer } from '../extensions/ListPasteNormalizer';
 import { PasteMarkdown } from '../extensions/PasteMarkdown';
+import { PasteAsText, clipboardHtmlText } from '../extensions/PasteAsText';
+import { FormatPainter, isFormatPainterActive } from '../extensions/FormatPainter';
+import { MediaDialog } from '../extensions/MediaDialog';
 import { CodeSample } from '../extensions/CodeSample';
 import { ResizableImage, isObjectResizingOn } from '../extensions/ImageResize';
 import { ImageMap, relabelImageMapMarkers } from '../extensions/ImageMap';
+import { ImageAttributes } from '../extensions/ImageAttributes';
+import { ImageDialog } from '../extensions/ImageDialog';
 import {
   StyledTable,
   StyledTableRow,
@@ -75,6 +80,7 @@ import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
 import { liftMapContent } from '../utils/liftMapContent';
 import { normalizeQuoteMarkerClass } from '../utils/markedQuote';
 import { ImageUpload } from '../extensions/ImageUpload';
+import { printHtml } from '../utils/printContent';
 
 import type {
   EditorConfig,
@@ -105,6 +111,15 @@ export type TableChange = 'insert' | 'structure' | 'style' | 'none';
 
 /** The style properties a cell keeps: what mceTableApplyCellStyle can set. */
 const CELL_STYLE_PROPERTIES = new Set(CELL_STYLE_RULES.map(([property]) => property));
+
+/** The first image file in pasted or dropped data, from its items or else its files. */
+function imageFileOf(data: DataTransfer): File | null {
+  const fromItems = Array.from(data.items ?? [])
+    .filter((item) => item.type.startsWith('image/'))
+    .map((item) => item.getAsFile())
+    .find((file): file is File => !!file);
+  return fromItems ?? Array.from(data.files ?? []).find((file) => file.type.startsWith('image/')) ?? null;
+}
 
 /** Positions of the rows and cells of the table at the selection, or none outside a table. */
 function tablePartPositions(state: EditorState): number[] {
@@ -238,6 +253,10 @@ export class HTMLEditor implements IMDHTMLEditor {
   private config: EditorConfig;
   /** Paste-Markdown mode. Per instance, not persisted; hosts save it via `pastemarkdownchange`. */
   private pasteMarkdownEnabled = false;
+  /** Paste-as-text mode; excludes paste-Markdown. Hosts save it via `pasteplaintexttoggle`. */
+  private pasteAsTextEnabled = false;
+  /** Show blocks. Kept here, not on the toolbar, so it outlives a toolbar rebuild and works without the button. */
+  private visualBlocksEnabled = false;
   private dirty = false;
   private customButtons: Map<string, ToolbarButtonSpec> = new Map();
   private customIcons: Map<string, string> = new Map();
@@ -245,15 +264,23 @@ export class HTMLEditor implements IMDHTMLEditor {
   private changeTimeout: ReturnType<typeof setTimeout> | null = null;
   private imageUploadHelper: ImageUpload | null = null;
   private tableDialog: TableDialog | null = null;
+  private mediaDialog: MediaDialog | null = null;
+  private imageDialog: ImageDialog | null = null;
   private tableToolbar: TableToolbar | null = null;
   private contextMenu: ContextMenu | null = null;
-  
+  /** The hidden frame the last mcePrint printed from (see print()). */
+  private printFrame: HTMLIFrameElement | null = null;
+
   constructor(container: HTMLElement, config: EditorConfig = {}) {
     this.id = `md-editor-${++editorIdCounter}`;
     this.container = container;
     this.config = this.normalizeConfig(config);
-    this.pasteMarkdownEnabled = this.config.paste_markdown ?? false;
-    
+    this.pasteAsTextEnabled = this.config.paste_as_text === true;
+    // The two paste modes exclude each other; plain text, the safer, wins.
+    this.pasteMarkdownEnabled = !this.pasteAsTextEnabled && (this.config.paste_markdown ?? false);
+    this.config.paste_markdown = this.pasteMarkdownEnabled;
+    this.visualBlocksEnabled = this.config.visualblocks_default_state === true;
+
     // UI registry for custom buttons and icons
     this.ui = {
       registry: {
@@ -322,6 +349,12 @@ export class HTMLEditor implements IMDHTMLEditor {
       contextmenu: config.contextmenu ?? '',
       quickbars_selection_toolbar: config.quickbars_selection_toolbar ?? 'bold italic | quicklink blockquote',
       quickbars_image_toolbar: config.quickbars_image_toolbar ?? false,
+      image_advtab: config.image_advtab ?? false,
+      image_title: config.image_title ?? false,
+      image_dimensions: config.image_dimensions ?? true,
+      image_description: config.image_description ?? true,
+      image_uploadtab: config.image_uploadtab ?? true,
+      a11y_advanced_options: config.a11y_advanced_options ?? false,
       quickbars_insert_toolbar: config.quickbars_insert_toolbar ?? false,
       object_resizing: config.object_resizing ?? true,
       resize_img_proportional: config.resize_img_proportional ?? true,
@@ -333,8 +366,12 @@ export class HTMLEditor implements IMDHTMLEditor {
       format_empty_lines: config.format_empty_lines ?? true,
       toolbar_narrow_breakpoint: config.toolbar_narrow_breakpoint,
       toolbar_priority: config.toolbar_priority,
+      toolbar_expanded: config.toolbar_expanded ?? false,
+      visualblocks_default_state: config.visualblocks_default_state ?? false,
+      media_url_resolver: config.media_url_resolver,
       paste_from_office: config.paste_from_office ?? true,
       paste_markdown: config.paste_markdown ?? false,
+      paste_as_text: config.paste_as_text ?? false,
       quote_marker_class: normalizeQuoteMarkerClass(config.quote_marker_class) ?? undefined,
       speech_to_text: config.speech_to_text ?? true,
       table_toolbar: config.table_toolbar ?? (config.basicEditor ? false : DEFAULT_TABLE_TOOLBAR),
@@ -364,7 +401,9 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.editorWrapper.className = `md-editor md-editor-${this.config.skin}`;
     this.editorWrapper.id = this.id;
     this.editorWrapper.setAttribute('dir', this.config.directionality ?? 'ltr');
-    
+    // On the wrapper, outside the ProseMirror root, so it never reaches the content.
+    this.editorWrapper.classList.toggle('md-editor-visualblocks', this.visualBlocksEnabled);
+
     // Apply height
     if (this.config.height) {
       if (typeof this.config.height === 'number') {
@@ -419,6 +458,26 @@ export class HTMLEditor implements IMDHTMLEditor {
           class: 'md-editor-body',
           spellcheck: this.config.browser_spellcheck ? 'true' : 'false',
         },
+        // A double-click on an image opens the image dialog on it. mceImage
+        // opens nothing in a read-only editor, where this is still called.
+        handleDoubleClickOn: (view, _pos, node, nodePos, _event, direct) => {
+          if (!direct || node.type.name !== 'image' || this.isReadOnly() || this.isBasicEditor()) return false;
+          view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)));
+          return this.execCommand('mceImage');
+        },
+        // ProseMirror asks these before any plugin's handler, and never while
+        // the editor is read-only. Taking the paste or drop stops TipTap's own
+        // handler, so its event is emitted here.
+        handlePaste: (_view, event, slice) => {
+          if (!this.takeImage(event.clipboardData)) return false;
+          if (this.tiptap) this.tiptap.emit('paste', { editor: this.tiptap, event, slice });
+          return true;
+        },
+        handleDrop: (_view, event, slice, moved) => {
+          if (moved || !this.takeImage(event.dataTransfer)) return false;
+          if (this.tiptap) this.tiptap.emit('drop', { editor: this.tiptap, event, slice, moved });
+          return true;
+        },
       },
       onUpdate: ({ editor }) => {
         this.handleChange(editor.getHTML());
@@ -458,6 +517,10 @@ export class HTMLEditor implements IMDHTMLEditor {
       iconSet,
       narrowBreakpoint: this.config.toolbar_narrow_breakpoint ?? 768,
       priorityOverrides: this.config.toolbar_priority ?? {},
+      onExpandedChange: (expanded) => {
+        this.config.toolbar_expanded = expanded;
+        this.fire('toolbarexpandedchange', expanded);
+      },
     });
 
     // The table context toolbar and the right-click menu
@@ -502,7 +565,6 @@ export class HTMLEditor implements IMDHTMLEditor {
   private getImageUploadHelper(): ImageUpload {
     if (!this.imageUploadHelper) {
       this.imageUploadHelper = new ImageUpload({
-        onInsert: () => { /* not used for inline uploads */ },
         uploadUrl: this.config.images_upload_url,
         uploadCredentials: this.config.images_upload_credentials,
         uploadBasePath: this.config.images_upload_base_path,
@@ -513,7 +575,6 @@ export class HTMLEditor implements IMDHTMLEditor {
         onError: this.config.images_upload_error,
         errorMessage: this.config.images_upload_error_message,
         trans: globalTranslate,
-        skin: this.config.skin,
       });
     }
     return this.imageUploadHelper;
@@ -537,43 +598,51 @@ export class HTMLEditor implements IMDHTMLEditor {
       }
     });
 
-    // Drop handler
+    // A drop ProseMirror didn't take: one on a read-only editor, which takes
+    // no image, or one it found no place in the document for. A dropped image
+    // is kept from opening in the browser's window in place of the page.
     editorContent.addEventListener('drop', (e) => {
       this.editorWrapper?.classList.remove('md-editor-dragover');
-
-      const files = e.dataTransfer?.files;
-      if (!files || files.length === 0) return;
-
-      const imageFile = Array.from(files).find(f => f.type.startsWith('image/'));
-      if (!imageFile) return;
-
+      const data = e.dataTransfer;
+      if (e.defaultPrevented || !data || !imageFileOf(data)) return;
       e.preventDefault();
       e.stopPropagation();
-
-      this.handleImageFileUpload(imageFile);
+      if (!this.isReadOnly()) this.takeImage(data);
     });
+  }
 
-    // Paste handler
-    editorContent.addEventListener('paste', (e) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
+  /**
+   * Upload a pasted or dropped picture that has no text beside it (a
+   * screenshot, or an image copied from a page, whose HTML is only the image)
+   * in place of the paste or drop, so the image in its HTML doesn't go in as
+   * well. One with text beside it (cells from a spreadsheet carry a picture of
+   * themselves) is left to go in as its HTML, or as text in paste-as-text
+   * mode, without the picture. Returns whether it took the image.
+   */
+  private takeImage(data: DataTransfer | null): boolean {
+    if (this.config.basicEditor || !data) return false;
+    const file = imageFileOf(data);
+    if (!file || this.transferHasText(data)) return false;
+    this.handleImageFileUpload(file);
+    return true;
+  }
 
-      for (const item of Array.from(items)) {
-        if (item.type.startsWith('image/')) {
-          const file = item.getAsFile();
-          if (file) {
-            e.preventDefault();
-            this.handleImageFileUpload(file);
-            return;
-          }
-        }
-      }
-    });
+  /**
+   * Whether pasted or dropped data has text: the text of its HTML, or with
+   * no HTML its plain text. The HTML decides when there is some, because a
+   * browser copying an image may put the image's address in the plain text.
+   */
+  private transferHasText(data: DataTransfer): boolean {
+    const html = data.getData('text/html');
+    if (!html) return !!data.getData('text/plain').trim();
+    return !!this.tiptap && !!clipboardHtmlText(html, this.tiptap.schema).trim();
   }
 
   private handleImageFileUpload(file: File): void {
     const helper = this.getImageUploadHelper();
     helper.uploadFile(file).then((src) => {
+      // The editor may have been made read-only while the upload ran.
+      if (this.isReadOnly()) return;
       this.tiptap?.chain().focus().setImage({ src }).run();
     }).catch((err: unknown) => {
       // No dialog for inline drop/paste — route the reason to the caller's alert.
@@ -763,6 +832,10 @@ export class HTMLEditor implements IMDHTMLEditor {
       // Moves the caret out of a link a paste or the Link dialog has just left
       // it at the end of, so the next words typed are not added to the link.
       LinkEscape,
+      // Copies inline formatting and paints it elsewhere (formatpainter, mcePaintFormats).
+      // Keep it before StyledTable: TipTap gives later extensions' plugins the first
+      // look at events, so a press on a column-resize handle is the table's, not a paint.
+      FormatPainter,
       CharacterCount,
       Placeholder.configure({
         placeholder: '',
@@ -803,6 +876,10 @@ export class HTMLEditor implements IMDHTMLEditor {
     extensions.push(
       PasteMarkdown.configure({
         isEnabled: () => this.pasteMarkdownEnabled,
+      }),
+      // Ahead of PasteMarkdown: in this mode a paste is never converted.
+      PasteAsText.configure({
+        isEnabled: () => this.pasteAsTextEnabled,
       })
     );
 
@@ -832,7 +909,9 @@ export class HTMLEditor implements IMDHTMLEditor {
             })
           : Image.configure(imageOptions),
         // <map>/<area> hotspots for the images, and their usemap attribute.
-        ImageMap.configure({ trans: globalTranslate })
+        ImageMap.configure({ trans: globalTranslate }),
+        // The images' float, margins and border, each value checked.
+        ImageAttributes
       );
     }
     
@@ -1060,13 +1139,61 @@ export class HTMLEditor implements IMDHTMLEditor {
   execCommand(command: string, _ui?: boolean, value?: unknown): boolean {
     if (!this.tiptap) return false;
 
-    const tableResult = this.execTableCommand(command.toLowerCase(), value);
+    // TinyMCE command names are case-insensitive.
+    const name = command.toLowerCase();
+
+    const tableResult = this.execTableCommand(name, value);
     if (tableResult !== undefined) return tableResult;
 
+    // Before the shared chain: its focus() runs as soon as it is chained and
+    // scrolls the selection's end into view, which for a select-all is the
+    // bottom of the document. Ctrl+A leaves the view where it is.
+    if (name === 'selectall') {
+      this.tiptap.chain().focus(null, { scrollIntoView: false }).selectAll().run();
+      return true;
+    }
+
+    // Also before the shared chain: printing leaves focus where it was.
+    if (name === 'mceprint') {
+      this.print();
+      return true;
+    }
+
+    // Also before the shared chain: the dialog takes focus, and inserts at the
+    // selection the editor had when it was opened. No image node in the basic editor.
+    if (name === 'mcemedia') {
+      if (this.isBasicEditor() || this.isReadOnly()) return false;
+      // The dialog reads media_url_resolver from the config each time it inserts.
+      this.mediaDialog ??= new MediaDialog({ editor: this, trans: globalTranslate });
+      this.mediaDialog.open();
+      return true;
+    }
+
+    // Also before the shared chain: the dialog edits the image selected when
+    // it opened, or inserts at the selection. No image node in the basic editor.
+    if (name === 'mceimage') {
+      if (this.isBasicEditor() || this.isReadOnly()) return false;
+      // Built afresh on each open, so it is in the current language and reads
+      // the current image options.
+      this.imageDialog ??= new ImageDialog({
+        editor: this,
+        trans: globalTranslate,
+        uploader: this.getImageUploadHelper(),
+      });
+      this.imageDialog.open();
+      return true;
+    }
+
+    // Also before the shared chain: a view mode, not an edit.
+    if (name === 'mcevisualblocks') {
+      this.setVisualBlocks(!this.visualBlocksEnabled);
+      return true;
+    }
+
     const chain = this.tiptap.chain().focus();
-    
+
     // Map TinyMCE commands to TipTap
-    switch (command.toLowerCase()) {
+    switch (name) {
       case 'bold':
         chain.toggleBold().run();
         return true;
@@ -1169,8 +1296,19 @@ export class HTMLEditor implements IMDHTMLEditor {
       case 'inserthorizontalrule':
         chain.setHorizontalRule().run();
         return true;
+      case 'mcetoggleformatpainter':
+        return isFormatPainterActive(this.tiptap.state)
+          ? chain.stopFormatPainter().run()
+          : chain.startFormatPainter().run();
+      case 'mceretrieveformats':
+        return chain.retrieveFormat().run();
+      case 'mcepaintformats':
+        return chain.paintFormat().run();
       case 'mcetogglepastemarkdown':
         this.setPasteMarkdown(!this.pasteMarkdownEnabled);
+        return true;
+      case 'mcetoggleplaintextpaste':
+        this.setPasteAsText(!this.pasteAsTextEnabled);
         return true;
       case 'mceremoveeditor':
         this.destroy();
@@ -1361,6 +1499,22 @@ export class HTMLEditor implements IMDHTMLEditor {
     return true;
   }
 
+  /**
+   * Print the content (mcePrint): getContent()'s output, on its own, from a
+   * hidden frame titled with the host page's title ('Print' when it has none,
+   * rather than the frame's about:srcdoc), in the editor's direction. The frame
+   * stays until the next print or destroy(), as a browser may still be
+   * printing from it.
+   */
+  private print(): void {
+    this.printFrame?.remove();
+    this.printFrame = printHtml(
+      this.getContent(),
+      document.title || globalTranslate('Print'),
+      this.config.directionality ?? 'ltr'
+    );
+  }
+
   isDirty(): boolean {
     return this.dirty;
   }
@@ -1382,7 +1536,14 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.editorWrapper?.classList.toggle('md-editor-readonly', state);
     this.toolbar?.setEnabled(!state);
     this.tableToolbar?.refresh();
-    if (state) this.contextMenu?.close();
+    if (state) {
+      this.contextMenu?.close();
+      // Nothing can be inserted now.
+      this.mediaDialog?.close();
+      this.imageDialog?.close();
+      // Nothing can be painted now; turning it off also drops the painter cursor.
+      if (this.tiptap && isFormatPainterActive(this.tiptap.state)) this.tiptap.commands.stopFormatPainter();
+    }
   }
 
   isReadOnly(): boolean {
@@ -1404,11 +1565,84 @@ export class HTMLEditor implements IMDHTMLEditor {
    */
   setPasteMarkdown(on: boolean): void {
     if (this.pasteMarkdownEnabled === on) return;
+    // The two paste modes exclude each other: the other is off before this
+    // one's event, so a listener never sees both on.
+    if (on) this.setPasteAsText(false);
     this.pasteMarkdownEnabled = on;
     this.config.paste_markdown = on;
+    this.toolbar?.refreshState();
     this.fire('pastemarkdownchange', on);
   }
+
+  /**
+   * Whether pastes insert plain text only. Off unless `paste_as_text` says
+   * otherwise, and per editor instance.
+   */
+  isPasteAsTextEnabled(): boolean {
+    return this.pasteAsTextEnabled;
+  }
+
+  /**
+   * Turn paste-as-text on or off, as TinyMCE's `mceTogglePlainTextPaste`. On
+   * turns paste-as-Markdown off. Fires `pasteplaintexttoggle` with `{ state }`
+   * on a change; a host can save the choice from it and pass it back as
+   * `paste_as_text`.
+   */
+  setPasteAsText(on: boolean): void {
+    const next = on === true;
+    if (this.pasteAsTextEnabled === next) return;
+    // The other mode off first, as in setPasteMarkdown.
+    if (next) this.setPasteMarkdown(false);
+    this.pasteAsTextEnabled = next;
+    this.config.paste_as_text = next;
+    this.toolbar?.refreshState();
+    this.fire('pasteplaintexttoggle', { state: next });
+  }
   
+  /**
+   * Whether the toolbar's More (…) toggle is open, showing every row. Starts
+   * as `toolbar_expanded` says.
+   */
+  isToolbarExpanded(): boolean {
+    return this.toolbar?.isExpanded() ?? this.config.toolbar_expanded ?? false;
+  }
+
+  /**
+   * Open or close the toolbar's More (…) toggle. Fires `toolbarexpandedchange`
+   * when the state changes, as a click on the toggle does; a host can save the
+   * user's choice from that event and pass it back as `toolbar_expanded`.
+   */
+  setToolbarExpanded(expanded: boolean): void {
+    this.toolbar?.setExpanded(expanded);
+  }
+
+  /**
+   * Whether Show blocks is on: each block outlined with its tag name while
+   * editing. Starts as `visualblocks_default_state` says.
+   */
+  isVisualBlocksEnabled(): boolean {
+    return this.visualBlocksEnabled;
+  }
+
+  /**
+   * Turn Show blocks on or off. It changes only how the editor shows the
+   * content, never getContent(). Fires `visualblocks` (`{ state }`, as TinyMCE) when the state
+   * changes; a host can save the user's choice from that event and pass it
+   * back as `visualblocks_default_state`.
+   */
+  setVisualBlocks(on: boolean): void {
+    const next = on === true;
+    if (this.visualBlocksEnabled === next) return;
+    this.visualBlocksEnabled = next;
+    this.config.visualblocks_default_state = next;
+    this.editorWrapper?.classList.toggle('md-editor-visualblocks', next);
+    this.toolbar?.refreshState();
+    // Every block moves, and the table toolbar otherwise follows its table only
+    // on a transaction, a scroll or a resize.
+    this.tableToolbar?.refresh();
+    this.fire('visualblocks', { state: next });
+  }
+
   focus(): void {
     this.tiptap?.commands.focus();
   }
@@ -1458,7 +1692,13 @@ export class HTMLEditor implements IMDHTMLEditor {
     this.imageUploadHelper = null;
     this.tableDialog?.destroy();
     this.tableDialog = null;
-    
+    this.mediaDialog?.destroy();
+    this.mediaDialog = null;
+    this.imageDialog?.destroy();
+    this.imageDialog = null;
+    this.printFrame?.remove();
+    this.printFrame = null;
+
     if (this.editorWrapper) {
       this.editorWrapper.remove();
     }

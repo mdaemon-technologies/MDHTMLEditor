@@ -64,14 +64,75 @@ describe('Popup styles', () => {
     });
   });
 
+  describe('Insert video dialog', () => {
+    it('lays out its field like the link and anchor dialogs', () => {
+      const input = declarations('.md-media-dialog-input');
+      expect(input).toMatch(/width:\s*100%/);
+      expect(input).toMatch(/padding:/);
+      expect(input).toMatch(/border:/);
+      expect(input).toMatch(/background:\s*#fff/);
+      expect(declarations('.md-media-dialog-footer')).toMatch(/justify-content:\s*flex-end/);
+      expect(declarations('.md-media-dialog-error')).toMatch(/color:/);
+      expect(declarations('.md-media-dialog-hint')).toMatch(/color:/);
+    });
+
+    it('shows a disabled button as disabled (Insert, while the resolver works), with no hover', () => {
+      const disabled = declarations('.md-btn:disabled');
+      expect(disabled).toMatch(/opacity:/);
+      expect(disabled).toMatch(/cursor:\s*default/);
+      expect(disabled).toMatch(/pointer-events:\s*none/);
+    });
+  });
+
+  describe('image dialog', () => {
+    it('lays out its fields like the other dialogs', () => {
+      const input = declarations('.md-image-dialog-input');
+      expect(input).toMatch(/width:\s*100%/);
+      expect(input).toMatch(/padding:/);
+      expect(input).toMatch(/border:/);
+      expect(input).toMatch(/background:\s*#fff/);
+      expect(declarations('.md-image-dialog-footer')).toMatch(/justify-content:\s*flex-end/);
+    });
+
+    it('puts the size fields and their buttons on one line', () => {
+      expect(declarations('.md-image-dialog-size')).toMatch(/display:\s*flex/);
+    });
+
+    it('hides the progress bar and the upload error until there is something to show', () => {
+      expect(declarations('.md-image-dialog-progress[hidden]')).toMatch(/display:\s*none/);
+      expect(declarations('.md-image-dialog-upload-error:empty')).toMatch(/display:\s*none/);
+      expect(declarations('.md-image-dialog-preview-error[hidden]')).toMatch(/display:\s*none/);
+    });
+
+    it('marks the tab that is shown, and Constrain proportions while on', () => {
+      expect(declarations('.md-image-dialog-tab[aria-selected=true]')).toMatch(/background:/);
+      expect(declarations('.md-image-dialog-lock[aria-pressed=true]')).toMatch(/border-color:/);
+    });
+
+    it('lets the preview scroll rather than grow the dialog', () => {
+      const preview = declarations('.md-image-dialog-preview');
+      expect(preview).toMatch(/max-height:/);
+      expect(preview).toMatch(/overflow:\s*auto/);
+    });
+  });
+
+  describe.each(['oxide-dark', 'confab', 'confab-dark'])('the image dialog in the %s skin', (skin) => {
+    it("keeps a field that can't be saved marked, after the skin's own field border", () => {
+      const invalid = `.md-editor-${skin} .md-image-dialog-input[aria-invalid=true]`;
+      expect(declarations(invalid)).toMatch(/border-color:/);
+      expect(after(invalid, `.md-editor-${skin} .md-image-dialog-input`)).toBe(true);
+    });
+  });
+
   describe.each(['oxide-dark', 'confab-dark'])('the %s skin', (skin) => {
     const scoped = (selector: string) => declarations(`.md-editor-${skin} ${selector}`);
 
     it.each([
       '.md-emoji-search-input',
       '.md-searchreplace-input',
-      '.md-image-upload-row input',
+      '.md-image-dialog-input',
       '.md-anchor-dialog-input',
+      '.md-media-dialog-input',
     ])('darkens the %s field', (selector) => {
       const rules = scoped(selector);
       expect(rules).toMatch(/background:/);
@@ -79,7 +140,7 @@ describe('Popup styles', () => {
       expect(rules).toMatch(/border-color:/);
     });
 
-    it.each(['.md-emoji-tab', '.md-charmap-tab', '.md-charmap-char', '.md-image-upload-tab', '.md-dialog-close'])(
+    it.each(['.md-emoji-tab', '.md-charmap-tab', '.md-charmap-char', '.md-image-dialog-tab', '.md-dialog-close'])(
       'gives %s a light text color and a dark hover',
       (selector) => {
         expect(scoped(selector)).toMatch(/color:/);
@@ -89,7 +150,6 @@ describe('Popup styles', () => {
 
     it.each([
       ['.md-charmap-tab', '.md-charmap-tab-active'],
-      ['.md-image-upload-tab', '.md-image-upload-tab-active'],
       ['.md-emoji-tab', '.md-emoji-tab-active'],
     ])('keeps the active %s marked', (tab, active) => {
       expect(scoped(`${tab}.${active.slice(1)}`)).toMatch(/border-color:/);
@@ -100,10 +160,41 @@ describe('Popup styles', () => {
       '.md-charmap-preview-name',
       '.md-searchreplace-row label',
       '.md-searchreplace-count',
-      '.md-image-upload-row label',
+      '.md-image-dialog-row label',
+      '.md-image-dialog-check label',
+      '.md-image-dialog-progress-text',
       '.md-toolbar-dropdown-item-desc',
+      '.md-media-dialog-hint',
+      '.md-media-dialog-row label',
     ])('lightens the muted %s text', (selector) => {
       expect(scoped(selector)).toMatch(/color:/);
+    });
+
+    it('keeps the selected image dialog tab marked', () => {
+      expect(scoped('.md-image-dialog-tab[aria-selected=true]')).toMatch(/border-color:/);
+      expect(after(`.md-editor-${skin} .md-image-dialog-tab[aria-selected=true]`, `.md-editor-${skin} .md-image-dialog-tab:hover`)).toBe(true);
+    });
+
+    it.each(['.md-image-dialog-lock', '.md-image-dialog-reset'])('gives the image dialog %s button a light color and a dark hover', (selector) => {
+      expect(scoped(selector)).toMatch(/color:/);
+      expect(scoped(selector)).toMatch(/border-color:/);
+      expect(scoped(`${selector}:hover`)).toMatch(/background:/);
+    });
+
+    it('keeps Constrain proportions marked while on, after its hover', () => {
+      const pressed = '.md-image-dialog-lock[aria-pressed=true]';
+      expect(scoped(pressed)).toMatch(/border-color:/);
+      expect(after(`.md-editor-${skin} ${pressed}`, `.md-editor-${skin} .md-image-dialog-lock:hover`)).toBe(true);
+    });
+
+    it('darkens the image dialog preview, drop area and upload error', () => {
+      expect(scoped('.md-image-dialog-preview')).toMatch(/background:/);
+      expect(scoped('.md-image-dialog-preview')).toMatch(/border-color:/);
+      expect(scoped('.md-image-dialog-preview-text')).toMatch(/color:/);
+      expect(scoped('.md-image-dialog-dropzone')).toMatch(/border-color:/);
+      expect(scoped('.md-image-dialog-upload-error')).toMatch(/color:/);
+      expect(scoped('.md-image-dialog-preview-error')).toMatch(/color:/);
+      expect(scoped('.md-image-dialog-progress-bar')).toMatch(/background:/);
     });
 
     it('darkens the dialog header', () => {
@@ -118,8 +209,9 @@ describe('Popup styles', () => {
       ).toBe(true);
     });
 
-    it('lightens the anchor dialog error to stay readable', () => {
+    it('lightens the anchor and video dialog errors to stay readable', () => {
       expect(scoped('.md-anchor-dialog-error')).toMatch(/color:/);
+      expect(scoped('.md-media-dialog-error')).toMatch(/color:/);
     });
 
     it('gives the active emoji tab a plain fallback before its color-mix background', () => {

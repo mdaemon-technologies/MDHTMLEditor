@@ -352,6 +352,30 @@ describe('SpeechToText', () => {
     });
   });
 
+  describe('Transcript', () => {
+    it('shows recognized speech as text, final then interim', () => {
+      let capturedInstance: MockSpeechRecognition | null = null;
+      (window as any).SpeechRecognition = class extends MockSpeechRecognition {
+        constructor() {
+          super();
+          capturedInstance = this;
+        }
+      };
+      speechToText.destroy();
+      speechToText = new SpeechToText({ editor, trans: transMock });
+      speechToText.open();
+      (document.querySelector('.md-speechtotext-btn-start') as HTMLElement).click();
+
+      capturedInstance!.simulateResult('<b class="injected">a</b> & b', true);
+      capturedInstance!.simulateResult('<i>c</i>', false);
+
+      const transcript = document.querySelector('.md-speechtotext-transcript');
+      expect(transcript?.querySelector('.injected, i')).toBeNull();
+      expect(transcript?.querySelector('.md-speechtotext-final')?.textContent).toContain('<b class="injected">a</b> & b');
+      expect(transcript?.querySelector('.md-speechtotext-interim')?.textContent).toBe('<i>c</i>');
+    });
+  });
+
   describe('Clear Transcript', () => {
     it('should clear transcript on clear button click', () => {
       speechToText.open();

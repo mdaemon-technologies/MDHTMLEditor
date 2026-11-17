@@ -120,6 +120,20 @@ export interface EditorConfig {
    */
   images_upload_error_message?: (response: unknown, status: number) => string | null | undefined;
 
+  // Image dialog (TinyMCE's image plugin options)
+  /** Show the dialog's Advanced tab: spacing, border, style, text direction, language. Default false. */
+  image_advtab?: boolean;
+  /** Show the Title field on the General tab (otherwise it is on the Advanced tab, when shown). Default false. */
+  image_title?: boolean;
+  /** Show the Width and Height fields, with Constrain proportions and Reset size. Default true. */
+  image_dimensions?: boolean;
+  /** Show the Alt text field. Default true. */
+  image_description?: boolean;
+  /** Show the Upload tab. Default true. */
+  image_uploadtab?: boolean;
+  /** Add an "Image is decorative" checkbox, which saves an empty alt. Default false. */
+  a11y_advanced_options?: boolean;
+
   // Font configuration
   font_family_formats?: string;
   font_size_formats?: string;
@@ -167,7 +181,34 @@ export interface EditorConfig {
   toolbar_sticky?: boolean;
   toolbar_narrow_breakpoint?: number;
   toolbar_priority?: Record<string, number>;
+  /**
+   * Start with the toolbar's More (…) toggle open, showing every row. Default
+   * false. A host that remembers the user's choice saves it on
+   * `toolbarexpandedchange` and passes it back here.
+   */
+  toolbar_expanded?: boolean;
   menubar?: boolean;
+
+  // Show blocks
+  /**
+   * Start with Show blocks on: a dashed outline and a tag label (P, H1, UL…)
+   * around each block while editing. Default false. It only changes how the
+   * editor shows the content, never getContent(). A host that remembers the
+   * user's choice saves it on the `visualblocks` event and passes it back here.
+   */
+  visualblocks_default_state?: boolean;
+
+  // Insert video
+  /**
+   * Asked about each video the Insert video dialog inserts (`media` button,
+   * `mceMedia`), to supply its link, thumbnail or title, for example through
+   * the host's own server. Return null to keep the defaults: a YouTube or
+   * Dailymotion video as its thumbnail at the site's fixed address, linked to
+   * the video, and a Vimeo video as a plain link. The editor makes no request
+   * of its own. What is returned is checked: an `href` must be an http(s)
+   * link, and a `thumbnail` an http(s) or relative address.
+   */
+  media_url_resolver?: MediaUrlResolver;
   
   // Context menu
   contextmenu?: boolean | string;
@@ -237,6 +278,14 @@ export interface EditorConfig {
   // Paste Markdown
   paste_markdown?: boolean;
 
+  // Paste as text
+  /**
+   * Start with paste-as-text mode on (TinyMCE's option): every paste inserts
+   * the clipboard's plain text, without formatting. Default false. It and
+   * paste_markdown exclude each other; with both set, this one wins.
+   */
+  paste_as_text?: boolean;
+
   /**
    * Class that marks a reply's quoted original. A <blockquote> or <div> whose
    * class is exactly this keeps it, with its margin, padding and border, so the
@@ -297,6 +346,40 @@ export type BlurCallback = () => void;
 export type LanguageChangeCallback = (code: string) => void;
 export type TemplateChangeCallback = (template: Template) => void;
 export type PasteMarkdownChangeCallback = (enabled: boolean) => void;
+export type ToolbarExpandedChangeCallback = (expanded: boolean) => void;
+/** Payload of `visualblocks`, as TinyMCE's VisualBlocks event: whether Show blocks is now on. */
+export interface VisualBlocksEvent {
+  state: boolean;
+}
+export type VisualBlocksCallback = (event: VisualBlocksEvent) => void;
+/** Payload of `pasteplaintexttoggle`, as TinyMCE's PastePlainTextToggle event: whether paste-as-text is now on. */
+export interface PastePlainTextToggleEvent {
+  state: boolean;
+}
+export type PastePlainTextToggleCallback = (event: PastePlainTextToggleEvent) => void;
+
+/** A video the Insert video dialog read from a link, as `media_url_resolver` is told about it. */
+export interface MediaVideo {
+  provider: 'youtube' | 'vimeo' | 'dailymotion';
+  /** The video's id on its site. */
+  id: string;
+  /** The video's page, rebuilt from its id (with a YouTube start time, or an unlisted Vimeo video's hash). */
+  href: string;
+  /** A still of the video at the site's fixed address; Vimeo has none. */
+  thumbnail?: string;
+}
+
+/** What a `media_url_resolver` supplies; anything left out keeps its default. */
+export interface MediaResolution {
+  /** The link to insert, in place of the video's page. */
+  href?: string;
+  /** The image to show, in place of the default thumbnail (or, for Vimeo, of a plain link). */
+  thumbnail?: string;
+  /** The video's title: the image's alt text, or a plain link's text. */
+  title?: string;
+}
+
+export type MediaUrlResolver = (video: MediaVideo) => Promise<MediaResolution | null> | MediaResolution | null;
 
 /** An image resize handle, named by compass direction. */
 export type ImageResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
@@ -339,6 +422,9 @@ export interface EditorEvents {
   dirty?: DirtyCallback;
   change?: ChangeCallback;
   pastemarkdownchange?: PasteMarkdownChangeCallback;
+  toolbarexpandedchange?: ToolbarExpandedChangeCallback;
+  visualblocks?: VisualBlocksCallback;
+  pasteplaintexttoggle?: PastePlainTextToggleCallback;
   objectresizestart?: ObjectResizeCallback;
   objectresized?: ObjectResizeCallback;
   tablemodified?: TableModifiedCallback;
@@ -403,7 +489,19 @@ export interface MDHTMLEditor {
   // Paste Markdown mode
   isPasteMarkdownEnabled(): boolean;
   setPasteMarkdown(on: boolean): void;
-  
+
+  // Paste as text mode
+  isPasteAsTextEnabled(): boolean;
+  setPasteAsText(on: boolean): void;
+
+  // Toolbar More (…) toggle
+  isToolbarExpanded(): boolean;
+  setToolbarExpanded(expanded: boolean): void;
+
+  // Show blocks
+  isVisualBlocksEnabled(): boolean;
+  setVisualBlocks(on: boolean): void;
+
   // Internal TipTap editor access
   getTipTap(): TipTapEditor | null;
 }
@@ -417,6 +515,9 @@ export interface EditorEventMap {
   languagechange: LanguageChangeCallback;
   templatechange: TemplateChangeCallback;
   pastemarkdownchange: PasteMarkdownChangeCallback;
+  toolbarexpandedchange: ToolbarExpandedChangeCallback;
+  visualblocks: VisualBlocksCallback;
+  pasteplaintexttoggle: PastePlainTextToggleCallback;
   objectresizestart: ObjectResizeCallback;
   objectresized: ObjectResizeCallback;
   tablemodified: TableModifiedCallback;

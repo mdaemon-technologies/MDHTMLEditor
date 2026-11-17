@@ -15,7 +15,7 @@ const EXPECTED_BUTTON_NAMES = [
   'undo', 'redo',
   'image', 'charmap', 'emoticons',
   'fullscreen', 'preview', 'code', 'link', 'codesample',
-  'ltr', 'rtl', 'searchreplace', 'togglemore',
+  'ltr', 'rtl', 'searchreplace', 'togglemore', 'selectall', 'print', 'visualblocks', 'formatpainter', 'media', 'pastetext',
 ];
 
 describe('Icons', () => {

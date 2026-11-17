@@ -5,6 +5,7 @@
 
 import type { EditorConfig } from '../types';
 import { createSkinHost } from '../utils/skinHost';
+import { escapeHtml } from '../utils/escapeHtml';
 
 export interface CharMapOptions {
   onSelect: (char: string) => void;
@@ -193,7 +194,7 @@ export class CharacterMap {
     const header = document.createElement('div');
     header.className = 'md-dialog-header';
     header.innerHTML = `
-      <h3>${this.options.trans('Special Character')}</h3>
+      <h3>${escapeHtml(this.options.trans('Special Character'))}</h3>
       <button type="button" class="md-dialog-close">×</button>
     `;
     header.querySelector('.md-dialog-close')?.addEventListener('click', () => this.close());

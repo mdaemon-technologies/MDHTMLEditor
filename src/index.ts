@@ -41,6 +41,9 @@ export { Anchor } from './extensions/Anchor';
 export type { AnchorOptions } from './extensions/Anchor';
 export { AnchorDialog } from './extensions/AnchorDialog';
 export type { AnchorDialogOptions } from './extensions/AnchorDialog';
+export { MediaDialog } from './extensions/MediaDialog';
+export type { MediaDialogOptions } from './extensions/MediaDialog';
+export { parseVideoUrl } from './utils/videoUrl';
 export { InlineStyle } from './extensions/InlineStyle';
 export type { InlineStyleOptions } from './extensions/InlineStyle';
 export { SourceEditor } from './extensions/SourceEditor';
@@ -52,9 +55,15 @@ export type { PasteFromOfficeOptions } from './extensions/PasteFromOffice';
 export { ListPasteNormalizer, normalizePastedLists, stripIndentDeclarations } from './extensions/ListPasteNormalizer';
 export { PasteMarkdown, pasteMarkdownText } from './extensions/PasteMarkdown';
 export type { PasteMarkdownOptions } from './extensions/PasteMarkdown';
+export { PasteAsText, pastePlainText, clipboardHtmlText } from './extensions/PasteAsText';
+export type { PasteAsTextOptions } from './extensions/PasteAsText';
+export { FormatPainter, isFormatPainterActive } from './extensions/FormatPainter';
 export { CodeSample } from './extensions/CodeSample';
 export { ResizableImage, computeImageResize, isImageResizable, MIN_IMAGE_SIZE } from './extensions/ImageResize';
 export type { ResizableImageOptions, ImageResizeInput } from './extensions/ImageResize';
+export { ImageDialog, imageSource } from './extensions/ImageDialog';
+export type { ImageDialogOptions, ImageUploader } from './extensions/ImageDialog';
+export { ImageAttributes, IMAGE_STYLE_RULES } from './extensions/ImageAttributes';
 export { ImageMap } from './extensions/ImageMap';
 export type { ImageMapArea, ImageMapOptions } from './extensions/ImageMap';
 export {
@@ -122,6 +131,14 @@ export type {
   GlobalConfig,
   LanguageChangeCallback,
   PasteMarkdownChangeCallback,
+  ToolbarExpandedChangeCallback,
+  VisualBlocksEvent,
+  VisualBlocksCallback,
+  PastePlainTextToggleEvent,
+  PastePlainTextToggleCallback,
+  MediaVideo,
+  MediaResolution,
+  MediaUrlResolver,
   ImageResizeHandle,
   ObjectResizeEvent,
   ObjectResizeCallback,

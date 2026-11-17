@@ -124,6 +124,12 @@ const editor = new HTMLEditor(container, {
 | `images_upload_validate` | (file: File) => string \| null | - | Pre-upload hook; return a message to reject the file, or null to allow |
 | `images_upload_error` | (message: string) => void | - | Caller-supplied alert for drag-drop/paste upload rejections & failures (no dialog to show errors in) |
 | `images_upload_error_message` | (response: unknown, status: number) => string \| null \| undefined | - | Words the message for a failed upload from the server's reply (parsed JSON body, or null, and the HTTP status). Return null/undefined for the editor's own translated message |
+| `image_advtab` | boolean | false | Show the image dialog's Advanced tab: Style, spacing, border, text direction and language. See [Image Dialog](#image-dialog) |
+| `image_title` | boolean | false | Show the image's Title field on the dialog's General tab (without it, Title is on the Advanced tab when that is shown) |
+| `image_dimensions` | boolean | true | Show the image's Width and Height, with Constrain proportions and Reset size |
+| `image_description` | boolean | true | Show the image's Alt text field |
+| `image_uploadtab` | boolean | true | Show the image dialog's Upload tab |
+| `a11y_advanced_options` | boolean | false | Add an "Image is decorative" checkbox to the image dialog, which saves an empty `alt` |
 | `object_resizing` | boolean \| string | true | Show drag handles on a selected image to resize it. A string is a CSS selector, as in TinyMCE: only images that match it can be resized. See [Resizing images](#resizing-images) |
 | `resize_img_proportional` | boolean | true | Corner handles keep the image's aspect ratio. Holding Shift while dragging does the opposite for that drag |
 | `table_toolbar` | string \| false | *(see [Tables](#table-context-toolbar))* | Buttons of the toolbar shown above a table while the cursor is in it, as a toolbar string. `false` or `''` turns it off. Off by default in the basic editor |
@@ -165,6 +171,9 @@ const editor = new HTMLEditor(container, {
 | `toolbar` | string | *(see Toolbar section)* | Custom toolbar button layout |
 | `toolbar_mode` | 'sliding' \| 'floating' \| 'wrap' | 'wrap' | Toolbar overflow behavior |
 | `toolbar_sticky` | boolean | true | Keep toolbar pinned at the top while scrolling |
+| `toolbar_expanded` | boolean | false | Start with the More (`…`) toggle open, showing every toolbar row (see [Toolbar Toggle](#toolbar-toggle)) |
+| `visualblocks_default_state` | boolean | false | Start with Show blocks on: each block outlined and labeled with its tag (see [Show Blocks](#show-blocks)) |
+| `media_url_resolver` | (video) => { href?, thumbnail?, title? } \| null, or a promise of one | - | Supplies the link, thumbnail and title of each video the Insert video dialog inserts (see [Insert Video](#insert-video)) |
 | `browser_spellcheck` | boolean | true | Enable browser spell-check |
 | `entity_encoding` | 'raw' \| 'named' \| 'numeric' | 'raw' | HTML entity encoding mode |
 | `convert_unsafe_embeds` | boolean | true | Sanitize embedded content |
@@ -172,23 +181,35 @@ const editor = new HTMLEditor(container, {
 | `paste_from_office` | boolean | true | Clean and preserve formatting when pasting from Microsoft Word and Excel |
 | `quote_marker_class` | string | - | Class that marks a reply's quoted original. A `<blockquote>` or `<div>` whose class is exactly this keeps it — see [Quoted original of a reply](#quoted-original-of-a-reply) |
 | `paste_markdown` | boolean | false | Start with paste-as-Markdown mode on. While on, a paste is read as Markdown and inserted as formatting — see [Pasting Markdown](#pasting-markdown) |
+| `paste_as_text` | boolean | false | Start with paste-as-text mode on (TinyMCE's option): every paste inserts the clipboard's plain text, without formatting. Excludes `paste_markdown`, and wins when both are set — see [Pasting as Text](#pasting-as-text) |
 | `speech_to_text` | boolean | true | Enable Speech to Text and Dictate toolbar buttons (requires Web Speech API: Chrome, Edge, Safari) |
 | `setup` | (editor) => void | - | Callback invoked before init — use to register custom buttons |
 
 ### Toolbar Toggle
 
-The toolbar supports a `||` (double pipe) separator to split buttons into a **primary row** and **collapsible overflow rows**. When `||` is present, a toggle button (`…`) appears at the far right of the primary row. Clicking it shows or hides the overflow buttons.
+The toolbar shows one row of buttons. Buttons that don't fit wrap onto more rows, which stay hidden until the user opens the More toggle (`…`) at the right of the first row. The toggle only appears when the buttons need more than one row.
+
+A `||` (double pipe) in the toolbar string starts a new row, so you choose what the first row holds instead of leaving it to the editor's width:
 
 ```ts
 const editor = new HTMLEditor(container, {
-  // Buttons before || are always visible; buttons after || are toggled
+  // The first row is always visible; the row after || is shown by the More toggle
   toolbar: 'bold italic underline strikethrough | fontfamily fontsize || alignleft aligncenter alignright | forecolor backcolor | undo redo',
 });
 ```
 
-The default `FULL_TOOLBAR` and `BASIC_TOOLBAR` presets include `||` so the toggle button appears out of the box. The overflow rows start collapsed.
+A row can still wrap if it is wider than the editor. While the toggle is closed, the buttons on the rows it hides are `inert`, so Tab and screen readers skip them. Where the toolbar is one line, as in narrow mode (which scrolls instead of wrapping) and the table context toolbar, a `||` shows as an ordinary separator. The default toolbars contain no `||`.
 
-If your custom toolbar string contains no `||`, all buttons render in a single flat toolbar with no toggle button (backwards compatible).
+The More toggle starts closed. Set `toolbar_expanded: true` to start with every row shown. To remember the user's choice, save it from the `toolbarexpandedchange` event and pass it back as `toolbar_expanded` next time:
+
+```ts
+const editor = new HTMLEditor(container, {
+  toolbar_expanded: loadSetting('toolbarExpanded') === true, // a boolean, not the string 'true'
+});
+editor.on('toolbarexpandedchange', (expanded) => saveSetting('toolbarExpanded', expanded));
+```
+
+`editor.isToolbarExpanded()` and `editor.setToolbarExpanded(true | false)` read and change it from code. Narrow mode does not change it: once the editor is wide again, the toolbar is open or closed as the user left it.
 
 ## API Reference
 
@@ -202,6 +223,12 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `isTableCommandEnabled(cmd: string, value?: unknown): boolean` - Whether a table command would apply at the selection, without running it. For custom table buttons that should be disabled when they can do nothing
 - `isPasteMarkdownEnabled(): boolean` - Whether pastes are currently read as Markdown
 - `setPasteMarkdown(on: boolean): void` - Turn paste-as-Markdown on or off. Per editor instance and not remembered between sessions — see [Pasting Markdown](#pasting-markdown)
+- `isPasteAsTextEnabled(): boolean` - Whether pastes insert plain text only
+- `setPasteAsText(on: boolean): void` - Turn paste-as-text on or off; on turns paste-as-Markdown off. Fires `pasteplaintexttoggle` on a change — see [Pasting as Text](#pasting-as-text)
+- `isToolbarExpanded(): boolean` - Whether the toolbar's More (`…`) toggle is open, showing every row
+- `setToolbarExpanded(expanded: boolean): void` - Open or close the More toggle. Fires `toolbarexpandedchange` when the state changes — see [Toolbar Toggle](#toolbar-toggle)
+- `isVisualBlocksEnabled(): boolean` - Whether Show blocks is on
+- `setVisualBlocks(on: boolean): void` - Turn Show blocks on or off. Fires `visualblocks` when the state changes — see [Show Blocks](#show-blocks)
 - `getFontFamily(): string` - Font family in effect at the cursor (inline override → block font → configured default). Returns `''` when the selection spans more than one family
 - `getFontSize(): string` - Font size in effect at the cursor (same resolution order). Returns `''` when the selection spans more than one size, and inside a heading with no inline override (headings size by level)
 - `isDirty(): boolean` - Check if content has changed
@@ -229,6 +256,9 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 - `languagechange` - UI language changed (receives language code)
 - `templatechange` - A template was applied (receives the `Template` object)
 - `pastemarkdownchange` - Paste-as-Markdown mode was turned on or off (receives the new boolean). Fires only on an actual change, so a host can save the user's choice
+- `pasteplaintexttoggle` - Paste-as-text mode was turned on or off (receives `{ state }`, as TinyMCE's `PastePlainTextToggle` event). Fires only on an actual change, so a host can save the user's choice
+- `toolbarexpandedchange` - The toolbar's More (`…`) toggle was opened or closed, by the user or `setToolbarExpanded` (receives the new boolean). Fires only on an actual change, not when the editor goes narrow, so a host can save the user's choice
+- `visualblocks` - Show blocks was turned on or off, by the user or code (receives `{ state }`, as TinyMCE's `VisualBlocks` event). Fires only on an actual change, so a host can save the user's choice
 - `objectresizestart` - The user started dragging an image resize handle (receives `{ target, width, height, handle }` with the starting size)
 - `objectresized` - The user finished resizing an image (receives `{ target, width, height, handle }` with the new size). Not fired when the drag is cancelled or the size is unchanged
 - `tablemodified` - A table command changed a table (receives `{ table, structure, style }`: the table in the editor, and whether rows, columns or cells changed or only formatting). Not fired by a copy, or by a command that did nothing
@@ -239,6 +269,7 @@ If your custom toolbar string contains no `||`, all buttons render in a single f
 The following TinyMCE-compatible commands are supported:
 
 - `mceTogglePasteMarkdown` - turn paste-as-Markdown mode on or off
+- `mceTogglePlainTextPaste` - turn paste-as-text mode on or off, as in TinyMCE
 - `bold`, `italic`, `underline`, `strikethrough`
 - `fontname`, `fontsize`, `lineheight`
 - `forecolor`, `hilitecolor`, `backcolor` — pass `''` or `'none'` as the value to clear the color instead of setting one
@@ -246,6 +277,14 @@ The following TinyMCE-compatible commands are supported:
 - `insertunorderedlist`, `insertorderedlist`
 - `indent`, `outdent` — context-aware, see [Lists & Indentation](#lists--indentation)
 - `undo`, `redo`
+- `SelectAll` - select the whole document and focus the editor
+- `mcePrint` - print the content (see the `print` button)
+- `mceVisualBlocks` - turn Show blocks on or off (see [Show Blocks](#show-blocks))
+- `mceToggleFormatPainter` - turn the format painter on (copying the formatting at the selection) or off
+- `mceRetrieveFormats` - copy the inline formatting at the selection, without turning the painter on
+- `mcePaintFormats` - paint the copied formatting onto the selection (see [Format Painter](#format-painter))
+- `mceImage` - open the image dialog: Image properties for the selected image, or Insert image (see [Image Dialog](#image-dialog)). Returns false in the basic editor and in a read-only editor
+- `mceMedia` - open the Insert video dialog (see [Insert Video](#insert-video)). Returns false in the basic editor and in a read-only editor
 - `removeformat`
 - `mceremoveeditor` - Destroys the editor instance
 - Table commands — see [Table commands](#table-commands)
@@ -259,8 +298,8 @@ The editor supports a template dropdown that lets users insert predefined HTML s
 ```ts
 interface Template {
   id?: number | string;  // Optional identifier
-  title: string;         // Display name in the dropdown
-  description?: string;  // Tooltip/description shown in the dropdown
+  title: string;         // Display name in the dropdown (plain text)
+  description?: string;  // Description shown in the dropdown (plain text)
   content: string;       // HTML content to insert
 }
 ```
@@ -348,7 +387,7 @@ An `<a href="">` — a link whose target the author has not filled in yet, or th
 
 ### Links on images
 
-Images are inline, as in TinyMCE and in mail HTML: an image sits in a line of text, so a link around it is kept on import and paste (`<p><a href="https://example.com/"><img src="logo.png"></a></p>` comes back unchanged), and an image between words stays in its paragraph. Select an image and use the Link dialog or `unlink` to link or unlink it. An `<img>` that is not already in a line of text (at the top level, or directly in a table cell, list item, quote or the signature) is put in one (`<p>`, or `<div>` with `forced_root_block: 'div'`); with `<p>` lines it then has the paragraph's margin in the saved HTML. When the selection holds an image (or a mention or named anchor), the Link dialog's "Text to display" is disabled, as in TinyMCE, so the selection is relinked rather than replaced by text. A link the editor rejects, such as `javascript:`, is dropped and the image kept.
+Images are inline, as in TinyMCE and in mail HTML: an image sits in a line of text, so a link around it is kept on import and paste (`<p><a href="https://example.com/"><img src="logo.png"></a></p>` comes back unchanged), and an image between words stays in its paragraph. Select an image and use the Link dialog or `unlink` to link or unlink it. An `<img>` that is not already in a line of text (at the top level, or directly in a table cell, list item, quote or the signature) is put in one (`<p>`, or `<div>` with `forced_root_block: 'div'`); with `<p>` lines it then has the paragraph's margin in the saved HTML. When the selection holds an image (or a mention or named anchor), the Link dialog's "Text to display" is disabled, as in TinyMCE, so the selection is relinked rather than replaced by text. A link the editor rejects, such as `javascript:`, is dropped and the image kept. The image dialog's Link tab also sets, changes or removes the link on an image (see [Image Dialog](#image-dialog)).
 
 ### Image maps
 
@@ -446,11 +485,13 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `removeformat` | Clear all formatting |
 | `copy` | Copy selection |
 | `cut` | Cut selection |
-| `paste` | Paste from clipboard (async Clipboard API; prefers HTML, falls back to plain text). Follows the Markdown mode when it is on |
+| `paste` | Paste from clipboard (async Clipboard API; prefers HTML, falls back to plain text). Follows the paste-as-text and Markdown modes when one is on |
 | `pastemarkdown` | Toggle paste-as-Markdown mode. Not in the default toolbars — add it to your `toolbar` string |
+| `pastetext` | Toggle paste-as-text mode, as TinyMCE's `pastetext`: while it is pressed, every paste inserts plain text (see [Pasting as Text](#pasting-as-text)). Not in the default toolbars |
+| `selectall` | Select the whole document, as Ctrl/Cmd+A does. Not in the default toolbars — add it to your `toolbar` string |
 | `undo` | Undo last change |
 | `redo` | Redo last undo |
-| `image` | Insert image dialog (upload file or enter URL) |
+| `image` | Insert an image, or edit the selected one, in the image dialog (see [Image Dialog](#image-dialog)). Shown pressed while an image is selected. Not in the basic editor |
 | `charmap` | Special character picker (currency, math, arrows, symbols, Greek, punctuation) |
 | `emoticons` | Emoji picker (smileys, gestures, hearts, objects, symbols, arrows). Its search matches English emoji names and keywords, such as "heart" or "happy" |
 | `code` | Open HTML source code editor dialog |
@@ -460,6 +501,10 @@ All built-in toolbar button names that can be used in the `toolbar` config strin
 | `codesample` | Toggle code sample block (also Ctrl+Alt+C, Cmd+Option+C on macOS). In a paragraph with line breaks (`<br>`, Shift+Enter), only the lines the selection touches become the code block; the lines before and after stay text. A selection across several blocks, and the first line of a list item, still convert whole paragraphs |
 | `fullscreen` | Toggle fullscreen editing mode |
 | `preview` | Open content preview in a new window (the window carries a Content Security Policy that blocks script; images and inline styles still render) |
+| `print` | Print the content on its own, without the page around it, as `getContent()` returns it. It prints from a hidden frame that can't run script, so no popup opens. With the button in the toolbar, Ctrl+P (Cmd+P on macOS) in the editor prints this way too. Not in the default toolbars |
+| `visualblocks` | Show blocks: outline each block with its tag name while editing (see [Show Blocks](#show-blocks)). Not in the default toolbars |
+| `formatpainter` | Format painter: click to copy the inline formatting at the selection and paint it onto the next selection made with the mouse; double-click to keep painting until clicked again or Esc (see [Format Painter](#format-painter)). Not in the default toolbars |
+| `media` | Insert video: a YouTube, Vimeo or Dailymotion link goes in as the video's thumbnail, linked to the video (see [Insert Video](#insert-video)). Not in the default toolbars, nor in the basic editor |
 | `searchreplace` | Open Find & Replace dialog |
 | `speechtotext` | Open Speech to Text dialog (browser support required) |
 | `dictate` | Toggle inline dictation — inserts speech directly at cursor (browser support required) |
@@ -480,14 +525,48 @@ bold italic underline strikethrough subscript superscript | blocks styles | bull
 bold italic underline strikethrough subscript superscript | bullist numlist outdent indent | fontfamily fontsize blockquote | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | removeformat copy cut paste | undo redo | charmap emoticons | link unlink | ltr rtl | searchreplace
 ```
 
-## Image Upload
+## Image Dialog
 
-The image button opens a two-tab dialog:
+The `image` toolbar button, `execCommand('mceImage')` and a double-click on an image open the image dialog. With an image selected it opens as **Image properties**, filled in from that image, and **Save** changes it in place as one undo step. Otherwise it opens as **Insert image** and **Insert** puts a new image at the cursor. The option names and defaults are TinyMCE's.
 
-- **Upload** — Drag-and-drop or browse for a local file. Supports JPEG, PNG, GIF, WebP, and SVG.
-- **URL** — Enter an image URL directly.
+- **General**
+  - **Source**: the image's address. It must be http(s), relative (without a backslash), or a base64 `data:image/…` URI; an SVG one, base64 or URL-encoded, is cleaned as an uploaded SVG is. An image's own address is kept as it is when you don't change it (a `cid:` one, for example).
+  - **Alt text** (`image_description`), and **Image is decorative** (`a11y_advanced_options`), which saves `alt=""`. An image inserted with no alt text has no `alt` attribute, and an image's alt is left alone unless you change it.
+  - **Title** with `image_title`.
+  - **Width** and **Height** (`image_dimensions`): pixels, or a percentage such as `50%` (not zero). **Constrain proportions** (on at first) keeps the image's ratio as you change one side, and **Reset size** fills in the image's own size.
+  - **Alignment**: None, Left or Right, saved as `float` (CKEditor's field; TinyMCE has none).
+  - A preview of the image in sample text, at its size and with its float, spacing and border.
+- **Link**: a **URL** and **Open link in...** (current or new window). A bare domain gets `http://`, and an address links don't allow (`javascript:`, `data:`) can't be saved. On a linked image the link changes or goes as a whole, even when it also holds text.
+- **Upload** (`image_uploadtab`): drop or browse for a file. It uploads straight away, then fills in Source and shows the General tab. See [Uploading images](#uploading-images).
+- **Advanced** (`image_advtab`): **Style**, **Vertical space**, **Horizontal space**, **Border width**, **Border style**, **Text direction** and **Language**, and Title when `image_title` is off. A border width with no border style draws a solid border. The Style field and the others follow each other as you type.
+- A field whose value can't be saved (a Source that isn't an image address, a link links don't allow, a size, spacing or language an image can't keep) is marked (`aria-invalid`), and Save waits until it is fixed or emptied. The arrow keys, Home and End move between the tabs.
+
+```ts
+const editor = new HTMLEditor(container, {
+  image_advtab: true,           // the Advanced tab
+  image_title: true,            // Title on the General tab
+  a11y_advanced_options: true,  // "Image is decorative"
+});
+```
+
+### What an image keeps
+
+Editor content is part of your page, so an image keeps only checked values:
+
+- its `style`, limited to `float` (left, right or none), the four margins, and `border-width`, `border-style` and `border-color` (exported as `IMAGE_STYLE_RULES`); anything else in a style, such as `position` or a `url()`, is dropped;
+- `dir` (`ltr` or `rtl`) and `lang` (a language tag such as `fr-CA`);
+- the older `align="left|right"`, `hspace`, `vspace` and `border` attributes, read into that style on load and saved as CSS;
+- a size written as style in pixels (`style="width: 200px"`), read into the `width` and `height` attributes when the image has none.
+
+Images still don't keep `id` or `class`. The dialog doesn't write them either. The TipTap extension behind this, `ImageAttributes`, is exported for hosts that build their own TipTap editor. The `ImageDialog` class (with its `ImageDialogOptions` and `ImageUploader` types) is exported for hosts with their own toolbar; it takes the `HTMLEditor` it works on. `imageSource(value)` gives the address the dialog would store for a Source, or `null` when it would refuse it.
+
+### Uploading images
+
+The Upload tab supports JPEG, PNG, GIF, WebP, BMP and SVG. Unlike TinyMCE, it is shown even without `images_upload_url`, because uploads then embed the image.
 
 If `images_upload_url` is configured, files are sent as `multipart/form-data` to that endpoint. The server response must be JSON containing a `location`, `url`, or `link` field with the resulting image URL. When no upload URL is set, images are embedded as base64 data URIs.
+
+An image pasted from the clipboard or dropped on the editor uploads the same way, in place of the paste or drop: an image copied or dragged from a web page goes in as the upload only, not also as the `<img>` in its HTML. If the upload is refused or fails, nothing goes in. A read-only editor takes no pasted or dropped image. A paste that has text beside its picture is pasted once, as its HTML (or its text, in paste-as-text mode), and the picture isn't uploaded: cells copied from a spreadsheet, for example, carry a picture of themselves as well as their table.
 
 SVG files are automatically sanitized — dangerous elements (`<script>`, `<foreignObject>`, `<animate*>`) and event-handler attributes are stripped before insertion.
 
@@ -573,6 +652,8 @@ When you let go, the size is saved in the image's `width` and `height` attribute
 ```html
 <img class="md-editor-image" src="photo.jpg" width="320" height="240">
 ```
+
+The image dialog's Width and Height set the same attributes. A double-click on an image opens the dialog; a double-click on a handle doesn't.
 
 The editor shows a resizable image at its `width` and `height` attributes, even when they don't match the picture's own shape. An image wider than the editor is scaled down to fit without being distorted. Images with a percentage size (`width="50%"`) keep that size relative to the editor, and get pixel sizes once they are resized. A resizable image has 1em of space below it, as a paragraph does.
 
@@ -676,7 +757,7 @@ A size without a unit is pixels. Only the fields you change are applied, so open
 | `mceTableToggleCaption` | - | Add a caption (the word "Caption", to edit in Table properties) or remove it |
 | `mceTableRowType` | `{ type: 'header' \| 'body' }` | Make the selected rows header or body rows (`'footer'` is not supported) |
 | `mceTableColType` / `mceTableCellType` | `{ type: 'th' \| 'td' }` | Make the cells of the selected columns / the selected cells header or data cells |
-| `mceTableApplyCellStyle` | `{ 'background-color'?, 'border-color'?, 'border-style'?, 'border-width'?, 'vertical-align'?, height? }` | Style the selected cells; an empty value removes a property. camelCase names (`backgroundColor`) work too; other properties are ignored, and with none left the command does nothing |
+| `mceTableApplyCellStyle` | `{ 'background-color'?, 'border-color'?, 'border-style'?, 'border-width'?, 'vertical-align'?, height? }` | Style the selected cells; an empty value removes a property. Each side's border (`'border-top-width'` and so on) can be set too. camelCase names (`backgroundColor`) work too; other properties are ignored, and with none left the command does nothing |
 
 `queryCommandValue('mceTableRowType' | 'mceTableColType' | 'mceTableCellType')` reads the types back. Table commands do nothing, and return `false`, in a read-only editor. They fire `tablemodified`, and those that create rows or cells fire `newrow` and `newcell` first (see [Events](#events)).
 
@@ -686,9 +767,15 @@ The editor's content is part of the host page, not an iframe as in TinyMCE, so a
 
 - **Table** — `width`, `height`, `border-collapse`, `float`, `margin-left`, `margin-right`, `background-color`, `border-width`, `border-style`, `border-color`
 - **Row** — `height`, `text-align`, `vertical-align`, `background-color`, `border-width`, `border-style`, `border-color`
-- **Cell** — `height`, `vertical-align`, `background-color`, `border-width`, `border-style`, `border-color`, plus `text-align`, `scope`, `colspan`, `rowspan` and the column width
+- **Cell** — `height`, `vertical-align`, `background-color`, `border-width`, `border-style`, `border-color`, each side's border (`border-top-width`, `border-left-style` and so on, for a cell whose sides differ), plus `text-align`, `scope`, `colspan`, `rowspan` and the column width
 
 The legacy `bgcolor`, `valign`, `width`, `height` and `align` attributes common in email are read into the same style. Everything else — `class`, `id`, `data-*`, other properties — is dropped. This is also what keeps cell shading and borders pasted from Word and Excel.
+
+### Pasting from Excel
+
+Cells copied from Excel keep their formatting: fills, borders, alignment, and the text's font, size, color, bold, italic, underline and strikethrough, including a run formatted differently within a cell. Excel puts most of that in class rules in a `<style>` block rather than on the cells, so the editor writes those rules onto the cells before it drops the classes. A cell keeps what a cell may keep (above), and its text formatting goes on its text. Excel's automatic color is drawn as black on borders, and left to the editor's text color on text. The sheet's default text color, alignment and borders are not copied, as they are not formatting chosen for the cells.
+
+The picture of the cells Excel puts on the clipboard beside the table is not pasted. `paste_from_office: false` turns this off with the rest of the Office cleaning.
 
 ### Not supported
 
@@ -737,11 +824,25 @@ Lists pasted from Word, Outlook, Google Docs, another editor or a web page are n
 
 Word/Excel cleaning as a whole can be turned off with `paste_from_office: false`; list indentation is normalized either way.
 
+## Pasting as Text
+
+TinyMCE's *Paste as text*: while the mode is on, every paste (Ctrl/Cmd+V, and the `paste` toolbar button) inserts the clipboard's plain text, with none of its formatting, links or images. As in TinyMCE, each pair of line breaks starts a new paragraph and a single line break becomes a line break (`<br>`), and spaces at the start of a line or in a run are kept as non-breaking spaces, so they don't collapse wherever the HTML is shown; in a code block the text goes in as it is. The text takes the formatting at the caret or of the selection it replaces, as typed text would (but doesn't lengthen a link it is pasted at the end of), and over selected table cells it fills every cell. Nothing in the text is turned into formatting: Markdown (`**bold**`, `` `code` ``), HTML and URLs stay literal, and as in TinyMCE not even a URL pasted over selected text links it. A clipboard with HTML but no plain text gives the HTML's text, its paragraphs, line breaks, tabs and mentions kept; HTML with no text (an image, a rule) inserts nothing. A copy that has text beside a picture of itself (cells from a spreadsheet) is pasted as text, with no picture; a copied image, which has no text, still goes to the image upload as usual.
+
+The mode is **off by default** and stays on until it is turned off. Turn it on with the `pastetext` toolbar button, `paste_as_text: true`, `editor.setPasteAsText(true)`, or `editor.execCommand('mceTogglePlainTextPaste')`. It and paste-as-Markdown exclude each other: turning one on turns the other off, and each fires its own event. To remember the user's choice:
+
+```ts
+const editor = new HTMLEditor(container, {
+  toolbar: 'paste pastetext pastemarkdown',
+  paste_as_text: localStorage.getItem('md-paste-text') === 'true',
+});
+editor.on('pasteplaintexttoggle', ({ state }) => localStorage.setItem('md-paste-text', String(state)));
+```
+
 ## Pasting Markdown
 
 Chat apps, AI assistants and README files hand out Markdown, which pastes into an editor as the raw `#`, `*` and `|` characters. Turn on paste-as-Markdown mode and a paste is converted to real formatting instead.
 
-The mode is **off by default** and stays on until it is turned off, like TinyMCE's *Paste as text*. Turn it on with the `pastemarkdown` toolbar button, `paste_markdown: true`, `editor.setPasteMarkdown(true)`, or `editor.execCommand('mceTogglePasteMarkdown')`.
+The mode is **off by default** and stays on until it is turned off, like [Pasting as Text](#pasting-as-text), which it excludes: turning one on turns the other off. Turn it on with the `pastemarkdown` toolbar button, `paste_markdown: true`, `editor.setPasteMarkdown(true)`, or `editor.execCommand('mceTogglePasteMarkdown')`.
 
 ```js
 const editor = new HTMLEditor(el, {
@@ -792,7 +893,7 @@ Pasted Markdown cannot run script in the editor: raw HTML is escaped to text, th
   });
   ```
 
-- The `styles` button is a named-styles dropdown driven by `style_formats` (CKEditor `stylesSet`-compatible). Each entry applies a block element and/or inline color/background/class to the selection:
+- The `styles` button is a named-styles dropdown driven by `style_formats` (CKEditor `stylesSet`-compatible). Each entry applies a block element and/or inline color/background/class to the selection, and its `title` (plain text) names it in the menu:
 
   ```ts
   const editor = new HTMLEditor(container, {
@@ -929,6 +1030,84 @@ This is handled by the exported `BlockFontStyle` extension (block defaults and t
 `setBlockFontFamily` / `setBlockFontSize` commands) layered with the inline
 `FontSize` mark and TipTap's `FontFamily` mark (per-selection overrides).
 
+## Show Blocks
+
+Show blocks draws a dashed outline around each block, labeled with its tag (`P`, `DIV`, `H1` to `H6`, `BLOCKQUOTE`, `UL`, `OL`, `PRE` and `TABLE`), so you can see how the content is built: where one paragraph ends and the next begins, or what a quote or list holds. Each label sits in a little room above its block's text, so blocks move down a little while it is on.
+
+It changes only how the editor shows the content. `getContent()` is the same with it on or off, and turning it on or off doesn't mark the editor dirty.
+
+Turn it on with the `visualblocks` toolbar button, `editor.setVisualBlocks(true)`, or `editor.execCommand('mceVisualBlocks')`, which toggles it. It is off unless `visualblocks_default_state: true` says otherwise. To remember the user's choice, save it from the `visualblocks` event:
+
+```ts
+const editor = new HTMLEditor(container, {
+  toolbar: 'bold italic | blocks | visualblocks',
+  visualblocks_default_state: loadSetting('showBlocks') === true, // a boolean, not the string 'true'
+});
+editor.on('visualblocks', ({ state }) => saveSetting('showBlocks', state));
+```
+
+The outline and label colors come from two CSS custom properties, which the `oxide-dark`, `confab` and `confab-dark` skins set on `.md-editor-<skin> .md-editor-body`. To use your own, set them with a selector that outranks that one, so they apply whichever stylesheet loads last:
+
+```css
+.md-editor.md-editor-confab .md-editor-body {
+  --md-visualblocks-color: #9ca3af;       /* the dashed outline */
+  --md-visualblocks-label-color: #6b7280; /* the tag label */
+}
+```
+
+## Format Painter
+
+The format painter copies the inline formatting of one piece of text and paints it onto another, as TinyMCE's Format Painter does. Add `formatpainter` to your `toolbar` string to use it; it is not in the default toolbars.
+
+- **Click** the button to copy the formatting at the selection (or at the caret). The button stays pressed and the editor shows a copy cursor. The next selection you make with the mouse is painted, and the painter turns off.
+- **Double-click** the button to keep painting: every selection you make is painted until you click the button again or press Esc.
+- Clicking into a word paints the whole word; clicking where there is no word paints what you type next.
+
+Painting replaces the target's own inline formatting, so it looks like the source, and one undo takes it back. What is copied:
+
+- bold, italic, underline, strikethrough, subscript, superscript and inline code;
+- highlight and text color;
+- font, size and style class (from the Styles menu).
+
+Links are neither copied nor removed (so inline code, which can't share text with a link, isn't painted onto linked text), and block formatting (alignment, indent, line height, the block type) is left alone. Painting a table cell selection paints every selected cell; clicking an image doesn't paint it, and a right-click never paints. A paragraph's own font (set with the font menu on the whole paragraph) is painted as a font on the text. Text in the editor's default font paints no font, so the painted text shows its own paragraph's font, and painting never wraps text in a span of the font it already shows.
+
+From code, `execCommand('mceToggleFormatPainter')` turns the painter on or off. `mceRetrieveFormats` copies the formatting at the selection without turning it on, and `mcePaintFormats` paints what was copied onto the selection. A host can bind those two to keys of its own. The editor adds no shortcut, because TinyMCE's Ctrl+Alt+C is Code sample here.
+
+Nothing is painted in a read-only editor, and making the editor read-only turns the painter off.
+
+## Insert Video
+
+The `media` toolbar button and `execCommand('mceMedia')` open the Insert video dialog. Paste a YouTube, Vimeo or Dailymotion link (from the address bar, a share button, a Short, an embed or a player; a playlist is not one video, so it isn't read) and the video goes in as its thumbnail, linked to the video:
+
+```html
+<a target="_blank" rel="noopener noreferrer" href="https://www.youtube.com/watch?v=abcDEF12345"><img class="md-editor-image" src="https://img.youtube.com/vi/abcDEF12345/hqdefault.jpg" alt="Video"></a>
+```
+
+An embedded player isn't inserted: the editor keeps no iframes, and mail clients remove them, while a linked image shows everywhere. Vimeo has no thumbnail at a fixed address, so a Vimeo video goes in as a plain link. The link and thumbnail are rebuilt from the video's id, which is strictly checked, so nothing else of the pasted text reaches the content, apart from a YouTube start time (`t=1m30s` or `start=90`, kept as `&t=90s`) and an unlisted Vimeo video's hash, without which it can't be watched. A link the dialog can't read gets a message, and the dialog stays open. In a code block, which holds plain text only, the video goes in a line of its own after the block. The button isn't available in the basic editor, which has no images, or in a read-only editor; making the editor read-only closes the dialog.
+
+### media_url_resolver
+
+The editor doesn't ask the video site about a video; the inserted thumbnail loads from the site's fixed address like any other image. To supply a video's link, thumbnail or title yourself, for example through your own server so that readers' mail clients don't load images from the video site, or to give Vimeo videos a thumbnail, set `media_url_resolver`. The dialog asks it about each video it inserts:
+
+```ts
+const editor = new HTMLEditor(container, {
+  toolbar: 'bold italic | link image media',
+  media_url_resolver: async (video) => {
+    // video: { provider: 'youtube' | 'vimeo' | 'dailymotion', id, href, thumbnail? }
+    const response = await fetch(`/api/video-preview?provider=${video.provider}&id=${video.id}`);
+    if (!response.ok) return null; // keep the defaults
+    const { thumbnailUrl, title } = await response.json();
+    return { thumbnail: thumbnailUrl, title };
+  },
+});
+```
+
+Return any of `href`, `thumbnail` and `title`; what you leave out keeps its default, and `null`, a rejected promise or an error keeps them all. What it returns is checked like anything else inserted: an `href` must be an http(s) link, and a `thumbnail` an http(s) or relative address, or the default is used. The `title` becomes the image's alt text, or a plain link's text. Insert is disabled while the resolver works, and an answer that comes after the dialog was closed is ignored.
+
+**Not TinyMCE's signature.** TinyMCE calls its `media_url_resolver` with `{ url }` for any link and expects `{ html }` (an embed) back. Here it is asked only about a YouTube, Vimeo or Dailymotion video the dialog has already read, gets `{ provider, id, href, thumbnail }`, and returns `{ href, thumbnail, title }`; an embed is never inserted. A resolver written for TinyMCE has to be rewritten: as it is, it reads `url`, which is undefined, and its `html` is ignored, so the defaults go in.
+
+`parseVideoUrl(url)` is exported too: it returns the same `{ provider, id, href, thumbnail }` for a link, or `null`.
+
 ## Read-Only Mode
 
 Start the editor read-only with `readonly: true`, or toggle it at runtime. Read-only mode disables editing and dims/blocks the toolbar.
@@ -971,11 +1150,13 @@ The `searchreplace` toolbar button (or **Ctrl/Cmd+F**) opens a Find & Replace di
 | Ctrl/Cmd+Z | Undo |
 | Ctrl/Cmd+Shift+Z | Redo |
 | Ctrl/Cmd+F | Open Find & Replace |
+| Ctrl+P (Cmd+P on macOS) | Print the content instead of the whole page (only when the toolbar has a `print` button; otherwise the browser prints the page) |
 | Ctrl/Cmd+Alt+C | Toggle code sample on the lines the selection touches (same as the `codesample` button) |
 | Tab | Always handled (never escapes the editor). Types a tab at the cursor in a paragraph or heading, adds a left margin to the selected paragraphs/headings when there is a selection, nests the current list item (or, for an item that can't nest, indents its content), inserts a tab in a code block, or moves to the next cell in a table (adding a row in the last cell; with `table_tab_navigation: false` it works in the cell as it does outside a table) |
 | Shift+Tab | Reduces the current block's left margin, lifts the current list item, or moves to the previous table cell |
 | Backspace | Removes a tab in one press. At the start of an indented paragraph or heading, removes one indent step |
 | Shift+Arrow keys (in a table) | Extend a cell selection across cells |
+| Esc (while the format painter is on) | Turn the format painter off. Esc still arms the Tab focus escape below |
 | Esc, then Tab | Moves focus out of the editor to the next focusable element (Shift+Tab → previous), so Tab is not a keyboard trap. Esc arms this for the next key press only; any other key cancels it |
 
 ## Localization
@@ -999,7 +1180,7 @@ editor.on('languagechange', (code) => {
 
 ### Custom translations
 
-If you need translations the built-in locales don't cover, you can provide your own function. The custom function set with `setTranslate()` is tried first for every string. When it returns `null`, `undefined` or an empty string, the built-in locale is used instead, so you only need to supply the strings you want to change. Like the custom function, the fallback locale is global: it is the `language` of the most recently created editor, or the code from the most recent `setLanguage()` call. `setLanguage()` keeps the custom function and only changes the fallback locale.
+If you need translations the built-in locales don't cover, you can provide your own function. The custom function set with `setTranslate()` is tried first for every string. When it returns `null`, `undefined` or an empty string, the built-in locale is used instead, so you only need to supply the strings you want to change. Like the custom function, the fallback locale is global: it is the `language` of the most recently created editor, or the code from the most recent `setLanguage()` call. `setLanguage()` keeps the custom function and only changes the fallback locale. A translation is plain text, as every label is: markup in one shows as written.
 
 ```ts
 import { setTranslate, TRANSLATION_KEYS } from '@mdaemon/html-editor';
@@ -1097,6 +1278,7 @@ import { fontNames, CHAR_MAP, EMOJI_CATEGORIES, EMOJI_DATA, TRANSLATION_KEYS, DE
 // DEFAULT_TABLE_TOOLBAR — the default table_toolbar string
 // TABLE_BUTTON_NAMES — every table toolbar button name
 // TABLE_STYLE_RULES, ROW_STYLE_RULES, CELL_STYLE_RULES — the style properties a table, row and cell keep
+// IMAGE_STYLE_RULES — the style properties an image keeps (float, margins, border)
 ```
 
 ## Custom Toolbar Button API
@@ -1110,7 +1292,7 @@ const editor = new HTMLEditor(container, {
     ed.ui.registry.addIcon('my-icon', '<svg viewBox="0 0 24 24" stroke="currentColor">…</svg>');
     ed.ui.registry.addButton('myButton', {
       tooltip: 'My Custom Button',
-      text: 'Click Me',        // text label on the button
+      text: 'Click Me',        // text label on the button (plain text, not HTML)
       icon: 'my-icon',         // icon name (alternative to text; see Icons below)
       disabled: false,
       onSetup: (api) => {
@@ -1236,11 +1418,14 @@ The editor DOM uses BEM-style classes you can target for further customization:
 - `.md-editor-confab` / `.md-editor-confab-dark` — confab theme variant
 - `.md-toolbar` — toolbar container
 - `.md-toolbar-sticky` — sticky toolbar
-- `.md-toolbar-primary` / `.md-toolbar-overflow` — primary and collapsible toolbar rows
-- `.md-toolbar-btn` / `.md-toolbar-btn-active` — toolbar buttons
+- `.md-toolbar-buttons` / `.md-toolbar-expanded` — the container of every toolbar row, and the class it has while the More toggle is open
+- `.md-toolbar-row-break` / `.md-toolbar-row-separator` — what a `||` renders: the row break, and the separator shown in its place where the toolbar is one line
+- `.md-toolbar-btn` / `.md-toolbar-btn-active` — toolbar buttons; `.md-toolbar-btn-labelled` — a custom button with a `text` label, which is as wide as its label
 - `.md-image-resize` / `.md-image-resizable` / `.md-image-resize-active` — wrapper around an image in the editor, the class it has when the image can be resized, and the class it has while being resized. Set `--md-image-resize-color` on it to change the outline and handle color
 - `.md-image-resize-handle` — a resize handle (`data-handle` is `nw`, `n`, `ne`, `e`, `se`, `s`, `sw` or `w`)
 - `.md-image-resize-size` — the size label shown while resizing
+- `.md-image-styled` — an image wrapper that carries the image's float or margins
+- `.md-image-dialog` — the image dialog (its parts were `.md-image-upload-*` before 1.20.0 and are `.md-image-dialog-*` now)
 - `.md-table-menu`, `.md-table-submenu`, `.md-table-grid` — the table menu, its submenus and its size grid; `.md-context-menu` — the right-click menu
 - `.md-table-toolbar` — the table context toolbar
 - `.md-table-dialog` — the table dialogs

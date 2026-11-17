@@ -347,6 +347,18 @@ describe('Table commands', () => {
       expect(cell.style.verticalAlign).toBe('top');
     });
 
+    it("sets one side's border", () => {
+      create();
+      cursorIn(editor, 0, 0);
+      expect(
+        editor.execCommand('mceTableApplyCellStyle', false, { borderBottomWidth: '2px', 'border-bottom-style': 'solid' })
+      ).toBe(true);
+      const cell = tableEl(editor)!.querySelector('td')!;
+      expect(cell.style.borderBottomWidth).toBe('2px');
+      expect(cell.style.borderBottomStyle).toBe('solid');
+      expect(cell.style.borderTopStyle).toBe('');
+    });
+
     it('takes camelCase property names, as TinyMCE does', () => {
       create();
       cursorIn(editor, 0, 0);

@@ -23,6 +23,18 @@ const SVG_ANCHOR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
 // at this size. The arrow also reads as "bring this in", which suits a paste.
 const SVG_PASTE_MARKDOWN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17.5V6.5l4.5 5.5 4.5-5.5v11"/><path d="M17.5 6.5v8.5"/><polyline points="14 11.5 17.5 15 21 11.5"/></svg>';
 const SVG_UNLINK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.84 12.25l1.72-1.71a4 4 0 0 0-5.66-5.66l-1.71 1.72"/><path d="M5.17 11.75l-1.71 1.71a4 4 0 0 0 5.66 5.66l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
+// A printer: paper going in at the top, the printed page coming out below.
+const SVG_PRINT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
+// A dashed selection frame around lines of text.
+const SVG_SELECT_ALL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="3 3"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="15" x2="14" y2="15"/></svg>';
+// A clipboard with a plain T: paste as text.
+const SVG_PASTE_TEXT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M12 10v7"/></svg>';
+// A film frame with a play triangle: a video.
+const SVG_MEDIA = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/></svg>';
+// A paint roller, the usual sign for copying formatting.
+const SVG_FORMAT_PAINTER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="15" height="6" rx="1"/><path d="M18 6h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-8v3"/><rect x="10" y="14" width="4" height="7" rx="1"/></svg>';
+// Two blocks in dashed outlines, as Show blocks draws them.
+const SVG_VISUAL_BLOCKS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1" stroke-dasharray="2 3"/><rect x="3" y="14" width="18" height="7" rx="1" stroke-dasharray="2 3"/></svg>';
 
 /** A 16px stroke icon on the 24px grid the other SVG icons use. */
 const tableIcon = (body: string): string =>
@@ -115,6 +127,12 @@ export const DEFAULT_ICONS: IconSet = {
   table: SVG_TABLE,
   anchor: SVG_ANCHOR,
   unlink: SVG_UNLINK,
+  selectall: SVG_SELECT_ALL,
+  print: SVG_PRINT,
+  visualblocks: SVG_VISUAL_BLOCKS,
+  formatpainter: SVG_FORMAT_PAINTER,
+  media: SVG_MEDIA,
+  pastetext: SVG_PASTE_TEXT,
   blocks: '\u00b6',
   styles: 'A',
   ...TABLE_ICONS,
@@ -166,6 +184,12 @@ export const CONFAB_ICONS: IconSet = {
   table: SVG_TABLE,
   anchor: SVG_ANCHOR,
   unlink: SVG_UNLINK,
+  selectall: SVG_SELECT_ALL,
+  print: SVG_PRINT,
+  visualblocks: SVG_VISUAL_BLOCKS,
+  formatpainter: SVG_FORMAT_PAINTER,
+  media: SVG_MEDIA,
+  pastetext: SVG_PASTE_TEXT,
   blocks: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4v16"/><path d="M17 4v16"/><path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13"/></svg>',
   styles: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l4 7h-8z"/><path d="M8 10h8l-4 11z"/></svg>',
   ...TABLE_ICONS,

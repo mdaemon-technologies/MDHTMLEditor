@@ -4,6 +4,9 @@
 
 import { HTMLEditor, fontNames, setTranslate, getTranslate, resetTranslate, setGetFileSrc, getGetFileSrc } from '../../src/core/HTMLEditor';
 import { getLocale } from '../../src/i18n';
+import { AllSelection } from '@tiptap/pm/state';
+import { nextFrame, withFocusElsewhere } from '../helpers';
+import { TableToolbar } from '../../src/extensions/TableToolbar';
 
 describe('HTMLEditor', () => {
   let container: HTMLElement;
@@ -59,6 +62,36 @@ describe('HTMLEditor', () => {
       expect(config.browser_spellcheck).toBe(true);
       expect(config.object_resizing).toBe(true);
       expect(config.resize_img_proportional).toBe(true);
+    });
+
+    it("defaults the image dialog's options as TinyMCE does", () => {
+      editor = new HTMLEditor(container);
+      const config = editor.getConfig();
+      expect(config.image_advtab).toBe(false);
+      expect(config.image_title).toBe(false);
+      expect(config.image_dimensions).toBe(true);
+      expect(config.image_description).toBe(true);
+      expect(config.image_uploadtab).toBe(true);
+      expect(config.a11y_advanced_options).toBe(false);
+    });
+
+    it("carries the image dialog's options through normalizeConfig", () => {
+      editor = new HTMLEditor(container, {
+        image_advtab: true,
+        image_title: true,
+        image_dimensions: false,
+        image_description: false,
+        image_uploadtab: false,
+        a11y_advanced_options: true,
+      });
+      expect(editor.getConfig()).toEqual(expect.objectContaining({
+        image_advtab: true,
+        image_title: true,
+        image_dimensions: false,
+        image_description: false,
+        image_uploadtab: false,
+        a11y_advanced_options: true,
+      }));
     });
 
     it('should carry the image resizing options through normalizeConfig', () => {
@@ -250,6 +283,51 @@ describe('HTMLEditor', () => {
     it('should execute redo command', () => {
       const result = editor.execCommand('redo');
       expect(result).toBe(true);
+    });
+
+    it('selects the whole document with SelectAll, in any letter case', () => {
+      editor.setContent('<p>First</p><p>Second</p>');
+
+      for (const command of ['SelectAll', 'selectall']) {
+        editor.getTipTap()?.commands.setTextSelection(2);
+        expect(editor.execCommand(command)).toBe(true);
+
+        const { selection, doc } = editor.getTipTap()!.state;
+        expect(selection).toBeInstanceOf(AllSelection);
+        expect(selection.to - selection.from).toBe(doc.content.size);
+      }
+    });
+
+    // Ctrl+A leaves the view where it is; scrolling the selection into view
+    // would jump to the end of the document.
+    it('does not scroll on SelectAll', async () => {
+      await nextFrame();
+      await withFocusElsewhere(async () => {
+        const scrolled: boolean[] = [];
+        const record = ({ transaction }: { transaction: { scrolledIntoView: boolean } }) => {
+          scrolled.push(transaction.scrolledIntoView);
+        };
+        editor.getTipTap()!.on('transaction', record);
+
+        editor.execCommand('SelectAll');
+        await nextFrame();
+        editor.getTipTap()!.off('transaction', record);
+
+        expect(scrolled.length).toBeGreaterThan(0);
+        expect(scrolled).not.toContain(true);
+      });
+    });
+
+    it('focuses the editor on SelectAll', async () => {
+      await nextFrame(); // let the focus() from beforeEach land before moving focus away
+      await withFocusElsewhere(async () => {
+        expect(editor.hasFocus()).toBe(false);
+
+        editor.execCommand('SelectAll');
+        await nextFrame();
+
+        expect(editor.hasFocus()).toBe(true);
+      });
     });
 
     it('should execute removeformat command', () => {
@@ -573,6 +651,246 @@ describe('HTMLEditor', () => {
       editor = new HTMLEditor(container);
       editor.destroy();
       expect(() => editor.destroy()).not.toThrow();
+    });
+  });
+
+  describe('Print (mcePrint)', () => {
+    const printFrames = () => document.querySelectorAll<HTMLIFrameElement>('iframe.md-print-frame');
+    const frameBody = (frame: HTMLIFrameElement) =>
+      // trim(): the parser moves the line break after </body> into the body.
+      new DOMParser().parseFromString(frame.getAttribute('srcdoc') ?? '', 'text/html').body.innerHTML.trim();
+
+    beforeEach(() => {
+      editor = new HTMLEditor(container);
+    });
+
+    it('prints the content as getContent() returns it', () => {
+      // A blank line gets its <br> in getContent(), so it keeps its height on paper.
+      editor.setContent('<p>Hello <strong>world</strong></p><p></p><p>Bye</p>');
+
+      expect(editor.execCommand('mcePrint')).toBe(true);
+
+      expect(printFrames()).toHaveLength(1);
+      expect(frameBody(printFrames()[0])).toBe(editor.getContent());
+    });
+
+    it('accepts the command in any letter case', () => {
+      expect(editor.execCommand('mceprint')).toBe(true);
+      expect(printFrames()).toHaveLength(1);
+    });
+
+    it('titles the printed page with the host page title', () => {
+      const before = document.title;
+      document.title = 'Message to Alex';
+      try {
+        editor.execCommand('mcePrint');
+        const doc = new DOMParser().parseFromString(printFrames()[0].getAttribute('srcdoc') ?? '', 'text/html');
+        expect(doc.title).toBe('Message to Alex');
+      } finally {
+        document.title = before;
+      }
+    });
+
+    it("titles the printed page 'Print' when the host page has no title", () => {
+      const before = document.title;
+      document.title = '';
+      try {
+        editor.execCommand('mcePrint');
+        const doc = new DOMParser().parseFromString(printFrames()[0].getAttribute('srcdoc') ?? '', 'text/html');
+        expect(doc.title).toBe('Print');
+      } finally {
+        document.title = before;
+      }
+    });
+
+    it("prints right to left with directionality: 'rtl'", () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { directionality: 'rtl' });
+
+      editor.execCommand('mcePrint');
+
+      const doc = new DOMParser().parseFromString(printFrames()[0].getAttribute('srcdoc') ?? '', 'text/html');
+      expect(doc.documentElement.getAttribute('dir')).toBe('rtl');
+    });
+
+    it('replaces the frame of an earlier print', () => {
+      editor.setContent('<p>First</p>');
+      editor.execCommand('mcePrint');
+      editor.setContent('<p>Second</p>');
+      editor.execCommand('mcePrint');
+
+      expect(printFrames()).toHaveLength(1);
+      expect(frameBody(printFrames()[0])).toContain('Second');
+    });
+
+    it('removes its frame when the editor is destroyed', () => {
+      editor.execCommand('mcePrint');
+
+      editor.destroy();
+
+      expect(printFrames()).toHaveLength(0);
+    });
+
+    it('prints a read-only editor', () => {
+      editor.setContent('<p>Read me</p>');
+      editor.setReadOnly(true);
+
+      expect(editor.execCommand('mcePrint')).toBe(true);
+      expect(frameBody(printFrames()[0])).toContain('Read me');
+    });
+
+    it('does not move focus into the editor', async () => {
+      await nextFrame();
+      await withFocusElsewhere(async () => {
+        editor.execCommand('mcePrint');
+        await nextFrame();
+
+        expect(editor.hasFocus()).toBe(false);
+      });
+    });
+  });
+
+  describe('Show blocks (mceVisualBlocks)', () => {
+    const showsBlocks = () => container.querySelector('.md-editor')!.classList.contains('md-editor-visualblocks');
+
+    it('is off by default', () => {
+      editor = new HTMLEditor(container);
+
+      expect(editor.isVisualBlocksEnabled()).toBe(false);
+      expect(showsBlocks()).toBe(false);
+    });
+
+    it('starts on with visualblocks_default_state', () => {
+      editor = new HTMLEditor(container, { visualblocks_default_state: true });
+
+      expect(editor.isVisualBlocksEnabled()).toBe(true);
+      expect(showsBlocks()).toBe(true);
+    });
+
+    it('toggles with execCommand, in any letter case', () => {
+      editor = new HTMLEditor(container);
+
+      expect(editor.execCommand('mceVisualBlocks')).toBe(true);
+      expect(editor.isVisualBlocksEnabled()).toBe(true);
+      expect(showsBlocks()).toBe(true);
+
+      expect(editor.execCommand('mcevisualblocks')).toBe(true);
+      expect(editor.isVisualBlocksEnabled()).toBe(false);
+      expect(showsBlocks()).toBe(false);
+    });
+
+    it('is set on and off with setVisualBlocks', () => {
+      editor = new HTMLEditor(container);
+
+      editor.setVisualBlocks(true);
+      expect(showsBlocks()).toBe(true);
+
+      editor.setVisualBlocks(false);
+      expect(showsBlocks()).toBe(false);
+    });
+
+    it('treats anything but true as off', () => {
+      editor = new HTMLEditor(container, { visualblocks_default_state: true });
+
+      editor.setVisualBlocks('yes' as unknown as boolean);
+
+      expect(editor.isVisualBlocksEnabled()).toBe(false);
+      expect(showsBlocks()).toBe(false);
+    });
+
+    it("fires visualblocks with the new state, as TinyMCE's VisualBlocks event", () => {
+      editor = new HTMLEditor(container);
+      const callback = jest.fn();
+      editor.on('visualblocks', callback);
+
+      editor.execCommand('mceVisualBlocks');
+      editor.setVisualBlocks(false);
+
+      expect(callback.mock.calls).toEqual([[{ state: true }], [{ state: false }]]);
+    });
+
+    it('does not fire visualblocks when the state is unchanged', () => {
+      editor = new HTMLEditor(container, { visualblocks_default_state: true });
+      const callback = jest.fn();
+      editor.on('visualblocks', callback);
+
+      editor.setVisualBlocks(true);
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('leaves the content, and whether it is dirty, as they were', () => {
+      editor = new HTMLEditor(container);
+      editor.setContent('<h1>Title</h1><p>Text</p><blockquote><p>Quote</p></blockquote><ul><li><p>Item</p></li></ul>');
+      editor.setDirty(false);
+      const before = editor.getContent();
+
+      editor.setVisualBlocks(true);
+
+      expect(editor.getContent()).toBe(before);
+      expect(editor.getContent()).not.toContain('visualblocks');
+      expect(editor.isDirty()).toBe(false);
+    });
+
+    it('stays on when the language changes', () => {
+      editor = new HTMLEditor(container);
+      editor.setVisualBlocks(true);
+
+      editor.setLanguage('de');
+
+      expect(editor.isVisualBlocksEnabled()).toBe(true);
+      expect(showsBlocks()).toBe(true);
+    });
+
+    it('moves the table toolbar with the table, whose blocks it has moved', () => {
+      // Turning it on or off moves every block, and the table toolbar otherwise
+      // follows its table only on a transaction, a scroll or a resize.
+      const refresh = jest.spyOn(TableToolbar.prototype, 'refresh');
+      try {
+        editor = new HTMLEditor(container);
+        refresh.mockClear();
+
+        editor.setVisualBlocks(true);
+        expect(refresh).toHaveBeenCalledTimes(1);
+
+        editor.execCommand('mceVisualBlocks');
+        expect(refresh).toHaveBeenCalledTimes(2);
+      } finally {
+        refresh.mockRestore();
+      }
+    });
+
+    it('works in a read-only editor', () => {
+      editor = new HTMLEditor(container, { readonly: true });
+
+      expect(editor.execCommand('mceVisualBlocks')).toBe(true);
+      expect(showsBlocks()).toBe(true);
+    });
+
+    it('keeps the state per editor instance', () => {
+      const other = document.createElement('div');
+      document.body.appendChild(other);
+      editor = new HTMLEditor(container);
+      const second = new HTMLEditor(other);
+
+      editor.setVisualBlocks(true);
+
+      expect(second.isVisualBlocksEnabled()).toBe(false);
+      expect(other.querySelector('.md-editor')!.classList.contains('md-editor-visualblocks')).toBe(false);
+
+      second.destroy();
+      other.remove();
+    });
+
+    it('does not move focus into the editor', async () => {
+      editor = new HTMLEditor(container);
+      await nextFrame();
+      await withFocusElsewhere(async () => {
+        editor.execCommand('mceVisualBlocks');
+        await nextFrame();
+
+        expect(editor.hasFocus()).toBe(false);
+      });
     });
   });
 

@@ -7,7 +7,7 @@
  * post-build check that the file actually exists and works).
  */
 
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const ROOT = process.cwd();
@@ -38,10 +38,34 @@ describe('Packaging metadata (package.json)', () => {
     expect(scripts['demo:umd']).toContain('build');
     expect(scripts['demo:umd']).toContain('serve-umd.mjs');
   });
+
+  it('points the demo script at the root Vite config, which turns on HTTPS', () => {
+    // `vite test` serves test/ and looks for a config there, so without --config
+    // the dev server would skip the basic-ssl plugin and serve plain HTTP.
+    const scripts = (JSON.parse(read('package.json')) as { scripts: Record<string, string> }).scripts;
+    expect(scripts.demo).toMatch(/--config\s+vite\.config\.mts/);
+  });
 });
 
-describe('Build config (vite.config.ts)', () => {
-  const cfg = read('vite.config.ts');
+describe('Lint', () => {
+  it('lints src, and CI and publishing run it', () => {
+    const scripts = (JSON.parse(read('package.json')) as { scripts: Record<string, string> }).scripts;
+    expect(scripts.lint).toBe('eslint src');
+    expect(existsSync(resolve(ROOT, 'eslint.config.mjs'))).toBe(true);
+    expect(read('.github/workflows/ci.yml')).toContain('npm run lint');
+    expect(read('.github/workflows/publish.yml')).toContain('npm run lint');
+  });
+});
+
+describe('Build config (vite.config.mts)', () => {
+  const cfg = read('vite.config.mts');
+
+  it('is an ES module file, so Vite loads it as ESM rather than CommonJS', () => {
+    // package.json has no "type": "module", so a .ts config would be loaded as
+    // CommonJS and Vite warns that its native config loader can't handle it.
+    expect(existsSync(resolve(ROOT, 'vite.config.ts'))).toBe(false);
+    expect(cfg).not.toMatch(/__dirname/);
+  });
 
   it('emits the umd format alongside es and cjs', () => {
     const formats = cfg.match(/formats:\s*\[([^\]]*)\]/);

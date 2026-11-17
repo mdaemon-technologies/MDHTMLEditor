@@ -5,9 +5,11 @@
 
 import type { HTMLEditor } from '../core/HTMLEditor';
 import { createSkinHost } from '../utils/skinHost';
+import { normalizeLinkAddress } from '../utils/linkAddress';
 import { getMarkRange } from '@tiptap/core';
 import type { Editor as TipTapEditor } from '@tiptap/core';
 import { LINK_ESCAPE_META } from './LinkEscape';
+import { escapeHtml } from '../utils/escapeHtml';
 
 export interface LinkEditorOptions {
   editor: HTMLEditor;
@@ -91,43 +93,11 @@ export class LinkEditor {
     if (this.targetSelect) this.targetSelect.value = attrs.target ?? '';
   }
 
-  /**
-   * Ensure a user-entered URL is usable as an href. Domain-like input typed
-   * without a scheme (e.g. "www.example.com", "example.com/path") would
-   * otherwise resolve as a relative path and produce a broken link, so prepend
-   * a default protocol. Anchors (#...), relative/absolute paths, protocol-
-   * relative URLs (//host) and anything with an existing scheme are left alone.
-   */
-  private normalizeUrl(url: string): string {
-    if (!url) return url;
-
-    // Already has a scheme (http:, https:, mailto:, tel:, ftp:, etc.)
-    if (/^[a-z][a-z0-9+.-]*:/i.test(url)) return url;
-
-    // Protocol-relative, anchor, or relative/absolute path — leave untouched
-    if (
-      url.startsWith('//') ||
-      url.startsWith('#') ||
-      url.startsWith('/') ||
-      url.startsWith('./') ||
-      url.startsWith('../')
-    ) {
-      return url;
-    }
-
-    // Looks like a bare domain ("www.example.com", "example.com/path") — add protocol
-    if (/^(www\.|[^\s/?#@]+\.[a-z]{2,})(?:[/?#:]|$)/i.test(url)) {
-      return `http://${url}`;
-    }
-
-    return url;
-  }
-
   private save(): void {
     const tiptap = this.tiptap;
     if (!tiptap) return;
 
-    const url = this.normalizeUrl(this.urlInput?.value.trim() ?? '');
+    const url = normalizeLinkAddress(this.urlInput?.value.trim() ?? '');
     const text = this.textInput?.value ?? '';
     const title = this.titleInput?.value.trim() ?? '';
     const target = this.targetSelect?.value ?? '';
@@ -211,7 +181,7 @@ export class LinkEditor {
     const header = document.createElement('div');
     header.className = 'md-dialog-header';
     header.innerHTML = `
-      <h3>${trans('Insert/Edit Link')}</h3>
+      <h3>${escapeHtml(trans('Insert/Edit Link'))}</h3>
       <button type="button" class="md-dialog-close">\u00d7</button>
     `;
     header.querySelector('.md-dialog-close')?.addEventListener('click', () => this.close());
@@ -223,7 +193,7 @@ export class LinkEditor {
     // URL field
     const urlRow = document.createElement('div');
     urlRow.className = 'md-link-editor-row';
-    urlRow.innerHTML = `<label>${trans('URL')}</label>`;
+    urlRow.innerHTML = `<label>${escapeHtml(trans('URL'))}</label>`;
     this.urlInput = document.createElement('input');
     this.urlInput.type = 'text';
     this.urlInput.className = 'md-link-editor-input';
@@ -232,7 +202,7 @@ export class LinkEditor {
     // Text to display field
     const textRow = document.createElement('div');
     textRow.className = 'md-link-editor-row';
-    textRow.innerHTML = `<label>${trans('Text to display')}</label>`;
+    textRow.innerHTML = `<label>${escapeHtml(trans('Text to display'))}</label>`;
     this.textInput = document.createElement('input');
     this.textInput.type = 'text';
     this.textInput.className = 'md-link-editor-input';
@@ -241,7 +211,7 @@ export class LinkEditor {
     // Title field
     const titleRow = document.createElement('div');
     titleRow.className = 'md-link-editor-row';
-    titleRow.innerHTML = `<label>${trans('Title')}</label>`;
+    titleRow.innerHTML = `<label>${escapeHtml(trans('Title'))}</label>`;
     this.titleInput = document.createElement('input');
     this.titleInput.type = 'text';
     this.titleInput.className = 'md-link-editor-input';
@@ -250,12 +220,12 @@ export class LinkEditor {
     // Open link in... dropdown
     const targetRow = document.createElement('div');
     targetRow.className = 'md-link-editor-row';
-    targetRow.innerHTML = `<label>${trans('Open link in...')}</label>`;
+    targetRow.innerHTML = `<label>${escapeHtml(trans('Open link in...'))}</label>`;
     this.targetSelect = document.createElement('select');
     this.targetSelect.className = 'md-link-editor-select';
     this.targetSelect.innerHTML = `
-      <option value="">${trans('Current window')}</option>
-      <option value="_blank">${trans('New window')}</option>
+      <option value="">${escapeHtml(trans('Current window'))}</option>
+      <option value="_blank">${escapeHtml(trans('New window'))}</option>
     `;
     targetRow.appendChild(this.targetSelect);
 
@@ -268,8 +238,8 @@ export class LinkEditor {
     const footer = document.createElement('div');
     footer.className = 'md-link-editor-footer';
     footer.innerHTML = `
-      <button type="button" class="md-btn md-link-editor-cancel">${trans('Cancel')}</button>
-      <button type="button" class="md-btn md-btn-primary md-link-editor-save">${trans('Save')}</button>
+      <button type="button" class="md-btn md-link-editor-cancel">${escapeHtml(trans('Cancel'))}</button>
+      <button type="button" class="md-btn md-btn-primary md-link-editor-save">${escapeHtml(trans('Save'))}</button>
     `;
 
     footer.querySelector('.md-link-editor-cancel')?.addEventListener('click', () => this.close());

@@ -5,6 +5,7 @@
 
 import type { HTMLEditor } from '../core/HTMLEditor';
 import { createSkinHost } from '../utils/skinHost';
+import { escapeHtml } from '../utils/escapeHtml';
 
 export interface SourceEditorOptions {
   editor: HTMLEditor;
@@ -74,7 +75,7 @@ export class SourceEditor {
     const header = document.createElement('div');
     header.className = 'md-dialog-header';
     header.innerHTML = `
-      <h3>${trans('Source code')}</h3>
+      <h3>${escapeHtml(trans('Source code'))}</h3>
       <button type="button" class="md-dialog-close">\u00d7</button>
     `;
     header.querySelector('.md-dialog-close')?.addEventListener('click', () => this.close());
@@ -108,8 +109,8 @@ export class SourceEditor {
     const footer = document.createElement('div');
     footer.className = 'md-source-editor-footer';
     footer.innerHTML = `
-      <button type="button" class="md-btn md-source-editor-cancel">${trans('Cancel')}</button>
-      <button type="button" class="md-btn md-btn-primary md-source-editor-save">${trans('Save')}</button>
+      <button type="button" class="md-btn md-source-editor-cancel">${escapeHtml(trans('Cancel'))}</button>
+      <button type="button" class="md-btn md-btn-primary md-source-editor-save">${escapeHtml(trans('Save'))}</button>
     `;
 
     footer.querySelector('.md-source-editor-cancel')?.addEventListener('click', () => this.close());

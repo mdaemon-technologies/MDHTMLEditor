@@ -6,6 +6,7 @@
 import type { HTMLEditor } from '../core/HTMLEditor';
 import { createSkinHost } from '../utils/skinHost';
 import type { Editor as TipTapEditor } from '@tiptap/core';
+import { escapeHtml } from '../utils/escapeHtml';
 
 export interface SearchReplaceOptions {
   editor: HTMLEditor;
@@ -70,7 +71,7 @@ export class SearchReplace {
     const header = document.createElement('div');
     header.className = 'md-dialog-header';
     header.innerHTML = `
-      <h3>${trans('Find and Replace')}</h3>
+      <h3>${escapeHtml(trans('Find and Replace'))}</h3>
       <button type="button" class="md-dialog-close">×</button>
     `;
     header.querySelector('.md-dialog-close')?.addEventListener('click', () => this.close());
@@ -83,7 +84,7 @@ export class SearchReplace {
     const searchRow = document.createElement('div');
     searchRow.className = 'md-searchreplace-row';
     searchRow.innerHTML = `
-      <label>${trans('Find')}</label>
+      <label>${escapeHtml(trans('Find'))}</label>
       <input type="text" class="md-searchreplace-input md-searchreplace-search" />
       <span class="md-searchreplace-count"></span>
     `;
@@ -93,7 +94,7 @@ export class SearchReplace {
     const replaceRow = document.createElement('div');
     replaceRow.className = 'md-searchreplace-row';
     replaceRow.innerHTML = `
-      <label>${trans('Replace')}</label>
+      <label>${escapeHtml(trans('Replace'))}</label>
       <input type="text" class="md-searchreplace-input md-searchreplace-replace" />
     `;
     this.replaceInput = replaceRow.querySelector('.md-searchreplace-replace') as HTMLInputElement;
@@ -104,11 +105,11 @@ export class SearchReplace {
     optionsRow.innerHTML = `
       <label class="md-searchreplace-option">
         <input type="checkbox" class="md-searchreplace-case" />
-        <span>${trans('Case sensitive')}</span>
+        <span>${escapeHtml(trans('Case sensitive'))}</span>
       </label>
       <label class="md-searchreplace-option">
         <input type="checkbox" class="md-searchreplace-whole" />
-        <span>${trans('Whole word')}</span>
+        <span>${escapeHtml(trans('Whole word'))}</span>
       </label>
     `;
     
@@ -129,10 +130,10 @@ export class SearchReplace {
     const buttonsRow = document.createElement('div');
     buttonsRow.className = 'md-searchreplace-buttons';
     buttonsRow.innerHTML = `
-      <button type="button" class="md-btn md-searchreplace-prev">${trans('Previous')}</button>
-      <button type="button" class="md-btn md-searchreplace-next">${trans('Next')}</button>
-      <button type="button" class="md-btn md-searchreplace-replace-btn">${trans('Replace')}</button>
-      <button type="button" class="md-btn md-searchreplace-replace-all">${trans('Replace All')}</button>
+      <button type="button" class="md-btn md-searchreplace-prev">${escapeHtml(trans('Previous'))}</button>
+      <button type="button" class="md-btn md-searchreplace-next">${escapeHtml(trans('Next'))}</button>
+      <button type="button" class="md-btn md-searchreplace-replace-btn">${escapeHtml(trans('Replace'))}</button>
+      <button type="button" class="md-btn md-searchreplace-replace-all">${escapeHtml(trans('Replace All'))}</button>
     `;
     
     buttonsRow.querySelector('.md-searchreplace-prev')?.addEventListener('click', () => this.findPrevious());
@@ -193,7 +194,7 @@ export class SearchReplace {
     const textToSearch = this.caseSensitive ? content : content.toLowerCase();
     
     let pos = 0;
-    let startPos = 0;
+    let startPos: number;
     
     while ((startPos = textToSearch.indexOf(searchText, pos)) !== -1) {
       const endPos = startPos + query.length;

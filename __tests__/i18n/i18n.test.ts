@@ -15,6 +15,14 @@ describe('i18n', () => {
       expect(TRANSLATION_KEYS).toContain('Special Character');
       expect(TRANSLATION_KEYS).toContain('Apply');
       expect(TRANSLATION_KEYS).toContain('Enter image URL:');
+      expect(TRANSLATION_KEYS).toContain('Select all');
+      expect(TRANSLATION_KEYS).toContain('Print');
+      expect(TRANSLATION_KEYS).toContain('Show blocks');
+      expect(TRANSLATION_KEYS).toContain('Format painter');
+      expect(TRANSLATION_KEYS).toContain('Insert video');
+      expect(TRANSLATION_KEYS).toContain('Paste as text');
+      expect(TRANSLATION_KEYS).toContain('Image properties');
+      expect(TRANSLATION_KEYS).toContain('Constrain proportions');
     });
 
     it('should match the English locale keys', () => {
@@ -96,6 +104,10 @@ describe('i18n', () => {
       'Superscript': ['nl'],
       'Stop': ['da'],
       'Cell': ['sv'],
+      'Video': ['cs', 'da', 'de', 'fi', 'id', 'it', 'nb', 'nl', 'sr-latn', 'sv', 'tr', 'vi'],
+      'Source': ['fr', 'fr-ca'],
+      'Style': ['fr', 'fr-ca'],
+      'Link': ['da', 'de', 'nl', 'pt', 'ro'],
     };
 
     it('translates every key in every non-English locale', () => {

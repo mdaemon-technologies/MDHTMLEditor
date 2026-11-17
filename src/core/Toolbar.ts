@@ -4,6 +4,8 @@
  */
 
 import type { Editor as TipTapEditor } from '@tiptap/core';
+import { isMacOS } from '@tiptap/core';
+import { NodeSelection } from '@tiptap/pm/state';
 import type {
   EditorConfig,
   FontOption,
@@ -14,7 +16,6 @@ import type { IconSet } from '../icons';
 import { HTMLEditor, fontNames as defaultFontNames, getTranslate } from './HTMLEditor';
 import { CharacterMap } from '../extensions/CharacterMap';
 import { EmojiPicker } from '../extensions/Emoji';
-import { ImageUpload } from '../extensions/ImageUpload';
 import { SearchReplace } from '../extensions/SearchReplace';
 import { SourceEditor } from '../extensions/SourceEditor';
 import { LinkEditor } from '../extensions/LinkEditor';
@@ -23,6 +24,7 @@ import { SpeechToText, isSpeechRecognitionSupported } from '../extensions/Speech
 import { Dictation } from '../extensions/Dictation';
 import type { StyleFormat } from '../types';
 import { pasteMarkdownText } from '../extensions/PasteMarkdown';
+import { clipboardHtmlText, pastePlainText } from '../extensions/PasteAsText';
 import { LINK_ESCAPE_META } from '../extensions/LinkEscape';
 import { TableMenu, TABLE_ACTIONS, runTableAction } from '../extensions/TableMenu';
 import type { TableAction } from '../extensions/TableMenu';
@@ -30,6 +32,8 @@ import { BORDER_STYLE_CHOICES } from '../extensions/TableDialog';
 import { isInTable } from '@tiptap/pm/tables';
 import { createSkinHost } from '../utils/skinHost';
 import { parseSvgIcon } from '../utils/svgIcon';
+import { buildPreviewDocument } from '../utils/previewDocument';
+import { isFormatPainterActive } from '../extensions/FormatPainter';
 
 interface ToolbarOptions {
   editor: HTMLEditor;
@@ -45,6 +49,8 @@ interface ToolbarOptions {
   shortcuts?: boolean;
   /** Render the "…" toggle that collapses buttons that do not fit. Off for the small table toolbar. */
   overflowToggle?: boolean;
+  /** Called when the "…" toggle opens or closes, by a click or setExpanded(). */
+  onExpandedChange?: (expanded: boolean) => void;
   /** Extra class names for the dropdown and color menus, which are portaled to document.body. */
   menuClassName?: string;
   /** While this returns false the toolbar is not shown, and its button states are not refreshed. */
@@ -71,37 +77,6 @@ interface ToolbarState {
   showMoreButtons: boolean;
   isNarrow: boolean;
 }
-
-/**
- * Content Security Policy for the preview window.
- *
- * Preview is the one place where editor content is re-parsed as HTML in a live,
- * same-origin document (`window.open` + `document.write`), so anything that ever
- * slipped through the schema would run there with the host page's privileges.
- * Nothing the schema renders can do that today; this makes the window unable to
- * run script whatever the content turns out to hold.
- *
- * `default-src 'none'` covers script, inline handlers, `javascript:` URLs and
- * eval. The exceptions are what the preview genuinely needs: images (`*` does not
- * cover non-network schemes, so `data:`/`blob:`/`cid:` are listed — `cid:` is how
- * an email template references an inline attachment) and inline styles, which the
- * content carries as `style` attributes and the preview uses for its own `<style>`
- * block. `base-uri`/`form-action` are not covered by `default-src`, so they are
- * stated to close the `<base>`-hijack and form-submission paths.
- *
- * Two things to know before changing it. `base-uri 'none'` means a `<base href>`
- * written into the preview is ignored, so relative URLs keep resolving against the
- * opener's document as they do today. And the value is interpolated into the
- * attribute unescaped, so it has to stay a literal with no double quotes; a
- * configurable policy would need escaping.
- *
- * Exported for the test; `src/index.ts` re-exports `Toolbar` by name, so this does
- * not reach the public `.d.ts`. Keep it the first element in `<head>`: a meta
- * policy does not apply to markup parsed before it, and one that ends up in the
- * body is ignored entirely.
- */
-export const PREVIEW_CSP =
-  "default-src 'none'; img-src * data: blob: cid:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
 
 // Default button priority tiers: 1 = always visible in narrow mode, 2 = collapsed behind toggle
 const DEFAULT_BUTTON_PRIORITY: Record<string, number> = {
@@ -295,7 +270,6 @@ export class Toolbar {
   private menuHost: HTMLElement | null = null;
   private charMap: CharacterMap | null = null;
   private emojiPicker: EmojiPicker | null = null;
-  private imageUpload: ImageUpload | null = null;
   private searchReplace: SearchReplace | null = null;
   private sourceEditor: SourceEditor | null = null;
   private linkEditor: LinkEditor | null = null;
@@ -314,7 +288,7 @@ export class Toolbar {
     this.options = options;
     this.state = {
       isFullscreen: false,
-      showMoreButtons: false,
+      showMoreButtons: options.overflowToggle !== false && options.config.toolbar_expanded === true,
       isNarrow: false,
     };
     
@@ -336,6 +310,28 @@ export class Toolbar {
   }
 
   /**
+   * A span holding built-in icon markup. This is the one place the toolbar
+   * writes an icon as HTML: the markup comes from the editor's own icon set
+   * (`DEFAULT_ICONS` or `CONFAB_ICONS`), never from the host, whose icons go
+   * through `parseSvgIcon` instead. Labels are always set as text.
+   */
+  private iconSpan(className: string, markup: string): HTMLSpanElement {
+    const span = document.createElement('span');
+    span.className = className;
+    // eslint-disable-next-line no-unsanitized/property -- built-in icon markup, a constant of the editor's
+    span.innerHTML = markup;
+    return span;
+  }
+
+  /** The small down arrow on a dropdown or color picker button. */
+  private dropdownArrow(): HTMLSpanElement {
+    const arrow = document.createElement('span');
+    arrow.className = 'md-toolbar-dropdown-arrow';
+    arrow.innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg>';
+    return arrow;
+  }
+
+  /**
    * The inline icon for a custom button's `icon`, in the same span as the
    * built-in buttons' icons: an icon added with `ui.registry.addIcon`, a
    * built-in icon (with its `md-icon-<name>` styling class), or SVG markup
@@ -351,8 +347,7 @@ export class Toolbar {
     if (registered !== undefined) {
       span.appendChild(parseSvgIcon(registered));
     } else if (Object.prototype.hasOwnProperty.call(this.options.iconSet, icon)) {
-      span.classList.add(`md-icon-${icon}`);
-      span.innerHTML = this.options.iconSet[icon];
+      return this.iconSpan(`md-toolbar-btn-icon md-icon-${icon}`, this.options.iconSet[icon]);
     } else if (/^\s*</.test(icon)) {
       span.appendChild(parseSvgIcon(icon));
     } else {
@@ -368,24 +363,18 @@ export class Toolbar {
     // All buttons go into a single wrapping container
     this.buttonsEl = document.createElement('div');
     this.buttonsEl.className = 'md-toolbar-buttons';
-    
-    // Normalize || to | for backward compatibility
-    const buttonsStr = this.options.buttons.replace(/\|\|/g, '|');
-    this.renderGroups(buttonsStr, this.buttonsEl);
-    
+    this.renderRows(this.options.buttons, this.buttonsEl);
+
     this.container.appendChild(this.buttonsEl);
     if (this.options.overflowToggle === false) return;
 
     // Toggle button sits outside the wrapping container so it's always visible
     this.toggleBtn = this.createToggleButton();
+    this.buttonsEl.id = `${this.options.editor.id}-toolbar-buttons`;
+    this.toggleBtn.setAttribute('aria-controls', this.buttonsEl.id);
     this.container.appendChild(this.toggleBtn);
-    
-    // Apply initial state
-    if (this.state.showMoreButtons) {
-      this.buttonsEl.classList.add('md-toolbar-expanded');
-      this.toggleBtn.classList.add('md-toolbar-btn-active');
-    }
-    
+    this.applyExpanded();
+
     // Auto-hide toggle when all buttons fit on one row
     this.observeOverflow();
   }
@@ -407,15 +396,15 @@ export class Toolbar {
         const wasNarrow = this.state.isNarrow;
         this.state.isNarrow = width <= breakpoint;
         editorRoot.classList.toggle('md-editor-narrow', this.state.isNarrow);
-        
+        // A resize can move buttons onto, or off, the lines the toggle hides.
+        this.updateHiddenRows();
+
         if (this.state.isNarrow) {
-          // In narrow mode: hide toggle, collapse if expanded, enable scroll indicators
+          // In narrow mode: hide toggle, enable scroll indicators. The buttons
+          // are one scrolling line here, so the expanded state has nothing to
+          // show; it is kept, not cleared, so widening again restores the
+          // user's choice.
           this.toggleBtn.style.display = 'none';
-          if (this.state.showMoreButtons) {
-            this.state.showMoreButtons = false;
-            this.buttonsEl.classList.remove('md-toolbar-expanded');
-            this.toggleBtn.classList.remove('md-toolbar-btn-active');
-          }
           this.updateScrollIndicators();
           if (!wasNarrow) {
             this.bindScrollIndicators();
@@ -425,13 +414,12 @@ export class Toolbar {
           if (wasNarrow) {
             this.unbindScrollIndicators();
           }
-          const hasOverflow = this.buttonsEl.scrollHeight > this.buttonsEl.clientHeight;
-          this.toggleBtn.style.display = hasOverflow || this.state.showMoreButtons ? '' : 'none';
+          this.updateToggleVisibility();
         }
       } else {
         // No editor root — just handle toggle visibility
-        const hasOverflow = this.buttonsEl.scrollHeight > this.buttonsEl.clientHeight;
-        this.toggleBtn.style.display = hasOverflow || this.state.showMoreButtons ? '' : 'none';
+        this.updateHiddenRows();
+        this.updateToggleVisibility();
       }
     });
     
@@ -489,9 +477,37 @@ export class Toolbar {
     return DEFAULT_BUTTON_PRIORITY[name] ?? 2;
   }
 
+  /**
+   * Render a toolbar string: `|` separates groups, `||` starts a new row.
+   *
+   * A row break is a full-width, zero-height item in the wrapping container,
+   * so the next row starts on a new line, and is hidden while the "…" toggle
+   * is closed. Where the buttons are one line (narrow mode, which scrolls, and
+   * the table toolbar, which does not wrap) CSS hides the break and shows the
+   * separator rendered beside it instead. Empty rows, and a `||` at either
+   * end, are ignored.
+   */
+  private renderRows(buttonsStr: string, parent: HTMLElement): void {
+    const rows = buttonsStr.split('||').filter(row => row.replace(/\|/g, '').trim());
+
+    rows.forEach((row, index) => {
+      if (index > 0) {
+        const separator = document.createElement('div');
+        separator.className = 'md-toolbar-separator md-toolbar-row-separator';
+        parent.appendChild(separator);
+
+        const rowBreak = document.createElement('div');
+        rowBreak.className = 'md-toolbar-row-break';
+        rowBreak.setAttribute('aria-hidden', 'true');
+        parent.appendChild(rowBreak);
+      }
+      this.renderGroups(row, parent);
+    });
+  }
+
   private renderGroups(buttonsStr: string, parent: HTMLElement): void {
     const groups = buttonsStr.split('|').map(g => g.trim()).filter(Boolean);
-    
+
     groups.forEach((group, index) => {
       const groupEl = document.createElement('div');
       groupEl.className = 'md-toolbar-group';
@@ -528,7 +544,8 @@ export class Toolbar {
     button.className = 'md-toolbar-btn md-toolbar-toggle-btn';
     button.setAttribute('data-button', 'togglemore');
     button.title = this.trans('More');
-    button.innerHTML = `<span class="md-toolbar-btn-icon">${this.icon('togglemore')}</span>`;
+    button.setAttribute('aria-label', this.trans('More'));
+    button.appendChild(this.iconSpan('md-toolbar-btn-icon', this.icon('togglemore')));
     
     button.addEventListener('click', (e) => {
       e.preventDefault();
@@ -539,18 +556,88 @@ export class Toolbar {
   }
   
   private toggleOverflow(): void {
-    this.state.showMoreButtons = !this.state.showMoreButtons;
-    
-    if (this.buttonsEl) {
-      this.buttonsEl.classList.toggle('md-toolbar-expanded', this.state.showMoreButtons);
+    this.setExpanded(!this.state.showMoreButtons);
+  }
+
+  /** Whether the "…" toggle is open, showing every row. */
+  isExpanded(): boolean {
+    return this.state.showMoreButtons;
+  }
+
+  /**
+   * Open or close the "…" toggle. Calls `onExpandedChange` only when the state
+   * changes. Does nothing for a toolbar without the toggle (the table toolbar).
+   */
+  setExpanded(expanded: boolean): void {
+    // Only `true` opens, as for `toolbar_expanded`, so a JavaScript caller's
+    // other values compare, and are reported, as the boolean false.
+    const next = expanded === true;
+    if (this.options.overflowToggle === false || this.state.showMoreButtons === next) return;
+    this.state.showMoreButtons = next;
+    this.applyExpanded();
+    // Collapsing does not resize anything the ResizeObserver watches when every
+    // button fits, so check here whether the toggle still has rows to show.
+    this.updateToggleVisibility();
+    // A focused button that collapsing just hid would drop focus to the page;
+    // keep it in the toolbar, on the toggle that can bring the button back.
+    const focused = document.activeElement;
+    if (!next && focused && this.buttonsEl?.contains(focused) && focused.closest('[inert]')) {
+      this.toggleBtn?.focus();
     }
-    if (this.toggleBtn) {
-      this.toggleBtn.classList.toggle('md-toolbar-btn-active', this.state.showMoreButtons);
-      // Keep toggle visible while expanded so user can collapse
-      if (this.state.showMoreButtons) {
-        this.toggleBtn.style.display = '';
-      }
-    }
+    this.options.onExpandedChange?.(next);
+  }
+
+  /** Show the expanded state on the buttons container and the toggle. */
+  private applyExpanded(): void {
+    const expanded = this.state.showMoreButtons;
+    this.buttonsEl?.classList.toggle('md-toolbar-expanded', expanded);
+    this.toggleBtn?.classList.toggle('md-toolbar-btn-active', expanded);
+    this.toggleBtn?.setAttribute('aria-expanded', String(expanded));
+    this.updateHiddenRows();
+  }
+
+  /**
+   * For each item of the buttons container, whether it is past the first line
+   * of buttons: after the first `||`, or wrapped onto a later line. A wrapped
+   * item starts at or below the bottom of the first line's first item; items
+   * on the same line overlap it, even when centered groups differ in height by
+   * a pixel or two. Works whether or not the toggle is open, as clipping does
+   * not move anything.
+   */
+  private itemsPastFirstLine(): Array<{ el: Element; past: boolean }> {
+    const items = Array.from(this.buttonsEl?.children ?? []) as HTMLElement[];
+    const first = items.find((el) => el.offsetHeight > 0) ?? items[0];
+    const top = first?.offsetTop ?? 0;
+    const bottom = top + (first?.offsetHeight ?? 0);
+    let afterBreak = false;
+    return items.map((el) => {
+      if (el.classList.contains('md-toolbar-row-break')) afterBreak = true;
+      const wrapped = el.offsetTop > top && el.offsetTop >= bottom;
+      return { el, past: afterBreak || wrapped };
+    });
+  }
+
+  /**
+   * While the toggle is closed, the lines after the first are clipped from
+   * view, but their buttons could still be reached with Tab. Make them inert so
+   * the keyboard and assistive technology skip what cannot be seen. Not in
+   * narrow mode, where every button scrolls into view.
+   */
+  private updateHiddenRows(): void {
+    if (!this.buttonsEl || this.options.overflowToggle === false) return;
+    const hidden = !this.state.showMoreButtons && !this.state.isNarrow;
+    this.itemsPastFirstLine().forEach(({ el, past }) => el.toggleAttribute('inert', hidden && past));
+  }
+
+  /**
+   * Show the toggle while the buttons take more than one line, open or not.
+   * Hidden in narrow mode, where the buttons scroll instead, and when every
+   * button fits on one line, even if it is open: then it has nothing to show.
+   */
+  private updateToggleVisibility(): void {
+    if (!this.buttonsEl || !this.toggleBtn) return;
+    const moreLines = !this.state.isNarrow && this.itemsPastFirstLine().some(({ past }) => past);
+    this.toggleBtn.style.display = moreLines ? '' : 'none';
   }
   
   private createButton(name: string): HTMLElement | null {
@@ -722,7 +809,64 @@ export class Toolbar {
         button.setAttribute('aria-label', this.trans('Paste Markdown'));
         return button;
       }
+
+      case 'pastetext': {
+        const on = this.options.editor.isPasteAsTextEnabled();
+        const button = this.createActionButton(
+          'pastetext',
+          this.icon('pastetext'),
+          this.pasteAsTextTooltip(on),
+          () => {
+            this.options.editor.execCommand('mceTogglePlainTextPaste');
+          },
+          () => this.options.editor.isPasteAsTextEnabled()
+        );
+        // As pastemarkdown: the state for assistive technology too, and a stable
+        // name, since the tooltip states the mode. Pressed from the start when on.
+        button.classList.toggle('md-toolbar-btn-active', on);
+        button.setAttribute('aria-pressed', String(on));
+        button.setAttribute('aria-label', this.trans('Paste as text'));
+        return button;
+      }
         
+      case 'selectall':
+        return this.createActionButton('selectall', this.icon('selectall'), this.trans('Select all'), () => {
+          this.options.editor.execCommand('SelectAll');
+        });
+
+      case 'print':
+        return this.createActionButton('print', this.icon('print'), this.trans('Print'), () => {
+          this.options.editor.execCommand('mcePrint');
+        });
+
+      case 'formatpainter': {
+        const button = this.createActionButton('formatpainter', this.icon('formatpainter'), this.trans('Format painter'), (event) => {
+          const tiptap = this.tiptap;
+          if (!tiptap) return;
+          // A double-click arrives as a click and then a click with detail 2: the
+          // first turns the painter on for one selection, the second keeps it on.
+          // The keyboard clicks with detail 0, which counts as one click.
+          if (event.detail === 2) {
+            tiptap.chain().focus().startFormatPainter({ sticky: true }).run();
+          } else if (event.detail < 2) {
+            this.options.editor.execCommand('mceToggleFormatPainter');
+          }
+        }, () => (this.tiptap ? isFormatPainterActive(this.tiptap.state) : false));
+        button.setAttribute('aria-pressed', 'false');
+        return button;
+      }
+
+      case 'visualblocks': {
+        const button = this.createActionButton('visualblocks', this.icon('visualblocks'), this.trans('Show blocks'), () => {
+          this.options.editor.execCommand('mceVisualBlocks');
+        }, () => this.options.editor.isVisualBlocksEnabled());
+        // Pressed from the start when it starts on, not only after the next state update.
+        const on = this.options.editor.isVisualBlocksEnabled();
+        button.classList.toggle('md-toolbar-btn-active', on);
+        button.setAttribute('aria-pressed', String(on));
+        return button;
+      }
+
       case 'undo':
         return this.createActionButton('undo', this.icon('undo'), this.trans('Undo'), () => {
           this.tiptap?.chain().focus().undo().run();
@@ -734,10 +878,20 @@ export class Toolbar {
         });
         
       case 'image':
+        // The basic editor has no images. Pressed while an image is selected,
+        // which the button then edits.
+        if (this.options.editor.isBasicEditor()) return null;
         return this.createActionButton('image', this.icon('image'), this.trans('Insert image'), () => {
-          this.openImageDialog();
-        });
+          this.options.editor.execCommand('mceImage');
+        }, () => this.imageSelected());
         
+      case 'media':
+        // A video goes in as a linked thumbnail, and the basic editor has no images.
+        if (this.options.editor.isBasicEditor()) return null;
+        return this.createActionButton('media', this.icon('media'), this.trans('Insert video'), () => {
+          this.options.editor.execCommand('mceMedia');
+        });
+
       case 'charmap':
         return this.createActionButton('charmap', this.icon('charmap'), this.trans('Special character'), () => {
           this.openCharMap();
@@ -904,7 +1058,7 @@ export class Toolbar {
   ): HTMLElement {
     const dropdown = this.createDropdown(name, tooltip, options, (option) => onSelect(option.value));
     const label = dropdown.querySelector('.md-toolbar-dropdown-label') as HTMLElement;
-    label.innerHTML = `<span class="md-toolbar-btn-icon md-icon-${name}">${this.icon(name)}</span>`;
+    label.replaceChildren(this.iconSpan(`md-toolbar-btn-icon md-icon-${name}`, this.icon(name)));
     dropdown.querySelector('button')?.setAttribute('aria-label', tooltip);
     return dropdown;
   }
@@ -913,7 +1067,7 @@ export class Toolbar {
     name: string,
     icon: string,
     tooltip: string,
-    onClick: () => void,
+    onClick: (event: MouseEvent) => void,
     isActive?: () => boolean
   ): HTMLElement {
     const button = document.createElement('button');
@@ -921,11 +1075,11 @@ export class Toolbar {
     button.className = 'md-toolbar-btn';
     button.setAttribute('data-button', name);
     button.title = tooltip;
-    button.innerHTML = `<span class="md-toolbar-btn-icon md-icon-${name}">${icon}</span>`;
-    
+    button.appendChild(this.iconSpan(`md-toolbar-btn-icon md-icon-${name}`, icon));
+
     button.addEventListener('click', (e) => {
       e.preventDefault();
-      onClick();
+      onClick(e);
       this.updateButtonStates();
     });
     
@@ -934,6 +1088,17 @@ export class Toolbar {
     }
 
     return button;
+  }
+
+  /** Whether the selection is an image, which the image button then edits. */
+  private imageSelected(): boolean {
+    const selection = this.tiptap?.state.selection;
+    return selection instanceof NodeSelection && selection.node.type.name === 'image';
+  }
+
+  /** Tooltip for the paste-as-text toggle, which states the mode it is in. */
+  private pasteAsTextTooltip(enabled: boolean): string {
+    return enabled ? this.trans('Paste as text: on') : this.trans('Paste as text: off');
   }
 
   /** Tooltip for the Markdown-paste toggle, which states the mode it is in. */
@@ -968,7 +1133,6 @@ export class Toolbar {
 
     const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
     if (!clipboard || (typeof clipboard.read !== 'function' && typeof clipboard.readText !== 'function')) {
-      // eslint-disable-next-line no-console
       console.warn('[html-editor] Paste button: the Clipboard API is unavailable. Use Ctrl/Cmd+V instead.');
       return;
     }
@@ -995,7 +1159,6 @@ export class Toolbar {
       // read() can reject (no HTML on clipboard, or read() unsupported on this
       // browser) — fall back to readText() below. Genuine permission denials
       // are surfaced by the readText() catch.
-      // eslint-disable-next-line no-console
       console.debug('[html-editor] clipboard.read() failed, falling back to readText():', err);
     }
 
@@ -1006,10 +1169,18 @@ export class Toolbar {
         }
       } catch (err) {
         // Permission denied or unsupported — nothing we can do programmatically.
-        // eslint-disable-next-line no-console
         console.warn('[html-editor] Paste button: clipboard read was blocked by the browser. Use Ctrl/Cmd+V instead.', err);
         return;
       }
+    }
+
+    // In paste-as-text mode the button behaves like Ctrl+V does: the plain text,
+    // or the HTML's text when it has none (or only whitespace).
+    if (this.options.editor.isPasteAsTextEnabled()) {
+      const plain = text?.trim() ? text : html !== null ? clipboardHtmlText(html, this.tiptap.schema) : '';
+      if (plain.trim()) pastePlainText(this.tiptap.view, plain);
+      this.updateButtonStates();
+      return;
     }
 
     // In Markdown mode the button behaves like Ctrl+V does: the plain text is
@@ -1085,7 +1256,12 @@ export class Toolbar {
         button.appendChild(img);
       }
     } else if (spec.text) {
-      button.innerHTML = `<span class="md-toolbar-btn-text">${spec.text}</span>`;
+      const text = document.createElement('span');
+      text.className = 'md-toolbar-btn-text';
+      text.textContent = spec.text;
+      button.appendChild(text);
+      // As wide as its label, on one line, not a square that wraps it.
+      button.classList.add('md-toolbar-btn-labelled');
     }
     
     const api = {
@@ -1326,11 +1502,16 @@ export class Toolbar {
       item.className = 'md-toolbar-dropdown-item';
       item.setAttribute('data-value', option.value);
       
-      let html = `<span class="md-toolbar-dropdown-item-label">${option.label}</span>`;
+      const itemLabel = document.createElement('span');
+      itemLabel.className = 'md-toolbar-dropdown-item-label';
+      itemLabel.textContent = option.label;
+      item.appendChild(itemLabel);
       if (option.description) {
-        html += `<span class="md-toolbar-dropdown-item-desc">${option.description}</span>`;
+        const desc = document.createElement('span');
+        desc.className = 'md-toolbar-dropdown-item-desc';
+        desc.textContent = option.description;
+        item.appendChild(desc);
       }
-      item.innerHTML = html;
       
       // Apply font preview for font family dropdown
       if (name === 'fontfamily') {
@@ -1370,10 +1551,10 @@ export class Toolbar {
     button.type = 'button';
     button.className = 'md-toolbar-dropdown-btn';
     button.title = label;
-    button.innerHTML = `
-      <span class="md-toolbar-dropdown-label">${label}</span>
-      <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
-    `;
+    const labelEl = document.createElement('span');
+    labelEl.className = 'md-toolbar-dropdown-label';
+    labelEl.textContent = label;
+    button.append(labelEl, this.dropdownArrow());
     return { wrapper, button };
   }
 
@@ -1450,11 +1631,14 @@ export class Toolbar {
     button.type = 'button';
     button.className = 'md-toolbar-btn md-toolbar-colorpicker-btn';
     button.title = tooltip;
-    button.innerHTML = `
-      <span class="md-toolbar-colorpicker-icon md-icon-${name}">${glyph}</span>
-      <span class="md-toolbar-colorpicker-preview" style="background-color: ${defaultPreview}"></span>
-      <span class="md-toolbar-dropdown-arrow"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M0 2l4 4 4-4z"/></svg></span>
-    `;
+    const previewSwatch = document.createElement('span');
+    previewSwatch.className = 'md-toolbar-colorpicker-preview';
+    previewSwatch.setAttribute('style', `background-color: ${defaultPreview}`);
+    button.append(
+      this.iconSpan(`md-toolbar-colorpicker-icon md-icon-${name}`, glyph),
+      previewSwatch,
+      this.dropdownArrow(),
+    );
 
     const menu = document.createElement('div');
     menu.className = 'md-toolbar-colorpicker-menu';
@@ -1518,14 +1702,16 @@ export class Toolbar {
     // Custom color input
     const customRow = document.createElement('div');
     customRow.className = 'md-toolbar-colorpicker-custom';
-    customRow.innerHTML = `
-      <input type="color" class="md-toolbar-colorpicker-input" value="#000000" />
-      <button type="button" class="md-toolbar-colorpicker-apply">${this.trans('Apply')}</button>
-    `;
-    
-    const colorInput = customRow.querySelector('input') as HTMLInputElement;
-    const applyBtn = customRow.querySelector('button') as HTMLButtonElement;
-    
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.className = 'md-toolbar-colorpicker-input';
+    colorInput.value = '#000000';
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'md-toolbar-colorpicker-apply';
+    applyBtn.textContent = this.trans('Apply');
+    customRow.append(colorInput, applyBtn);
+
     applyBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1605,6 +1791,19 @@ export class Toolbar {
       if (isMod && e.key === 'f') {
         e.preventDefault();
         this.openSearchReplace();
+      }
+
+      // Ctrl+P (Cmd+P on macOS, where Ctrl+P moves the cursor up a line)
+      // prints the content rather than the whole page, as TinyMCE's Meta+P
+      // does. Only with a print button, so a toolbar without one keeps the
+      // browser's own print. The P key by its position as well as its letter,
+      // as the browser's shortcut is, for layouts where it types another
+      // letter. Not when the host already handled the key, nor on auto-repeat.
+      const printMod = isMacOS() ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
+      const isP = e.key.toLowerCase() === 'p' || e.code === 'KeyP';
+      if (printMod && isP && !e.shiftKey && !e.altKey && !e.repeat && !e.defaultPrevented && this.buttonElements.has('print')) {
+        e.preventDefault();
+        this.options.editor.execCommand('mcePrint');
       }
     };
     document.addEventListener('keydown', this.boundKeydownHandler);
@@ -1700,11 +1899,33 @@ export class Toolbar {
         case 'link':
           isActive = this.tiptap?.isActive('link') ?? false;
           break;
+        case 'image':
+          isActive = this.imageSelected();
+          break;
         case 'codesample':
           isActive = this.tiptap?.isActive('codeBlock') ?? false;
           break;
         case 'fullscreen':
           isActive = this.state.isFullscreen;
+          break;
+        case 'formatpainter':
+          isActive = this.tiptap ? isFormatPainterActive(this.tiptap.state) : false;
+          if (button.getAttribute('aria-pressed') !== String(isActive)) {
+            button.setAttribute('aria-pressed', String(isActive));
+          }
+          break;
+        case 'visualblocks':
+          isActive = this.options.editor.isVisualBlocksEnabled();
+          if (button.getAttribute('aria-pressed') !== String(isActive)) {
+            button.setAttribute('aria-pressed', String(isActive));
+          }
+          break;
+        case 'pastetext':
+          isActive = this.options.editor.isPasteAsTextEnabled();
+          if (button.getAttribute('aria-pressed') !== String(isActive)) {
+            button.setAttribute('aria-pressed', String(isActive));
+            button.title = this.pasteAsTextTooltip(isActive);
+          }
           break;
         case 'pastemarkdown':
           isActive = this.options.editor.isPasteMarkdownEnabled();
@@ -1769,28 +1990,6 @@ export class Toolbar {
   }
 
   // Dialog methods
-  
-  private openImageDialog(): void {
-    if (!this.imageUpload) {
-      this.imageUpload = new ImageUpload({
-        onInsert: (src, alt) => {
-          this.tiptap?.chain().focus().setImage({ src, alt: alt ?? '' }).run();
-        },
-        uploadUrl: this.options.config.images_upload_url,
-        uploadCredentials: this.options.config.images_upload_credentials,
-        uploadBasePath: this.options.config.images_upload_base_path,
-        uploadMaxSize: this.options.config.images_upload_max_size,
-        uploadHeaders: this.options.config.images_upload_headers,
-        fileTypes: this.options.config.images_file_types,
-        validate: this.options.config.images_upload_validate,
-        onError: this.options.config.images_upload_error,
-        errorMessage: this.options.config.images_upload_error_message,
-        trans: this.trans,
-        skin: this.options.config.skin,
-      });
-    }
-    this.imageUpload.open();
-  }
   
   private openLinkDialog(): void {
     if (!this.linkEditor) {
@@ -1902,17 +2101,12 @@ export class Toolbar {
     const html = this.options.editor.getContent();
     const previewWindow = window.open('', '_blank', 'width=800,height=600');
     if (previewWindow) {
-      previewWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">
-          <title>${this.trans('Preview')}</title>
-          <style>body { font-family: sans-serif; padding: 20px; }</style>
-        </head>
-        <body>${html}</body>
-        </html>
-      `);
+      // The content is getContent()'s output, and the document carries PREVIEW_CSP
+      // (default-src 'none'), so nothing in it can run.
+      // eslint-disable-next-line no-unsanitized/method -- see above
+      previewWindow.document.write(
+        buildPreviewDocument(html, this.trans('Preview'), this.options.config.directionality ?? 'ltr')
+      );
       previewWindow.document.close();
     }
   }
@@ -1939,8 +2133,6 @@ export class Toolbar {
     this.charMap = null;
     this.emojiPicker?.destroy();
     this.emojiPicker = null;
-    this.imageUpload?.destroy();
-    this.imageUpload = null;
     this.searchReplace?.destroy();
     this.searchReplace = null;
     this.speechToText?.destroy();
@@ -1978,7 +2170,6 @@ export class Toolbar {
     this.unbindEvents();
     this.charMap?.destroy();
     this.emojiPicker?.destroy();
-    this.imageUpload?.destroy();
     this.searchReplace?.destroy();
     this.speechToText?.destroy();
     this.dictation?.destroy();

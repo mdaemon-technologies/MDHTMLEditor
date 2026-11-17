@@ -5,6 +5,7 @@
 
 import type { EditorConfig } from '../types';
 import { createSkinHost } from '../utils/skinHost';
+import { escapeHtml } from '../utils/escapeHtml';
 
 export interface EmojiPickerOptions {
   onSelect: (emoji: string) => void;
@@ -438,7 +439,7 @@ export const EMOJI_DATA: Record<string, { name: string; keywords: string[] }> = 
 };
 
 // Emoji presentation selector and skin tones, ignored when comparing a pasted emoji
-const IGNORED_MARKS = /[\u{FE0F}\u{1F3FB}-\u{1F3FF}]/gu;
+const IGNORED_MARKS = /\u{FE0F}|[\u{1F3FB}-\u{1F3FF}]/gu;
 
 // True when the word starts the text, or starts a word in it (after a space, hyphen or other punctuation)
 function startsWord(text: string, word: string): boolean {
@@ -518,7 +519,7 @@ export class EmojiPicker {
     const header = document.createElement('div');
     header.className = 'md-dialog-header';
     header.innerHTML = `
-      <h3>${this.options.trans('Emoticons')}</h3>
+      <h3>${escapeHtml(this.options.trans('Emoticons'))}</h3>
       <button type="button" class="md-dialog-close">×</button>
     `;
     header.querySelector('.md-dialog-close')?.addEventListener('click', () => this.close());

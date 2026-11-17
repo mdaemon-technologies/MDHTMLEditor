@@ -103,7 +103,7 @@ describe('Skinned popups', () => {
     it.each([
       ['emoticons', '.md-emoji-dialog'],
       ['charmap', '.md-charmap-dialog'],
-      ['image', '.md-image-upload-dialog'],
+      ['image', '.md-image-dialog'],
       ['searchreplace', '.md-searchreplace-dialog'],
     ])('opens the %s dialog inside the skin', (button, dialog) => {
       create('confab-dark', { toolbar: button });

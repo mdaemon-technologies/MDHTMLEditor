@@ -662,6 +662,193 @@ function removeEmptyWrappers(doc: Document): void {
   }
 }
 
+// --- Excel class styles ---
+
+/** A rule of a <style> block whose selector is an element name (`td`) or a class (`.xl65`). */
+interface SimpleRule {
+  kind: 'element' | 'class';
+  name: string;
+  declarations: string;
+}
+
+/**
+ * The rules of the document's <style> blocks that have a plain element or
+ * class selector, in the order they come. At-rules, nested blocks, a rule left
+ * unclosed and every other kind of selector are skipped.
+ */
+function readSimpleRules(doc: Document): SimpleRule[] {
+  const css = Array.from(doc.querySelectorAll('style'))
+    .map((style) => style.textContent ?? '')
+    .join('\n')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/<!--|-->/g, '');
+  const rules: SimpleRule[] = [];
+  let i = 0;
+  while (i < css.length) {
+    const open = css.indexOf('{', i);
+    if (open < 0) break;
+    // The block's end, past any block nested in it.
+    let depth = 1;
+    let end = open + 1;
+    let nested = false;
+    for (; end < css.length && depth > 0; end++) {
+      if (css[end] === '{') {
+        depth++;
+        nested = true;
+      } else if (css[end] === '}') {
+        depth--;
+      }
+    }
+    if (depth > 0) break;
+    // What follows the last statement or block before the brace: an at-rule
+    // with no block (`@charset "utf-8";`) or a stray `}` is no part of it.
+    const before = css.slice(i, open);
+    const prelude = before.slice(Math.max(before.lastIndexOf(';'), before.lastIndexOf('}')) + 1).trim();
+    const declarations = css.slice(open + 1, end - 1);
+    i = end;
+    if (nested || prelude.startsWith('@')) continue;
+    for (const selector of prelude.split(',').map((part) => part.trim())) {
+      if (/^[a-z][a-z0-9]*$/i.test(selector)) {
+        rules.push({ kind: 'element', name: selector.toLowerCase(), declarations });
+      } else if (/^\.[\w-]+$/.test(selector)) {
+        rules.push({ kind: 'class', name: selector.slice(1), declarations });
+      }
+    }
+  }
+  return rules;
+}
+
+/**
+ * The style `el` gets from `rules` and its own style attribute, as CSS
+ * resolves it: class rules over element rules, its own style over both, and
+ * later rules over earlier ones. From an element rule only the font is taken:
+ * Excel's `td` rule holds the sheet's font, and otherwise its defaults
+ * (black text, bottom alignment, no border), which are not formatting the
+ * user chose.
+ */
+function resolvedStyle(el: Element, rules: SimpleRule[]): CSSStyleDeclaration {
+  const tag = el.tagName.toLowerCase();
+  const classes = new Set((el.getAttribute('class') ?? '').split(/\s+/).filter(Boolean));
+  const font = parsedStyle(el.ownerDocument, rules.filter((rule) => rule.kind === 'element' && rule.name === tag).map((rule) => rule.declarations));
+  const fontDeclarations = ['font-family', 'font-size'].map((property) => {
+    const value = font.getPropertyValue(property);
+    return value ? `${property}: ${value}` : '';
+  });
+  return parsedStyle(el.ownerDocument, [
+    ...fontDeclarations,
+    ...rules.filter((rule) => rule.kind === 'class' && classes.has(rule.name)).map((rule) => rule.declarations),
+    el.getAttribute('style') ?? '',
+  ]);
+}
+
+/**
+ * Blocks of declarations parsed as one style, later ones winning. They are
+ * joined from trimmed, non-empty declarations (an empty one, or space before
+ * a rule's closing brace, can cost a declaration in some parsers), with
+ * Excel's own border styles made CSS ones.
+ */
+function parsedStyle(doc: Document, blocks: string[]): CSSStyleDeclaration {
+  const style = doc.createElement('div').style;
+  style.cssText = blocks
+    .flatMap((declarations) => declarations.split(';'))
+    .map((declaration) => {
+      const trimmed = declaration.trim();
+      return /^border/i.test(trimmed)
+        ? trimmed.replace(EXCEL_BORDER_STYLES, (name) => EXCEL_BORDER_STYLE_CSS[name.toLowerCase()])
+        : trimmed;
+    })
+    .filter(Boolean)
+    .join('; ');
+  return style;
+}
+
+/**
+ * Border styles Excel writes that CSS doesn't have, as the nearest CSS ones.
+ * Left as they are, the browser drops the whole border they are in.
+ */
+const EXCEL_BORDER_STYLE_CSS: Record<string, string> = {
+  hairline: 'solid',
+  'dot-dash': 'dashed',
+  'dot-dot-dash': 'dashed',
+  'slant-dash-dot': 'dashed',
+};
+const EXCEL_BORDER_STYLES = /\b(hairline|slant-dash-dot|dot-dot-dash|dot-dash)\b/gi;
+
+/** Excel's automatic color: black for a border, and for text the editor's own color. */
+const AUTOMATIC_COLOR = /^(windowtext|auto)$/i;
+
+/**
+ * The properties of a cell's resolved style that the cell keeps; the editor
+ * filters them again. Borders are written side by side, never as the `border`
+ * shorthand, so a side the cell turns off stays off.
+ */
+const CELL_PROPERTIES = [
+  'height',
+  'width',
+  'background-color',
+  'text-align',
+  'vertical-align',
+  ...['top', 'right', 'bottom', 'left'].flatMap((side) => [
+    `border-${side}-width`,
+    `border-${side}-style`,
+    `border-${side}-color`,
+  ]),
+];
+
+/** The properties that format a cell's text, moved onto a <span> around it as the editor reads text formatting. */
+const TEXT_PROPERTIES = ['color', 'font-family', 'font-size', 'font-weight', 'font-style', 'text-decoration'];
+
+/** `style`'s text formatting as a style attribute value, or '' when it has none. */
+function textStyle(style: CSSStyleDeclaration): string {
+  return TEXT_PROPERTIES.map((property) => {
+    const value = style.getPropertyValue(property).trim();
+    if (!value || (property === 'color' && AUTOMATIC_COLOR.test(value))) return '';
+    return `${property}: ${value}`;
+  })
+    .filter(Boolean)
+    .join('; ');
+}
+
+/**
+ * Write the class rules of Excel's <style> block onto the cells and runs of
+ * text that use them, before the classes and the block are removed. Excel
+ * keeps most of a cell's formatting there (`.xl65 { background: #92D050;
+ * font-weight: 700 }`), so without this a pasted table loses its fills,
+ * borders, alignment, colors and fonts. A cell keeps its fill, borders and
+ * alignment; its text formatting goes on a <span> around its content, and a
+ * `<font class="font5">` run within it becomes a <span> with its own.
+ */
+function inlineExcelClassStyles(doc: Document): void {
+  const rules = readSimpleRules(doc);
+  if (!rules.length) return;
+
+  for (const run of Array.from(doc.body.querySelectorAll('table font'))) {
+    const span = doc.createElement('span');
+    const style = textStyle(resolvedStyle(run, rules));
+    if (style) span.setAttribute('style', style);
+    while (run.firstChild) span.appendChild(run.firstChild);
+    run.replaceWith(span);
+  }
+
+  for (const cell of Array.from(doc.body.querySelectorAll('td, th'))) {
+    const resolved = resolvedStyle(cell, rules);
+    const declarations = CELL_PROPERTIES.map((property) => {
+      let value = resolved.getPropertyValue(property).trim();
+      if (property.endsWith('-color') && AUTOMATIC_COLOR.test(value)) value = 'black';
+      return value ? `${property}: ${value}` : '';
+    }).filter(Boolean);
+    if (declarations.length) cell.setAttribute('style', declarations.join('; '));
+    else cell.removeAttribute('style');
+    const text = textStyle(resolved);
+    if (text && cell.firstChild) {
+      const span = doc.createElement('span');
+      span.setAttribute('style', text);
+      while (cell.firstChild) span.appendChild(cell.firstChild);
+      cell.appendChild(span);
+    }
+  }
+}
+
 // --- Excel table normalization ---
 
 /**
@@ -762,7 +949,7 @@ export function transformOfficeHTML(html: string): string {
 
   // Step 1: Remove conditional comments before DOM parsing
   // (they can confuse the parser)
-  let cleaned = removeConditionalComments(html);
+  const cleaned = removeConditionalComments(html);
 
   // Step 2: Parse into DOM
   const parser = new DOMParser();
@@ -779,8 +966,9 @@ export function transformOfficeHTML(html: string): string {
   // Step 5: Remove Office namespace elements
   removeOfficeElements(doc);
 
-  // Step 6: Normalize Excel tables
+  // Step 6: Normalize Excel tables, writing their class rules onto them first
   if (isExcelContent(html)) {
+    inlineExcelClassStyles(doc);
     normalizeExcelTables(doc);
   }
 

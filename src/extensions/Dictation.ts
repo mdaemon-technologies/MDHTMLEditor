@@ -83,10 +83,16 @@ const LOCALE_TO_BCP47: Record<string, string> = {
   'zh-tw': 'zh-TW',
 };
 
+/** The Web Speech API's constructors, which TypeScript's DOM types leave out. */
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: new () => SpeechRecognitionInstance;
+  webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+};
+
 function getSpeechRecognitionConstructor(): (new () => SpeechRecognitionInstance) | null {
   return (
-    (window as any).SpeechRecognition ||
-    (window as any).webkitSpeechRecognition ||
+    (window as SpeechRecognitionWindow).SpeechRecognition ||
+    (window as SpeechRecognitionWindow).webkitSpeechRecognition ||
     null
   );
 }

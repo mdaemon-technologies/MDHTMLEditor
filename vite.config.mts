@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { copyFileSync } from 'fs';
+import { fileURLToPath } from 'url';
 import dts from 'vite-plugin-dts';
 import basicSsl from '@vitejs/plugin-basic-ssl';
+
+const projectDir = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -13,15 +16,15 @@ export default defineConfig(({ mode }) => ({
       rollupTypes: true,
       afterBuild: () => {
         copyFileSync(
-          resolve(__dirname, 'src/styles.d.ts'),
-          resolve(__dirname, 'dist/styles.d.ts'),
+          resolve(projectDir, 'src/styles.d.ts'),
+          resolve(projectDir, 'dist/styles.d.ts'),
         );
       },
     }),
   ],
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: resolve(projectDir, 'src/index.ts'),
       name: 'MDHTMLEditor',
       formats: ['es', 'cjs', 'umd'],
       fileName: (format) => {

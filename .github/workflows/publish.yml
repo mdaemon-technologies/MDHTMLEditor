@@ -26,6 +26,7 @@ jobs:
     - run: npm install -g npm@latest   # trusted publishing and staged publishing need a recent npm
     - run: npm ci
     - run: npm run typecheck
+    - run: npm run lint
     - run: npm test
     - run: npm run test:dist   # builds dist and smoke-tests it
     - name: Check the release tag matches package.json

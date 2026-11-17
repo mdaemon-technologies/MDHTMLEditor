@@ -10,14 +10,7 @@
 
 import { Marked, Renderer } from 'marked';
 import { sanitizeDocument } from './sanitizePastedHtml';
-
-const escapeHtml = (s: string) =>
-  s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+import { escapeHtml } from './escapeHtml';
 
 /**
  * Highlighting an unlabelled code block means trying every grammar, which costs

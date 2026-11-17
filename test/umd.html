@@ -74,6 +74,7 @@
     <button id="btn-set">Set content</button>
     <button id="btn-roundtrip">Round-trip</button>
     <button id="btn-copy-markdown">Copy sample Markdown</button>
+    <button id="btn-copy-excel">Copy Excel sample</button>
     <button id="btn-load-br-lines">Load &lt;br&gt; lines (Code sample)</button>
     <button id="btn-insert-roundtrip">Insert own output</button>
     <button id="btn-insert-template">Insert pretty-printed template</button>
@@ -114,14 +115,20 @@
 
         // `pastemarkdown` is not in the default toolbars, so name the buttons
         // explicitly to get it. With the mode on, pasted Markdown arrives as
-        // formatting; the button lights up while it is on.
+        // formatting; the button lights up while it is on. The `||` starts a
+        // second row, shown by the More (…) toggle.
         toolbar:
           'bold italic underline strikethrough | blocks styles | bullist numlist outdent indent blockquote | ' +
-          'fontfamily fontsize | lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | ' +
-          'removeformat copy cut paste pastemarkdown | undo redo | image table tablecellbackgroundcolor charmap emoticons hr | ' +
-          'fullscreen preview | code link unlink anchor codesample | ltr rtl | searchreplace',
+          'fontfamily fontsize || lineheight alignleft aligncenter alignright alignjustify | forecolor backcolor | ' +
+          'removeformat copy cut paste pastetext pastemarkdown | undo redo selectall | image table tablecellbackgroundcolor charmap emoticons hr | ' +
+          'fullscreen preview print visualblocks formatpainter | media code link unlink anchor codesample | ltr rtl | searchreplace',
         skin: 'oxide',
         content_css: 'default',
+
+        // The image dialog with every field: double-click an image to edit it.
+        image_advtab: true,
+        image_title: true,
+        a11y_advanced_options: true,
 
         // Right-click in a table for the table menu. While the cursor is in a
         // table, the table toolbar (table_toolbar) floats above it.
@@ -174,6 +181,11 @@
         '<img src="https://picsum.photos/seed/umd/320/160" alt="Sample" width="320" height="160">' +
         // Images are inline, so a link around one is kept ("Get content" shows
         // the <a> around the <img>).
+        // Double-click this image to edit its float, spacing, border and link
+        // in the image dialog.
+        '<p><img src="https://picsum.photos/seed/umdfloat/100/60" alt="Floated" width="100" height="60" ' +
+        'style="float: right; margin: 0 0 4px 12px; border: 1px solid #2271b2">' +
+        'A floated, spaced and bordered image: double-click it to edit it.<\\/p>' +
         '<p>A linked image: <a href="https://www.example.com/">' +
         '<img src="https://picsum.photos/seed/umdlink/120/40" alt="Linked" width="120" height="40"><\\/a><\\/p>' +
         // An image map is kept: "Get content" shows usemap and the <map> with
@@ -223,6 +235,36 @@
         navigator.clipboard.writeText(sample);
         show('sample Markdown copied — turn on the Markdown toolbar button, then paste');
       });
+      document.getElementById('btn-copy-excel').addEventListener('click', function () {
+        // Cells as Excel puts them on the clipboard: the formatting is class
+        // rules in a <style> block, not on the cells. Paste: the table keeps
+        // its fills, borders, alignment and colors, and goes in once. Set
+        // through a copy event, as navigator.clipboard may drop the <style>.
+        var html = [
+          '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">',
+          '<head><meta name=ProgId content=Excel.Sheet><style><!--',
+          'td {color:black; font-size:11.0pt; font-weight:400; font-family:Calibri, sans-serif; vertical-align:bottom; border:none;}',
+          '.xl65 {font-weight:700; text-align:center; border:.5pt solid windowtext; background:#92D050;}',
+          '.xl66 {color:white; font-style:italic; border:.5pt solid windowtext; background:#0070C0;}',
+          '.xl67 {color:windowtext; border:.5pt solid windowtext;}',
+          '.font5 {color:#FF0000; font-weight:700;}',
+          '--></style></head><body>',
+          "<table border=0 cellpadding=0 cellspacing=0 width=192 style='border-collapse:collapse;width:144pt'>",
+          "<col width=96 span=2 style='width:72pt'>",
+          "<tr><td class=xl65 width=96>Item</td><td class=xl65 width=96 style='border-left:none'>Total</td></tr>",
+          "<tr><td class=xl66 style='border-top:none'>Widgets</td><td class=xl67 align=right style='border-top:none;border-left:none'>42</td></tr>",
+          "<tr><td class=xl67 style='border-top:none'>Amount <font class=\"font5\">due</font></td>" +
+            "<td class=xl67 align=right style='border-top:none;border-left:none;background:yellow'>7</td></tr>",
+          '</table></body></html>',
+        ].join('\n');
+        document.addEventListener('copy', function (e) {
+          e.clipboardData.setData('text/html', html);
+          e.clipboardData.setData('text/plain', 'Item\tTotal\r\nWidgets\t42\r\nAmount due\t7\r\n');
+          e.preventDefault();
+        }, { once: true });
+        document.execCommand('copy');
+        show('Excel sample copied — now paste into the editor');
+      });
       document.getElementById('btn-load-br-lines').addEventListener('click', function () {
         // One paragraph of lines separated by <br>, caret on the last line. The
         // Code sample button (or Ctrl+Alt+C) converts only the caret's line.
@@ -243,8 +285,17 @@
       editor.on('tablemodified', function (e) {
         show('tablemodified: structure=' + e.structure + ', style=' + e.style);
       });
+      editor.on('pasteplaintexttoggle', function (e) {
+        show('pasteplaintexttoggle: ' + (e.state ? 'on' : 'off'));
+      });
       editor.on('pastemarkdownchange', function (enabled) {
         show('paste markdown: ' + (enabled ? 'on' : 'off'));
+      });
+      editor.on('toolbarexpandedchange', function (expanded) {
+        show('toolbarexpandedchange: ' + (expanded ? 'open' : 'closed'));
+      });
+      editor.on('visualblocks', function (e) {
+        show('visualblocks: ' + (e.state ? 'on' : 'off'));
       });
       document.getElementById('btn-roundtrip').addEventListener('click', function () {
         // format_empty_lines symmetry: getContent() fills blank lines with <br>,

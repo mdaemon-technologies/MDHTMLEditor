@@ -24,25 +24,24 @@ describe('ImageUpload validation', () => {
 
   describe('validateFile', () => {
     it('accepts a default image type when no fileTypes set', () => {
-      const iu = new ImageUpload({ onInsert: jest.fn(), trans: (k) => k });
+      const iu = new ImageUpload({ trans: (k) => k });
       expect(iu.validateFile(makeFile('a.png', 'image/png'))).toBeNull();
     });
 
     it('restricts to the configured extensions', () => {
-      const iu = new ImageUpload({ onInsert: jest.fn(), trans: (k) => k, fileTypes: 'jpg,png' });
+      const iu = new ImageUpload({ trans: (k) => k, fileTypes: 'jpg,png' });
       expect(iu.validateFile(makeFile('a.png', 'image/png'))).toBeNull();
       expect(iu.validateFile(makeFile('a.gif', 'image/gif'))).toBe('Invalid file type');
       expect(iu.validateFile(makeFile('a.exe', 'application/octet-stream'))).toBe('Invalid file type');
     });
 
     it('matches by MIME when the file has no extension (clipboard paste)', () => {
-      const iu = new ImageUpload({ onInsert: jest.fn(), trans: (k) => k, fileTypes: 'png' });
+      const iu = new ImageUpload({ trans: (k) => k, fileTypes: 'png' });
       expect(iu.validateFile(makeFile('image', 'image/png'))).toBeNull();
     });
 
     it('runs the caller validate hook first', () => {
       const iu = new ImageUpload({
-        onInsert: jest.fn(),
         trans: (k) => k,
         validate: (f) => (f.name.includes('bad') ? 'rejected by host' : null),
       });
@@ -51,14 +50,14 @@ describe('ImageUpload validation', () => {
     });
 
     it('enforces the max size', () => {
-      const iu = new ImageUpload({ onInsert: jest.fn(), trans: (k) => k, uploadMaxSize: 5 });
+      const iu = new ImageUpload({ trans: (k) => k, uploadMaxSize: 5 });
       expect(iu.validateFile(makeFile('a.png', 'image/png', 100))).toBe('File too large');
     });
   });
 
   describe('uploadFile', () => {
     it('rejects an invalid type with the guard message', async () => {
-      const iu = new ImageUpload({ onInsert: jest.fn(), trans: (k) => k, fileTypes: 'jpg' });
+      const iu = new ImageUpload({ trans: (k) => k, fileTypes: 'jpg' });
       await expect(iu.uploadFile(makeFile('a.exe', 'application/octet-stream'))).rejects.toThrow('Invalid file type');
     });
   });

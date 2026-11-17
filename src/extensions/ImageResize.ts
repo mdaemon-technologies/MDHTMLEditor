@@ -14,6 +14,7 @@ import { Image } from '@tiptap/extension-image';
 import type { ImageOptions } from '@tiptap/extension-image';
 import type { ImageResizeHandle, ObjectResizeCallback } from '../types';
 import { editorImageAttributes } from './ImageMap';
+import { IMAGE_STYLE_RULES } from './ImageAttributes';
 
 export interface ImageResizeInput {
   handle: ImageResizeHandle;
@@ -182,12 +183,14 @@ class ImageResizeView implements NodeView {
       if (name !== 'style' && attrs[name] == null) this.img.removeAttribute(name);
     }
     for (const [name, value] of Object.entries(attrs)) {
+      if (name === 'style') continue;
       // Setting src again, even to the same value, makes the browser reload
       // the image; a pasted image's data: URI can be megabytes.
       if (value != null && this.img.getAttribute(name) !== String(value)) {
         this.img.setAttribute(name, String(value));
       }
     }
+    this.applyImageStyle(attrs.style);
 
     this.attrs = attrs;
 
@@ -196,6 +199,27 @@ class ImageResizeView implements NodeView {
     // the view in the page (right after the constructor returns).
     this.refreshResizable();
     if (!this.dom.isConnected) queueMicrotask(() => this.refreshResizable());
+  }
+
+  /**
+   * Show the image's own style, as renderHTML let it out: float and margins on
+   * the wrapper, which is the box that sits in the line, and the border on the
+   * img. Only these properties are set or cleared, so the view's own inline
+   * sizes (layOut, a drag) are left alone.
+   */
+  private applyImageStyle(style: unknown): void {
+    const parsed = document.createElement('div').style;
+    parsed.cssText = typeof style === 'string' ? style : '';
+    let spaced = false;
+    for (const [property] of IMAGE_STYLE_RULES) {
+      const target = property.startsWith('border') ? this.img : this.dom;
+      const value = parsed.getPropertyValue(property);
+      if (value) target.style.setProperty(property, value);
+      else target.style.removeProperty(property);
+      if (value && target === this.dom) spaced = true;
+    }
+    // A plain inline wrapper takes no vertical margin.
+    this.dom.classList.toggle('md-image-styled', spaced);
   }
 
   private refreshResizable(): void {
@@ -226,8 +250,10 @@ class ImageResizeView implements NodeView {
 
     // The resizable wrapper shrinks to fit the image, so a percentage width on
     // the img would be a percentage of the image itself. Put it on the wrapper,
-    // where it is relative to the editor as before.
-    const percent = resizable && typeof attrs.width === 'string' && attrs.width.trim().endsWith('%')
+    // where it is relative to the editor as before. So does a floated or spaced
+    // wrapper (md-image-styled), resizable or not.
+    const boxed = resizable || this.dom.classList.contains('md-image-styled');
+    const percent = boxed && typeof attrs.width === 'string' && attrs.width.trim().endsWith('%')
       ? attrs.width.trim()
       : '';
     this.dom.style.width = percent;

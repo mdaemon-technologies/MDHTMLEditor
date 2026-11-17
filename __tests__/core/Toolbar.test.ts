@@ -3,8 +3,12 @@
  */
 
 import { HTMLEditor, setTranslate, resetTranslate } from '../../src/core/HTMLEditor';
-import { Toolbar, PREVIEW_CSP } from '../../src/core/Toolbar';
+import { Toolbar } from '../../src/core/Toolbar';
+import { PREVIEW_CSP } from '../../src/utils/previewDocument';
 import { CONFAB_ICONS } from '../../src/icons';
+import { AllSelection } from '@tiptap/pm/state';
+import { nextFrame, withFocusElsewhere } from '../helpers';
+import { isFormatPainterActive } from '../../src/extensions/FormatPainter';
 
 describe('Toolbar', () => {
   let container: HTMLElement;
@@ -562,6 +566,405 @@ describe('Toolbar', () => {
     });
   });
 
+  describe('Select all button', () => {
+    const selectAllButton = () => container.querySelector('[data-button="selectall"]') as HTMLButtonElement | null;
+
+    it('is not in the default toolbars', () => {
+      expect(selectAllButton()).toBeNull();
+
+      editor.destroy();
+      editor = new HTMLEditor(container, { basicEditor: true });
+      expect(container.querySelector('[data-button="bold"]')).not.toBeNull();
+      expect(selectAllButton()).toBeNull();
+    });
+
+    it('is labelled Select all', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'bold | selectall' });
+
+      expect(selectAllButton()?.getAttribute('title')).toBe('Select all');
+    });
+
+    const expectWholeDocumentSelected = () => {
+      const { selection, doc } = editor.getTipTap()!.state;
+      expect(selection).toBeInstanceOf(AllSelection);
+      expect(selection.from).toBe(0);
+      expect(selection.to).toBe(doc.content.size);
+    };
+
+    it('selects the whole document and focuses the editor', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'bold | selectall' });
+      editor.setContent('<p>First</p><p>Second</p>');
+      editor.getTipTap()?.commands.setTextSelection(2);
+
+      await withFocusElsewhere(async () => {
+        expect(editor.hasFocus()).toBe(false);
+        expect(selectAllButton()).not.toBeNull();
+
+        selectAllButton()?.click();
+        await nextFrame();
+
+        expectWholeDocumentSelected();
+        expect(editor.hasFocus()).toBe(true);
+      });
+    });
+
+    it('works in the basic editor', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { basicEditor: true, toolbar: 'bold | selectall' });
+      editor.setContent('<p>Note</p>');
+      editor.getTipTap()?.commands.setTextSelection(2);
+      expect(selectAllButton()).not.toBeNull();
+
+      selectAllButton()?.click();
+
+      expectWholeDocumentSelected();
+    });
+  });
+
+  describe('Print button', () => {
+    const printButton = () => container.querySelector('[data-button="print"]') as HTMLButtonElement | null;
+
+    it('is not in the default toolbars', () => {
+      expect(printButton()).toBeNull();
+
+      editor.destroy();
+      editor = new HTMLEditor(container, { basicEditor: true });
+      expect(container.querySelector('[data-button="bold"]')).not.toBeNull();
+      expect(printButton()).toBeNull();
+    });
+
+    it('is labelled Print', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'preview print' });
+
+      expect(printButton()?.getAttribute('title')).toBe('Print');
+    });
+
+    it('runs mcePrint', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'preview print' });
+      const exec = jest.spyOn(editor, 'execCommand');
+      expect(printButton()).not.toBeNull();
+
+      printButton()?.click();
+
+      expect(exec).toHaveBeenCalledWith('mcePrint');
+      expect(document.querySelectorAll('iframe.md-print-frame')).toHaveLength(1);
+    });
+
+    it('works in the basic editor', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { basicEditor: true, toolbar: 'bold | print' });
+      expect(printButton()).not.toBeNull();
+
+      printButton()?.click();
+
+      expect(document.querySelectorAll('iframe.md-print-frame')).toHaveLength(1);
+    });
+
+    describe('Ctrl/Cmd+P', () => {
+      /** Press Ctrl+P (or another key combination) with the editor focused; returns the event. */
+      const press = (init: KeyboardEventInit = { key: 'p', ctrlKey: true }) => {
+        // jsdom cannot focus a contenteditable; satisfy the shortcut's focus guard.
+        Object.defineProperty(editor.getTipTap()!, 'isFocused', { get: () => true, configurable: true });
+        const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
+        document.dispatchEvent(event);
+        return event;
+      };
+      const printFrames = () => document.querySelectorAll('iframe.md-print-frame');
+
+      it('prints the content instead of the page when the toolbar has a print button', () => {
+        editor.destroy();
+        editor = new HTMLEditor(container, { toolbar: 'bold | print' });
+
+        const event = press();
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(printFrames()).toHaveLength(1);
+      });
+
+      describe('on macOS', () => {
+        beforeEach(() => {
+          jest.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
+          editor.destroy();
+          editor = new HTMLEditor(container, { toolbar: 'bold | print' });
+        });
+
+        afterEach(() => {
+          jest.restoreAllMocks();
+        });
+
+        it('prints on Cmd+P', () => {
+          expect(press({ key: 'p', metaKey: true }).defaultPrevented).toBe(true);
+          expect(printFrames()).toHaveLength(1);
+        });
+
+        it('leaves Ctrl+P alone, which moves the cursor up a line there', () => {
+          expect(press({ key: 'p', ctrlKey: true }).defaultPrevented).toBe(false);
+          expect(printFrames()).toHaveLength(0);
+        });
+      });
+
+      it('leaves the Windows key + P alone outside macOS', () => {
+        editor.destroy();
+        editor = new HTMLEditor(container, { toolbar: 'bold | print' });
+
+        expect(press({ key: 'p', metaKey: true }).defaultPrevented).toBe(false);
+        expect(printFrames()).toHaveLength(0);
+      });
+
+      it('matches the P key on layouts where it types another letter', () => {
+        editor.destroy();
+        editor = new HTMLEditor(container, { toolbar: 'bold | print' });
+
+        // Ctrl+P on a Russian layout: the key types з.
+        expect(press({ key: 'з', code: 'KeyP', ctrlKey: true }).defaultPrevented).toBe(true);
+        expect(printFrames()).toHaveLength(1);
+      });
+
+      it('leaves a Ctrl+P the host already handled, and a held key, alone', () => {
+        editor.destroy();
+        editor = new HTMLEditor(container, { toolbar: 'bold | print' });
+        const handled = (e: Event) => e.preventDefault();
+        document.addEventListener('keydown', handled, { capture: true });
+        try {
+          press();
+        } finally {
+          document.removeEventListener('keydown', handled, { capture: true });
+        }
+        press({ key: 'p', ctrlKey: true, repeat: true });
+
+        expect(printFrames()).toHaveLength(0);
+      });
+
+      it("leaves the browser's print alone without a print button", () => {
+        const event = press();
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(printFrames()).toHaveLength(0);
+      });
+
+      it('leaves Ctrl+Shift+P and Ctrl+Alt+P alone', () => {
+        editor.destroy();
+        editor = new HTMLEditor(container, { toolbar: 'bold | print' });
+
+        expect(press({ key: 'P', ctrlKey: true, shiftKey: true }).defaultPrevented).toBe(false);
+        expect(press({ key: 'p', ctrlKey: true, altKey: true }).defaultPrevented).toBe(false);
+        expect(printFrames()).toHaveLength(0);
+      });
+
+      it('does nothing while the editor does not have focus', () => {
+        editor.destroy();
+        editor = new HTMLEditor(container, { toolbar: 'bold | print' });
+        const event = new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true, cancelable: true });
+
+        document.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(printFrames()).toHaveLength(0);
+      });
+    });
+  });
+
+  describe('Show blocks button', () => {
+    const showBlocksButton = () => container.querySelector('[data-button="visualblocks"]') as HTMLButtonElement | null;
+    const showsBlocks = () => container.querySelector('.md-editor')!.classList.contains('md-editor-visualblocks');
+    const isPressed = (button: HTMLButtonElement | null) =>
+      button?.classList.contains('md-toolbar-btn-active') && button.getAttribute('aria-pressed') === 'true';
+    const isReleased = (button: HTMLButtonElement | null) =>
+      !button?.classList.contains('md-toolbar-btn-active') && button?.getAttribute('aria-pressed') === 'false';
+
+    it('is not in the default toolbars', () => {
+      expect(showBlocksButton()).toBeNull();
+
+      editor.destroy();
+      editor = new HTMLEditor(container, { basicEditor: true });
+      expect(container.querySelector('[data-button="bold"]')).not.toBeNull();
+      expect(showBlocksButton()).toBeNull();
+    });
+
+    it('is labelled Show blocks', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'bold | visualblocks' });
+
+      expect(showBlocksButton()?.getAttribute('title')).toBe('Show blocks');
+    });
+
+    it('turns Show blocks on and off, and shows whether it is on', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'bold | visualblocks' });
+      expect(isReleased(showBlocksButton())).toBe(true);
+
+      showBlocksButton()?.click();
+      expect(editor.isVisualBlocksEnabled()).toBe(true);
+      expect(showsBlocks()).toBe(true);
+      expect(isPressed(showBlocksButton())).toBe(true);
+
+      showBlocksButton()?.click();
+      expect(editor.isVisualBlocksEnabled()).toBe(false);
+      expect(showsBlocks()).toBe(false);
+      expect(isReleased(showBlocksButton())).toBe(true);
+    });
+
+    it('starts pressed with visualblocks_default_state', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'visualblocks', visualblocks_default_state: true });
+
+      expect(isPressed(showBlocksButton())).toBe(true);
+    });
+
+    it('follows a change made by command, straight away', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'visualblocks' });
+
+      editor.execCommand('mceVisualBlocks');
+      expect(isPressed(showBlocksButton())).toBe(true);
+
+      editor.setVisualBlocks(false);
+      expect(isReleased(showBlocksButton())).toBe(true);
+    });
+
+    it('stays pressed when the language changes', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'visualblocks' });
+      showBlocksButton()?.click();
+
+      editor.setLanguage('de');
+
+      expect(showBlocksButton()?.getAttribute('title')).toBe('Blöcke anzeigen');
+      expect(isPressed(showBlocksButton())).toBe(true);
+    });
+  });
+
+  describe('Insert video button', () => {
+    const mediaButton = () => container.querySelector('[data-button="media"]') as HTMLButtonElement | null;
+
+    afterEach(() => {
+      document.querySelectorAll('.md-dialog-overlay').forEach((el) => el.remove());
+    });
+
+    it('is not in the default toolbars', () => {
+      expect(mediaButton()).toBeNull();
+    });
+
+    it('is labelled Insert video, and opens the Insert video dialog', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'image media' });
+
+      expect(mediaButton()?.getAttribute('title')).toBe('Insert video');
+      mediaButton()!.click();
+
+      expect(document.querySelector('.md-media-dialog')).not.toBeNull();
+    });
+
+    it('is left out of the basic editor, which has no images', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { basicEditor: true, toolbar: 'bold media' });
+
+      expect(container.querySelector('[data-button="bold"]')).not.toBeNull();
+      expect(mediaButton()).toBeNull();
+    });
+  });
+
+  describe('Format painter button', () => {
+    const painterButton = () => container.querySelector('[data-button="formatpainter"]') as HTMLButtonElement | null;
+    const isOn = () => isFormatPainterActive(editor.getTipTap()!.state);
+    /** A click as the browser sends it: detail is the click count, 0 from the keyboard. */
+    const click = (detail: number) =>
+      painterButton()!.dispatchEvent(new MouseEvent('click', { detail, bubbles: true, cancelable: true }));
+    const isPressed = () =>
+      painterButton()!.classList.contains('md-toolbar-btn-active') && painterButton()!.getAttribute('aria-pressed') === 'true';
+    const isReleased = () =>
+      !painterButton()!.classList.contains('md-toolbar-btn-active') && painterButton()!.getAttribute('aria-pressed') === 'false';
+
+    function selectText(text: string): void {
+      const tiptap = editor.getTipTap()!;
+      let from = -1;
+      tiptap.state.doc.descendants((node, pos) => {
+        if (from < 0 && node.isText && node.text!.includes(text)) from = pos + node.text!.indexOf(text);
+        return from < 0;
+      });
+      tiptap.commands.setTextSelection({ from, to: from + text.length });
+    }
+
+    /** A mouse selection in the editor, as the painter sees one, and the state poll after it. */
+    async function mouseSelect(text: string): Promise<void> {
+      const dom = editor.getTipTap()!.view.dom;
+      dom.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      selectText(text);
+      dom.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+
+    beforeEach(() => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'bold | formatpainter' });
+      editor.setContent('<p><strong>Source</strong> one two</p>');
+      selectText('Source');
+    });
+
+    it('is not in the default toolbars', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container);
+      expect(painterButton()).toBeNull();
+
+      editor.destroy();
+      editor = new HTMLEditor(container, { basicEditor: true });
+      expect(container.querySelector('[data-button="bold"]')).not.toBeNull();
+      expect(painterButton()).toBeNull();
+    });
+
+    it('is labelled Format painter, and starts released', () => {
+      expect(painterButton()?.getAttribute('title')).toBe('Format painter');
+      expect(isReleased()).toBe(true);
+    });
+
+    it('turns on with a click, pressed, and off with another', () => {
+      click(1);
+      expect(isOn()).toBe(true);
+      expect(isPressed()).toBe(true);
+
+      click(1);
+      expect(isOn()).toBe(false);
+      expect(isReleased()).toBe(true);
+    });
+
+    it('turns on and off from the keyboard, which clicks with detail 0', () => {
+      click(0);
+      expect(isOn()).toBe(true);
+
+      click(0);
+      expect(isOn()).toBe(false);
+    });
+
+    it('paints one selection after a click, then releases', async () => {
+      click(1);
+
+      await mouseSelect('one');
+      await mouseSelect('two');
+
+      expect(editor.getContent()).toMatch(/<strong>Source<\/strong> <strong>one<\/strong> two<\/p>$/);
+      expect(isReleased()).toBe(true);
+    });
+
+    it('stays on after a double-click, painting every selection until clicked again', async () => {
+      // A double-click reaches the button as a click, then a click with detail 2.
+      click(1);
+      click(2);
+
+      await mouseSelect('one');
+      await mouseSelect('two');
+      expect(isOn()).toBe(true);
+      expect(isPressed()).toBe(true);
+
+      click(1);
+      expect(isOn()).toBe(false);
+      expect(editor.getContent()).toMatch(/<strong>Source<\/strong> <strong>one<\/strong> <strong>two<\/strong><\/p>$/);
+    });
+  });
+
   describe('Direction Buttons', () => {
     it('should have LTR button', () => {
       const ltrBtn = container.querySelector('[data-button="ltr"]');
@@ -620,6 +1023,23 @@ describe('Toolbar', () => {
       const customBtn = container.querySelector('[data-button="mybutton"]');
       expect(customBtn).not.toBeNull();
       expect(customBtn?.classList.contains('md-toolbar-btn-custom')).toBe(true);
+    });
+
+    it('marks a button with a text label, so it is as wide as its label', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, {
+        toolbar: 'wordcount timestamp',
+        setup: (ed) => {
+          ed.ui.registry.addButton('wordcount', { text: '💬 Words', onAction: jest.fn() });
+          ed.ui.registry.addButton('timestamp', { icon: 'https://example.com/clock.png', onAction: jest.fn() });
+        },
+      });
+
+      const text = container.querySelector('[data-button="wordcount"]');
+      expect(text?.classList.contains('md-toolbar-btn-labelled')).toBe(true);
+      expect(text?.querySelector('.md-toolbar-btn-text')?.textContent).toBe('💬 Words');
+      const icon = container.querySelector('[data-button="timestamp"]');
+      expect(icon?.classList.contains('md-toolbar-btn-labelled')).toBe(false);
     });
 
     it('should call onAction when custom button is clicked', () => {
@@ -912,7 +1332,7 @@ describe('Toolbar', () => {
       expect(toggleBtn).not.toBeNull();
     });
 
-    it('should render toggle button even with || separator (backward compat)', () => {
+    it('should render toggle button with a || row break', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
         toolbar: 'bold italic || undo redo',
@@ -1013,7 +1433,7 @@ describe('Toolbar', () => {
       expect(redoBtn).not.toBeNull();
     });
 
-    it('should treat || as | for backward compatibility', () => {
+    it('should keep || rows in the one buttons container', () => {
       editor.destroy();
       editor = new HTMLEditor(container, {
         toolbar: 'bold italic || undo redo',
@@ -1030,6 +1450,312 @@ describe('Toolbar', () => {
     it('should render toggle button with the default toolbar', () => {
       const toggleBtn = container.querySelector('[data-button="togglemore"]');
       expect(toggleBtn).not.toBeNull();
+    });
+  });
+
+  describe('Row breaks (||)', () => {
+    /** The buttons container's children, by kind: a group's buttons, `|`, `||` (separator + break). */
+    const layout = () =>
+      Array.from(container.querySelector('.md-toolbar-buttons')!.children).map((el) => {
+        if (el.classList.contains('md-toolbar-row-break')) return 'break';
+        if (el.classList.contains('md-toolbar-row-separator')) return 'row-separator';
+        if (el.classList.contains('md-toolbar-separator')) return '|';
+        return Array.from(el.querySelectorAll('[data-button]')).map((b) => b.getAttribute('data-button')).join(' ');
+      });
+
+    const build = (toolbar: string) => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar });
+    };
+
+    it('starts a new row after ||, with a separator for when the rows are one line', () => {
+      build('bold italic | underline || undo redo');
+
+      expect(layout()).toEqual(['bold italic', '|', 'underline', 'row-separator', 'break', 'undo redo']);
+    });
+
+    it('marks the row break as presentation only', () => {
+      build('bold || undo');
+
+      expect(container.querySelector('.md-toolbar-row-break')?.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('leaves a toolbar without || as one run of groups', () => {
+      build('bold italic | undo redo');
+
+      expect(layout()).toEqual(['bold italic', '|', 'undo redo']);
+    });
+
+    it('breaks once per ||, ignoring empty rows and a || at either end', () => {
+      build('|| bold || || italic | underline || undo ||');
+
+      expect(layout()).toEqual([
+        'bold', 'row-separator', 'break', 'italic', '|', 'underline', 'row-separator', 'break', 'undo',
+      ]);
+    });
+  });
+
+  describe('Expanded state', () => {
+    const toggle = () => container.querySelector('[data-button="togglemore"]') as HTMLButtonElement;
+    const buttonsEl = () => container.querySelector('.md-toolbar-buttons') as HTMLElement;
+    const isShownExpanded = () =>
+      buttonsEl().classList.contains('md-toolbar-expanded') &&
+      toggle().classList.contains('md-toolbar-btn-active') &&
+      toggle().getAttribute('aria-expanded') === 'true';
+    const isShownCollapsed = () =>
+      !buttonsEl().classList.contains('md-toolbar-expanded') &&
+      !toggle().classList.contains('md-toolbar-btn-active') &&
+      toggle().getAttribute('aria-expanded') === 'false';
+
+    const build = (config: ConstructorParameters<typeof HTMLEditor>[1] = {}) => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'bold italic || undo redo', ...config });
+    };
+
+    const recordChanges = () => {
+      const changes: boolean[] = [];
+      editor.on('toolbarexpandedchange', (expanded) => changes.push(expanded));
+      return changes;
+    };
+
+    it('starts collapsed by default', () => {
+      build();
+
+      expect(isShownCollapsed()).toBe(true);
+      expect(editor.isToolbarExpanded()).toBe(false);
+      expect(editor.getConfig().toolbar_expanded).toBe(false);
+    });
+
+    it('starts expanded with toolbar_expanded: true', () => {
+      build({ toolbar_expanded: true });
+
+      expect(isShownExpanded()).toBe(true);
+      expect(editor.isToolbarExpanded()).toBe(true);
+    });
+
+    it('fires toolbarexpandedchange with the new state when the toggle is clicked', () => {
+      build();
+      const changes = recordChanges();
+
+      toggle().click();
+      expect(isShownExpanded()).toBe(true);
+      toggle().click();
+      expect(isShownCollapsed()).toBe(true);
+
+      expect(changes).toEqual([true, false]);
+      expect(editor.getConfig().toolbar_expanded).toBe(false);
+    });
+
+    it('expands and collapses with setToolbarExpanded, firing only on a change', () => {
+      build();
+      const changes = recordChanges();
+
+      editor.setToolbarExpanded(true);
+      expect(isShownExpanded()).toBe(true);
+      expect(editor.isToolbarExpanded()).toBe(true);
+      expect(editor.getConfig().toolbar_expanded).toBe(true);
+
+      editor.setToolbarExpanded(true);
+      editor.setToolbarExpanded(false);
+      expect(isShownCollapsed()).toBe(true);
+
+      expect(changes).toEqual([true, false]);
+    });
+
+    // jsdom has no layout, so every row "fits": nothing overflows.
+    it('hides the toggle on collapse when every button fits on one row', () => {
+      build({ toolbar: 'bold italic | undo redo', toolbar_expanded: true });
+      expect(toggle().style.display).toBe('');
+
+      toggle().click();
+
+      expect(toggle().style.display).toBe('none');
+    });
+
+    it('keeps the buttons of rows the toggle hides out of reach until it opens', () => {
+      build({ toolbar: 'bold italic | underline || undo redo || ltr' });
+      const reachable = (name: string) =>
+        container.querySelector(`[data-button="${name}"]`)!.closest('[inert]') === null;
+
+      expect(['bold', 'italic', 'underline'].every(reachable)).toBe(true);
+      expect(['undo', 'redo', 'ltr'].some(reachable)).toBe(false);
+      expect(reachable('togglemore')).toBe(true);
+
+      toggle().click();
+      expect(['bold', 'undo', 'redo', 'ltr'].every(reachable)).toBe(true);
+
+      toggle().click();
+      expect(reachable('undo')).toBe(false);
+    });
+
+    it('keeps every button reachable in a toolbar without ||', () => {
+      build({ toolbar: 'bold italic | undo redo' });
+
+      expect(container.querySelector('.md-toolbar [inert]')).toBeNull();
+    });
+
+    it('fires toolbarexpandedchange with a boolean, whatever setToolbarExpanded is given', () => {
+      build();
+      const changes = recordChanges();
+
+      (editor.setToolbarExpanded as (value: unknown) => void)(1);
+      (editor.setToolbarExpanded as (value: unknown) => void)(true);
+
+      expect(changes).toEqual([true]);
+      expect(editor.isToolbarExpanded()).toBe(true);
+    });
+
+    it('keeps the state when the language changes', () => {
+      build();
+      editor.setToolbarExpanded(true);
+
+      editor.setLanguage('de');
+
+      expect(isShownExpanded()).toBe(true);
+    });
+
+    it('does not expand the table toolbar', () => {
+      build({ toolbar_expanded: true });
+      const tableButtons = document.querySelector('.md-table-toolbar .md-toolbar-buttons');
+
+      expect(tableButtons).not.toBeNull();
+      expect(tableButtons?.classList.contains('md-toolbar-expanded')).toBe(false);
+    });
+
+    // jsdom has no layout: these tests drive the toolbar's ResizeObserver by
+    // hand and give elements the widths and positions a browser would.
+    describe('with layout', () => {
+      const OriginalResizeObserver = window.ResizeObserver;
+      let callbacks: ResizeObserverCallback[];
+
+      beforeEach(() => {
+        callbacks = [];
+        window.ResizeObserver = class {
+          constructor(callback: ResizeObserverCallback) {
+            callbacks.push(callback);
+          }
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        } as unknown as typeof ResizeObserver;
+      });
+
+      afterEach(() => {
+        window.ResizeObserver = OriginalResizeObserver;
+      });
+
+      /** Give the editor `width` and run the toolbar's resize handling. */
+      const resizeTo = (width: number) => {
+        const root = container.querySelector('.md-editor') as HTMLElement;
+        Object.defineProperty(root, 'offsetWidth', { value: width, configurable: true });
+        callbacks.forEach((callback) => callback([], {} as ResizeObserver));
+      };
+
+      /**
+       * Lay the toolbar out on two lines: from the group holding `buttonName`
+       * on, every item of the buttons container sits on the second line.
+       */
+      const wrapFrom = (buttonName: string) => {
+        const first = container.querySelector(`[data-button="${buttonName}"]`)!.closest('.md-toolbar-group')!;
+        let second = false;
+        Array.from(buttonsEl().children).forEach((el) => {
+          if (el === first) second = true;
+          Object.defineProperty(el, 'offsetTop', { value: second ? 40 : 4, configurable: true });
+        });
+      };
+
+      it('keeps the user\'s choice through a narrow width, without firing', () => {
+        build();
+        wrapFrom('undo');
+        editor.setToolbarExpanded(true);
+        const changes = recordChanges();
+
+        resizeTo(400);
+        expect(container.querySelector('.md-editor')?.classList.contains('md-editor-narrow')).toBe(true);
+        expect(editor.isToolbarExpanded()).toBe(true);
+
+        resizeTo(1200);
+        expect(container.querySelector('.md-editor')?.classList.contains('md-editor-narrow')).toBe(false);
+        expect(isShownExpanded()).toBe(true);
+        expect(toggle().style.display).toBe('');
+        expect(changes).toEqual([]);
+      });
+
+      it('makes the rows after || reachable while narrow, where they scroll into view', () => {
+        build();
+        const undoReachable = () =>
+          container.querySelector('[data-button="undo"]')!.closest('[inert]') === null;
+        expect(undoReachable()).toBe(false);
+
+        resizeTo(400);
+        expect(undoReachable()).toBe(true);
+
+        resizeTo(1200);
+        expect(undoReachable()).toBe(false);
+      });
+
+      it('hides an open toggle when every button fits on one line, and shows it once they wrap', () => {
+        build({ toolbar: 'bold italic | undo redo', toolbar_expanded: true });
+
+        resizeTo(1200);
+        expect(toggle().style.display).toBe('none');
+        expect(editor.isToolbarExpanded()).toBe(true);
+
+        wrapFrom('undo');
+        resizeTo(900);
+        expect(toggle().style.display).toBe('');
+      });
+
+      it('keeps buttons that wrap onto a hidden line out of reach until the toggle opens', () => {
+        build({ toolbar: 'bold italic | undo redo' });
+        const reachable = (name: string) =>
+          container.querySelector(`[data-button="${name}"]`)!.closest('[inert]') === null;
+
+        wrapFrom('undo');
+        resizeTo(900);
+        expect(reachable('bold')).toBe(true);
+        expect(reachable('undo')).toBe(false);
+
+        toggle().click();
+        expect(reachable('undo')).toBe(true);
+
+        toggle().click();
+        expect(reachable('undo')).toBe(false);
+
+        resizeTo(400);
+        expect(reachable('undo')).toBe(true);
+      });
+    });
+
+    it('moves focus to the toggle when collapsing hides the focused button', () => {
+      build();
+      editor.setToolbarExpanded(true);
+      const undo = container.querySelector('[data-button="undo"]') as HTMLButtonElement;
+      undo.focus();
+      expect(document.activeElement).toBe(undo);
+
+      editor.setToolbarExpanded(false);
+
+      expect(document.activeElement).toBe(toggle());
+    });
+
+    it('leaves focus alone when collapsing does not hide the focused button', () => {
+      build();
+      editor.setToolbarExpanded(true);
+      const bold = container.querySelector('[data-button="bold"]') as HTMLButtonElement;
+      bold.focus();
+
+      editor.setToolbarExpanded(false);
+
+      expect(document.activeElement).toBe(bold);
+    });
+
+    it('names the toggle and ties it to the buttons it shows', () => {
+      build();
+
+      expect(toggle().getAttribute('aria-label')).toBe('More');
+      expect(toggle().getAttribute('aria-controls')).toBe(buttonsEl().id);
+      expect(buttonsEl().id).not.toBe('');
     });
   });
 
@@ -1086,6 +1812,116 @@ describe('Toolbar', () => {
       container.querySelector<HTMLElement>('[data-button="bold"]')!.click();
 
       expect(btn.getAttribute('aria-pressed')).toBe('true');
+    });
+  });
+
+  describe('Paste as text button', () => {
+    const button = () => container.querySelector('[data-button="pastetext"]') as HTMLButtonElement | null;
+
+    it('is not in the default toolbars', () => {
+      expect(button()).toBeNull();
+    });
+
+    it('is named Paste as text, and its tooltip says whether the mode is on', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste pastetext' });
+
+      expect(button()?.getAttribute('aria-label')).toBe('Paste as text');
+      expect(button()?.title).toBe('Paste as text: off');
+      expect(button()?.getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('turns the mode on and off, pressed while it is on', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'pastetext' });
+
+      button()!.click();
+      expect(editor.isPasteAsTextEnabled()).toBe(true);
+      expect(button()!.getAttribute('aria-pressed')).toBe('true');
+      expect(button()!.classList.contains('md-toolbar-btn-active')).toBe(true);
+      expect(button()!.title).toBe('Paste as text: on');
+
+      button()!.click();
+      expect(editor.isPasteAsTextEnabled()).toBe(false);
+      expect(button()!.getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('starts pressed with paste_as_text, and follows a change made by code straight away', () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'pastetext pastemarkdown', paste_as_text: true });
+      expect(button()!.getAttribute('aria-pressed')).toBe('true');
+
+      // Markdown mode on turns this one off.
+      editor.setPasteMarkdown(true);
+
+      expect(button()!.getAttribute('aria-pressed')).toBe('false');
+      expect(container.querySelector('[data-button="pastemarkdown"]')!.getAttribute('aria-pressed')).toBe('true');
+
+      // And the other way round, by command.
+      editor.execCommand('mceTogglePlainTextPaste');
+
+      expect(button()!.getAttribute('aria-pressed')).toBe('true');
+      expect(container.querySelector('[data-button="pastemarkdown"]')!.getAttribute('aria-pressed')).toBe('false');
+    });
+  });
+
+  describe('Paste button with paste as text on', () => {
+    let read: jest.Mock;
+
+    beforeEach(() => {
+      read = jest.fn();
+      (navigator.clipboard as unknown as { read: jest.Mock }).read = read;
+    });
+
+    afterEach(() => {
+      delete (navigator.clipboard as unknown as { read?: jest.Mock }).read;
+    });
+
+    const clipboardWith = (data: Record<string, string>) => [
+      {
+        types: Object.keys(data),
+        getType: async (type: string) => ({ text: async () => data[type] }),
+      },
+    ];
+
+    const clickPaste = async (): Promise<void> => {
+      container.querySelector<HTMLElement>('[data-button="paste"]')!.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    };
+
+    const html = () =>
+      editor.getContent().split(' style="font-family: arial, helvetica, sans-serif; font-size: 12pt;"').join('');
+
+    it('inserts the plain text, not the HTML', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste', paste_as_text: true });
+      read.mockResolvedValue(
+        clipboardWith({ 'text/html': '<p><strong>One</strong></p><h2>Two</h2>', 'text/plain': 'One\n\nTwo **3**\nfour' }),
+      );
+
+      await clickPaste();
+
+      expect(html()).toBe('<p>One</p><p>Two **3**<br>four</p>');
+    });
+
+    it('inserts the text of the HTML when the plain text is only whitespace, as Ctrl+V does', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste', paste_as_text: true });
+      read.mockResolvedValue(clipboardWith({ 'text/plain': '  ', 'text/html': '<b>Hi</b>' }));
+
+      await clickPaste();
+
+      expect(html()).toBe('<p>Hi</p>');
+    });
+
+    it('inserts the text of the HTML when the clipboard has no plain text', async () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { toolbar: 'paste', paste_as_text: true });
+      read.mockResolvedValue(clipboardWith({ 'text/html': '<p><em>Only</em> HTML</p>' }));
+
+      await clickPaste();
+
+      expect(html()).toBe('<p>Only HTML</p>');
     });
   });
 
@@ -1242,6 +2078,15 @@ describe('Toolbar', () => {
       // Neither is covered by default-src, so both have to be stated.
       expect(PREVIEW_CSP).toContain("base-uri 'none'");
       expect(PREVIEW_CSP).toContain("form-action 'none'");
+    });
+
+    it("should show the content right to left with directionality: 'rtl'", () => {
+      editor.destroy();
+      editor = new HTMLEditor(container, { directionality: 'rtl' });
+
+      const doc = new DOMParser().parseFromString(openPreview(), 'text/html');
+
+      expect(doc.documentElement.getAttribute('dir')).toBe('rtl');
     });
 
     it('should still write the editor content and close the document', () => {

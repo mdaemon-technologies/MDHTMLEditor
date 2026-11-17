@@ -5,6 +5,7 @@
 
 import type { HTMLEditor } from '../core/HTMLEditor';
 import { createSkinHost } from '../utils/skinHost';
+import { escapeHtml } from '../utils/escapeHtml';
 
 // Web Speech API type declarations (not available in all TS lib targets)
 interface SpeechRecognitionResult {
@@ -122,20 +123,26 @@ const LOCALE_TO_BCP47: Record<string, string> = {
   'zh-tw': 'zh-TW',
 };
 
+/** The Web Speech API's constructors, which TypeScript's DOM types leave out. */
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: new () => SpeechRecognitionInstance;
+  webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+};
+
 /**
  * Check if the Web Speech API is available in the current browser
  */
 export function isSpeechRecognitionSupported(): boolean {
   return !!(
-    (window as any).SpeechRecognition ||
-    (window as any).webkitSpeechRecognition
+    (window as SpeechRecognitionWindow).SpeechRecognition ||
+    (window as SpeechRecognitionWindow).webkitSpeechRecognition
   );
 }
 
 function getSpeechRecognitionConstructor(): (new () => SpeechRecognitionInstance) | null {
   return (
-    (window as any).SpeechRecognition ||
-    (window as any).webkitSpeechRecognition ||
+    (window as SpeechRecognitionWindow).SpeechRecognition ||
+    (window as SpeechRecognitionWindow).webkitSpeechRecognition ||
     null
   );
 }
@@ -219,7 +226,7 @@ export class SpeechToText {
     const header = document.createElement('div');
     header.className = 'md-dialog-header';
     header.innerHTML = `
-      <h3>${trans('Speech to Text')}</h3>
+      <h3>${escapeHtml(trans('Speech to Text'))}</h3>
       <button type="button" class="md-dialog-close">\u00d7</button>
     `;
     header.querySelector('.md-dialog-close')!.addEventListener('click', () => this.close());
@@ -457,11 +464,16 @@ export class SpeechToText {
 
   private updateTranscriptDisplay(): void {
     if (!this.transcriptArea) return;
-    const finalSpan = `<span class="md-speechtotext-final">${this.escapeHtml(this.finalTranscript)}</span>`;
-    const interimSpan = this.interimTranscript
-      ? `<span class="md-speechtotext-interim">${this.escapeHtml(this.interimTranscript)}</span>`
-      : '';
-    this.transcriptArea.innerHTML = finalSpan + interimSpan;
+    const span = (className: string, text: string): HTMLSpanElement => {
+      const el = document.createElement('span');
+      el.className = className;
+      el.textContent = text;
+      return el;
+    };
+    this.transcriptArea.replaceChildren(span('md-speechtotext-final', this.finalTranscript));
+    if (this.interimTranscript) {
+      this.transcriptArea.appendChild(span('md-speechtotext-interim', this.interimTranscript));
+    }
     // Auto-scroll to bottom
     this.transcriptArea.scrollTop = this.transcriptArea.scrollHeight;
   }
@@ -495,11 +507,5 @@ export class SpeechToText {
     if (this.confidenceEl) {
       this.confidenceEl.textContent = '';
     }
-  }
-
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   }
 }

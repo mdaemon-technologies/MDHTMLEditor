@@ -227,6 +227,90 @@ describe('Image resize node view', () => {
     expect(setAttribute).toHaveBeenCalledWith('width', '120');
     expect(setAttribute).not.toHaveBeenCalledWith('src', expect.anything());
   });
+
+  describe("the image's style", () => {
+    const STYLED = '<img src="https://example.com/a.png" alt="A" width="200" height="100" '
+      + 'style="float: right; margin: 4px 10px; border-width: 2px; border-style: dashed; border-color: red">';
+
+    it('floats and spaces the wrapper, the box that sits in the line', () => {
+      make({}, STYLED);
+      expect(wrapper().style.getPropertyValue('float')).toBe('right');
+      expect(wrapper().style.margin).toBe('4px 10px');
+      expect(img().style.getPropertyValue('float')).toBe('');
+      expect(img().style.marginLeft).toBe('');
+    });
+
+    it('draws the border on the img', () => {
+      make({}, STYLED);
+      expect(img().style.borderWidth).toBe('2px');
+      expect(img().style.borderStyle).toBe('dashed');
+      expect(img().style.borderColor).toBe('red');
+      expect(wrapper().style.borderStyle).toBe('');
+    });
+
+    it("keeps the view's own sizes alongside it", () => {
+      make({}, STYLED);
+      expect(img().style.aspectRatio).toBe('200 / 100');
+    });
+
+    it('marks a floated or spaced wrapper, so its margins apply when it is not resizable', () => {
+      make({ object_resizing: '.resizable' }, STYLED);
+      expect(wrapper()).not.toHaveClass('md-image-resizable');
+      expect(wrapper()).toHaveClass('md-image-styled');
+    });
+
+    it('keeps a percentage width relative to the editor on a floated image that cannot be resized', () => {
+      make({ object_resizing: '.resizable' }, '<img src="https://example.com/a.png" width="50%" style="float: left">');
+      expect(wrapper()).not.toHaveClass('md-image-resizable');
+      expect(wrapper().style.width).toBe('50%');
+      expect(img().style.width).toBe('100%');
+    });
+
+    it('leaves a percentage width on the img of a plain image that cannot be resized', () => {
+      make({ object_resizing: '.resizable' }, '<img src="https://example.com/a.png" width="50%">');
+      expect(wrapper().style.width).toBe('');
+      expect(img().style.width).toBe('');
+    });
+
+    it('does not mark a wrapper with only a border', () => {
+      make({}, '<img src="https://example.com/a.png" width="200" height="100" style="border: 1px solid red">');
+      expect(wrapper()).not.toHaveClass('md-image-styled');
+    });
+
+    it('clears what a later style no longer sets', () => {
+      make({}, STYLED);
+      editor.getTipTap()!.chain().setNodeSelection(1).updateAttributes('image', { style: 'float: left' }).run();
+      expect(wrapper().style.getPropertyValue('float')).toBe('left');
+      expect([wrapper().style.marginTop, wrapper().style.marginRight, wrapper().style.marginBottom, wrapper().style.marginLeft]).toEqual(['', '', '', '']);
+      expect(img().style.borderStyle).toBe('');
+      expect(img().style.aspectRatio).toBe('200 / 100');
+
+      editor.getTipTap()!.chain().setNodeSelection(1).updateAttributes('image', { style: null }).run();
+      expect(wrapper().style.getPropertyValue('float')).toBe('');
+      expect(wrapper()).not.toHaveClass('md-image-styled');
+    });
+
+    it('shows only what the style allows', () => {
+      make({}, '<img src="https://example.com/a.png" width="200" height="100">');
+      editor.getTipTap()!.chain().setNodeSelection(1)
+        .updateAttributes('image', { style: 'position: fixed; float: left; border-color: url(x)' }).run();
+      expect(wrapper().style.position).toBe('');
+      expect(wrapper().style.getPropertyValue('float')).toBe('left');
+      expect(img().style.position).toBe('');
+      expect(img().style.borderColor).toBe('');
+    });
+
+    it('stays while the image is dragged to a new size', () => {
+      make({}, STYLED);
+      handle('se').dispatchEvent(pointer('pointerdown'));
+      document.dispatchEvent(pointer('pointermove', { clientX: 50 }));
+      expect(wrapper().style.getPropertyValue('float')).toBe('right');
+      expect(img().style.borderStyle).toBe('dashed');
+      document.dispatchEvent(pointer('pointerup', { clientX: 50 }));
+      expect(wrapper().style.getPropertyValue('float')).toBe('right');
+      expect(editor.getContent()).toMatch(/style="float: right;[^"]*border-style: dashed/);
+    });
+  });
 });
 
 describe('Image resize dragging', () => {

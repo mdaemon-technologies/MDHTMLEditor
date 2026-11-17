@@ -61,4 +61,9 @@ export const Mention = Node.create({
       `@${node.attrs.display}`,
     ];
   },
+
+  // As text (getText(), a plain-text copy or paste), the mention reads as it shows.
+  renderText({ node }) {
+    return `@${node.attrs.display ?? ''}`;
+  },
 });

@@ -7,6 +7,7 @@
 import type { HTMLEditor } from '../core/HTMLEditor';
 import { createSkinHost } from '../utils/skinHost';
 import type { Editor as TipTapEditor } from '@tiptap/core';
+import { escapeHtml } from '../utils/escapeHtml';
 
 export interface AnchorDialogOptions {
   editor: HTMLEditor;
@@ -94,7 +95,7 @@ export class AnchorDialog {
     const header = document.createElement('div');
     header.className = 'md-dialog-header';
     header.innerHTML = `
-      <h3>${trans('Insert anchor')}</h3>
+      <h3>${escapeHtml(trans('Insert anchor'))}</h3>
       <button type="button" class="md-dialog-close">×</button>
     `;
     header.querySelector('.md-dialog-close')?.addEventListener('click', () => this.close());
@@ -104,7 +105,7 @@ export class AnchorDialog {
 
     const nameRow = document.createElement('div');
     nameRow.className = 'md-anchor-dialog-row';
-    nameRow.innerHTML = `<label>${trans('Anchor name')}</label>`;
+    nameRow.innerHTML = `<label>${escapeHtml(trans('Anchor name'))}</label>`;
     this.nameInput = document.createElement('input');
     this.nameInput.type = 'text';
     this.nameInput.className = 'md-anchor-dialog-input';
@@ -117,8 +118,8 @@ export class AnchorDialog {
     const footer = document.createElement('div');
     footer.className = 'md-anchor-dialog-footer';
     footer.innerHTML = `
-      <button type="button" class="md-btn md-anchor-dialog-cancel">${trans('Cancel')}</button>
-      <button type="button" class="md-btn md-btn-primary md-anchor-dialog-save">${trans('Save')}</button>
+      <button type="button" class="md-btn md-anchor-dialog-cancel">${escapeHtml(trans('Cancel'))}</button>
+      <button type="button" class="md-btn md-btn-primary md-anchor-dialog-save">${escapeHtml(trans('Save'))}</button>
     `;
     footer.querySelector('.md-anchor-dialog-cancel')?.addEventListener('click', () => this.close());
     footer.querySelector('.md-anchor-dialog-save')?.addEventListener('click', () => this.save());

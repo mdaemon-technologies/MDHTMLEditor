@@ -1,221 +1,22 @@
 /**
- * ImageUpload Tests
+ * ImageUpload Tests: checking and uploading a file. The dialog that uses it is
+ * tested in ImageDialog.test.ts.
  */
 
 import { ImageUpload, sanitizeSVG } from '../../src/extensions/ImageUpload';
 
 describe('ImageUpload', () => {
   let imageUpload: ImageUpload;
-  let onInsertMock: jest.Mock;
   let transMock: jest.Mock;
 
   beforeEach(() => {
-    onInsertMock = jest.fn();
     transMock = jest.fn((key) => key);
-
-    imageUpload = new ImageUpload({
-      onInsert: onInsertMock,
-      trans: transMock,
-    });
+    imageUpload = new ImageUpload({ trans: transMock });
   });
 
-  afterEach(() => {
-    imageUpload?.destroy();
-    document.querySelectorAll('.md-dialog-overlay').forEach(el => el.remove());
-  });
-
-  describe('Theme Integration', () => {
-    it('puts the dialog inside an oxide skin wrapper by default', () => {
-      imageUpload.open();
-      const dialog = document.querySelector('.md-dialog-overlay .md-image-upload-dialog');
-      expect(dialog?.parentElement?.className).toBe('md-editor-oxide');
-      expect(dialog?.parentElement?.style.display).toBe('contents');
-    });
-
-    it('puts the dialog inside the given skin, so the dark styles reach it', () => {
-      imageUpload.destroy();
-      imageUpload = new ImageUpload({ onInsert: onInsertMock, trans: transMock, skin: 'oxide-dark' });
-      imageUpload.open();
-      expect(document.querySelector('.md-dialog-overlay .md-editor-oxide-dark .md-image-upload-dialog')).not.toBeNull();
-    });
-  });
-
-  describe('Dialog Open/Close', () => {
-    it('should open dialog', () => {
-      imageUpload.open();
-
-      const overlay = document.querySelector('.md-dialog-overlay');
-      expect(overlay).not.toBeNull();
-    });
-
-    it('should create dialog elements', () => {
-      imageUpload.open();
-
-      const dialog = document.querySelector('.md-image-upload-dialog');
-      expect(dialog).not.toBeNull();
-
-      const header = document.querySelector('.md-dialog-header');
-      expect(header).not.toBeNull();
-
-      const body = document.querySelector('.md-dialog-body');
-      expect(body).not.toBeNull();
-    });
-
-    it('should have upload and URL tabs', () => {
-      imageUpload.open();
-
-      const tabs = document.querySelectorAll('.md-image-upload-tab');
-      expect(tabs.length).toBe(2);
-      expect(tabs[0].textContent).toBe('Upload');
-      expect(tabs[1].textContent).toBe('URL');
-    });
-
-    it('should default to upload tab active', () => {
-      imageUpload.open();
-
-      const tabs = document.querySelectorAll('.md-image-upload-tab');
-      expect(tabs[0].classList.contains('md-image-upload-tab-active')).toBe(true);
-      expect(tabs[1].classList.contains('md-image-upload-tab-active')).toBe(false);
-    });
-
-    it('should close dialog', () => {
-      imageUpload.open();
-      imageUpload.close();
-
-      const overlay = document.querySelector('.md-dialog-overlay') as HTMLElement;
-      expect(overlay?.style.display).toBe('none');
-    });
-
-    it('should reopen dialog without creating new one', () => {
-      imageUpload.open();
-      imageUpload.close();
-      imageUpload.open();
-
-      const overlays = document.querySelectorAll('.md-dialog-overlay');
-      expect(overlays.length).toBe(1);
-    });
-
-    it('should close on overlay click', () => {
-      imageUpload.open();
-
-      const overlay = document.querySelector('.md-dialog-overlay') as HTMLElement;
-      overlay.click();
-
-      expect(overlay.style.display).toBe('none');
-    });
-
-    it('should close on close button click', () => {
-      imageUpload.open();
-
-      const closeBtn = document.querySelector('.md-dialog-close') as HTMLElement;
-      closeBtn.click();
-
-      const overlay = document.querySelector('.md-dialog-overlay') as HTMLElement;
-      expect(overlay.style.display).toBe('none');
-    });
-
-    it('should close on cancel button click', () => {
-      imageUpload.open();
-
-      const cancelBtn = document.querySelector('.md-image-upload-cancel') as HTMLElement;
-      cancelBtn.click();
-
-      const overlay = document.querySelector('.md-dialog-overlay') as HTMLElement;
-      expect(overlay.style.display).toBe('none');
-    });
-  });
-
-  describe('Tab Switching', () => {
-    it('should switch to URL tab', () => {
-      imageUpload.open();
-
-      const tabs = document.querySelectorAll('.md-image-upload-tab');
-      (tabs[1] as HTMLElement).click();
-
-      expect(tabs[1].classList.contains('md-image-upload-tab-active')).toBe(true);
-      expect(tabs[0].classList.contains('md-image-upload-tab-active')).toBe(false);
-
-      const uploadPanel = document.querySelector('.md-image-upload-panel-upload') as HTMLElement;
-      const urlPanel = document.querySelector('.md-image-upload-panel-url') as HTMLElement;
-      expect(uploadPanel.style.display).toBe('none');
-      expect(urlPanel.style.display).toBe('');
-    });
-
-    it('should switch back to upload tab', () => {
-      imageUpload.open();
-
-      const tabs = document.querySelectorAll('.md-image-upload-tab');
-      (tabs[1] as HTMLElement).click();
-      (tabs[0] as HTMLElement).click();
-
-      expect(tabs[0].classList.contains('md-image-upload-tab-active')).toBe(true);
-
-      const uploadPanel = document.querySelector('.md-image-upload-panel-upload') as HTMLElement;
-      expect(uploadPanel.style.display).toBe('');
-    });
-  });
-
-  describe('Dropzone', () => {
-    it('should have a dropzone', () => {
-      imageUpload.open();
-
-      const dropzone = document.querySelector('.md-image-upload-dropzone');
-      expect(dropzone).not.toBeNull();
-    });
-
-    it('should have a browse button', () => {
-      imageUpload.open();
-
-      const browseBtn = document.querySelector('.md-image-upload-browse');
-      expect(browseBtn).not.toBeNull();
-    });
-
-    it('should add active class on dragover', () => {
-      imageUpload.open();
-
-      const dropzone = document.querySelector('.md-image-upload-dropzone') as HTMLElement;
-      const dragOverEvent = new Event('dragover', { bubbles: true }) as DragEvent;
-      Object.defineProperty(dragOverEvent, 'dataTransfer', {
-        value: { dropEffect: 'none' },
-      });
-      Object.defineProperty(dragOverEvent, 'preventDefault', { value: jest.fn() });
-      Object.defineProperty(dragOverEvent, 'stopPropagation', { value: jest.fn() });
-
-      dropzone.dispatchEvent(dragOverEvent);
-      expect(dropzone.classList.contains('md-image-upload-dropzone-active')).toBe(true);
-    });
-
-    it('should remove active class on dragleave', () => {
-      imageUpload.open();
-
-      const dropzone = document.querySelector('.md-image-upload-dropzone') as HTMLElement;
-
-      // First trigger dragover
-      const dragOverEvent = new Event('dragover', { bubbles: true });
-      Object.defineProperty(dragOverEvent, 'dataTransfer', {
-        value: { dropEffect: 'none' },
-      });
-      Object.defineProperty(dragOverEvent, 'preventDefault', { value: jest.fn() });
-      Object.defineProperty(dragOverEvent, 'stopPropagation', { value: jest.fn() });
-      dropzone.dispatchEvent(dragOverEvent);
-
-      // Then trigger dragleave
-      const dragLeaveEvent = new Event('dragleave', { bubbles: true });
-      Object.defineProperty(dragLeaveEvent, 'preventDefault', { value: jest.fn() });
-      Object.defineProperty(dragLeaveEvent, 'stopPropagation', { value: jest.fn() });
-      dropzone.dispatchEvent(dragLeaveEvent);
-
-      expect(dropzone.classList.contains('md-image-upload-dropzone-active')).toBe(false);
-    });
-  });
-
-  describe('Insert Button State', () => {
-    it('should start with insert button disabled', () => {
-      imageUpload.open();
-
-      const insertBtn = document.querySelector('.md-image-upload-insert') as HTMLButtonElement;
-      expect(insertBtn.disabled).toBe(true);
-    });
+  it('keeps nothing open between uploads', () => {
+    expect(() => imageUpload.destroy()).not.toThrow();
+    expect(document.querySelector('.md-dialog-overlay')).toBeNull();
   });
 
   describe('File Validation', () => {
@@ -269,7 +70,6 @@ describe('ImageUpload', () => {
 
     it('should respect custom max size', async () => {
       const customUpload = new ImageUpload({
-        onInsert: jest.fn(),
         trans: transMock,
         uploadMaxSize: 100, // 100 bytes
       });
@@ -278,74 +78,6 @@ describe('ImageUpload', () => {
       await expect(customUpload.uploadFile(file)).rejects.toThrow('File too large');
 
       customUpload.destroy();
-    });
-  });
-
-  describe('URL Input', () => {
-    it('should have URL input field', () => {
-      imageUpload.open();
-
-      // Switch to URL tab
-      const tabs = document.querySelectorAll('.md-image-upload-tab');
-      (tabs[1] as HTMLElement).click();
-
-      const urlInput = document.querySelector('.md-image-upload-url-input');
-      expect(urlInput).not.toBeNull();
-    });
-  });
-
-  describe('Alt Text', () => {
-    it('should have alt text input', () => {
-      imageUpload.open();
-
-      const altInput = document.querySelector('.md-image-upload-alt-input');
-      expect(altInput).not.toBeNull();
-    });
-  });
-
-  describe('Destroy', () => {
-    it('should remove dialog from DOM', () => {
-      imageUpload.open();
-      imageUpload.destroy();
-
-      const overlay = document.querySelector('.md-dialog-overlay');
-      expect(overlay).toBeNull();
-    });
-
-    it('should handle destroy without open', () => {
-      expect(() => imageUpload.destroy()).not.toThrow();
-    });
-  });
-
-  describe('Reset on Reopen', () => {
-    it('should reset state when reopened', () => {
-      imageUpload.open();
-
-      // Switch to URL tab
-      const tabs = document.querySelectorAll('.md-image-upload-tab');
-      (tabs[1] as HTMLElement).click();
-
-      // Close and reopen
-      imageUpload.close();
-      imageUpload.open();
-
-      // Should be back to upload tab
-      expect(tabs[0].classList.contains('md-image-upload-tab-active')).toBe(true);
-    });
-  });
-
-  describe('i18n', () => {
-    it('should call translate for dialog strings', () => {
-      imageUpload.open();
-
-      expect(transMock).toHaveBeenCalledWith('Insert image');
-      expect(transMock).toHaveBeenCalledWith('Upload');
-      expect(transMock).toHaveBeenCalledWith('URL');
-      expect(transMock).toHaveBeenCalledWith('Drop image here or click to browse');
-      expect(transMock).toHaveBeenCalledWith('Browse...');
-      expect(transMock).toHaveBeenCalledWith('Alt text');
-      expect(transMock).toHaveBeenCalledWith('Insert');
-      expect(transMock).toHaveBeenCalledWith('Cancel');
     });
   });
 });
