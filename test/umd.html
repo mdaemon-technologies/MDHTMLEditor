@@ -79,6 +79,7 @@
     <button id="btn-insert-roundtrip">Insert own output</button>
     <button id="btn-insert-template">Insert pretty-printed template</button>
     <button id="btn-insert-wrapped">Insert wrapped template</button>
+    <button id="btn-app-links">Load application links</button>
     <button id="btn-bold">Toggle bold (execCommand)</button>
     <button id="btn-color">Set text color</button>
     <button id="btn-clear-color">Clear text color</button>
@@ -355,6 +356,18 @@
           '</div></div></div></div>'
         );
         show('inserted a wrapped template', editor.getContent());
+      });
+      document.getElementById('btn-app-links').addEventListener('click', function () {
+        // Links to an application's own URL scheme are kept, a dot in the
+        // scheme included; the javascript: and data: links keep only their text.
+        editor.setContent(
+          '<p>Document: <a href="example.dms:1|&lt;ABC&gt;">125</a></p>' +
+          '<p>Database: <a href="notes://server.example.com/db">Notes database</a></p>' +
+          '<p>App: <a href="x-example-app:open?id=42">Open record 42</a></p>' +
+          '<p>Rejected (stay plain text): <a href="javascript:alert(1)">script</a>, ' +
+          '<a href="data:text/html,x">data</a></p>'
+        );
+        show('loaded application links: three kept, two plain text', editor.getContent());
       });
       document.getElementById('btn-bold').addEventListener('click', function () {
         editor.execCommand('bold');

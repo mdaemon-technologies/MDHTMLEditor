@@ -11,13 +11,13 @@
  */
 
 import { getMarkRange } from '@tiptap/core';
-import { isAllowedUri } from '@tiptap/extension-link';
 import type { Mark, Node as PMNode } from '@tiptap/pm/model';
 import { NodeSelection } from '@tiptap/pm/state';
 import type { HTMLEditor } from '../core/HTMLEditor';
 import { CSS_LENGTH, mergeStyle, sanitizeStyle, styleProperty } from '../utils/cssValues';
 import { CONTROL_CHARACTERS, webImageAddress } from '../utils/imageAddress';
 import { normalizeLinkAddress } from '../utils/linkAddress';
+import { isAllowedLinkHref } from '../utils/linkScheme';
 import { createSkinHost } from '../utils/skinHost';
 import { IMAGE_STYLE_RULES, imageDir, imageLang } from './ImageAttributes';
 import { BORDER_STYLE_CHOICES } from './TableDialog';
@@ -317,7 +317,7 @@ export class ImageDialog {
     const typed = this.value('href').replace(CONTROL_CHARACTERS, '').trim();
     if (!typed) return '';
     const href = normalizeLinkAddress(typed);
-    return isAllowedUri(href) ? href : null;
+    return isAllowedLinkHref(href) ? href : null;
   }
 
   /**

@@ -5,7 +5,9 @@
 
 import type { HTMLEditor } from '../core/HTMLEditor';
 import { createSkinHost } from '../utils/skinHost';
+import { CONTROL_CHARACTERS } from '../utils/imageAddress';
 import { normalizeLinkAddress } from '../utils/linkAddress';
+import { isAllowedLinkHref } from '../utils/linkScheme';
 import { getMarkRange } from '@tiptap/core';
 import type { Editor as TipTapEditor } from '@tiptap/core';
 import { LINK_ESCAPE_META } from './LinkEscape';
@@ -24,6 +26,8 @@ export class LinkEditor {
   private textInput: HTMLInputElement | null = null;
   private titleInput: HTMLInputElement | null = null;
   private targetSelect: HTMLSelectElement | null = null;
+  /** The href of the link the dialog was opened on, '' for a new link. */
+  private initialHref = '';
 
   constructor(options: LinkEditorOptions) {
     this.options = options;
@@ -84,7 +88,11 @@ export class LinkEditor {
     const { from, to } = this.linkRangeAtCaret() ?? tiptap.state.selection;
     const selectedText = tiptap.state.doc.textBetween(from, to, '');
 
-    if (this.urlInput) this.urlInput.value = attrs.href ?? '';
+    this.initialHref = attrs.href ?? '';
+    if (this.urlInput) {
+      this.urlInput.value = this.initialHref;
+      this.urlInput.removeAttribute('aria-invalid');
+    }
     if (this.textInput) {
       this.textInput.value = selectedText;
       this.textInput.disabled = this.rangeHoldsInlineNode(from, to);
@@ -97,7 +105,11 @@ export class LinkEditor {
     const tiptap = this.tiptap;
     if (!tiptap) return;
 
-    const url = normalizeLinkAddress(this.urlInput?.value.trim() ?? '');
+    // The address as typed, made usable; the link's stored address, when the
+    // field still holds it, is kept as it is (normalizing could turn an
+    // application link such as "example.dms:12345" into an http:// one).
+    const typed = (this.urlInput?.value ?? '').replace(CONTROL_CHARACTERS, '').trim();
+    const url = typed && typed === this.initialHref ? typed : normalizeLinkAddress(typed);
     const text = this.textInput?.value ?? '';
     const title = this.titleInput?.value.trim() ?? '';
     const target = this.targetSelect?.value ?? '';
@@ -106,6 +118,16 @@ export class LinkEditor {
     if (!url) {
       tiptap.chain().focus().unsetLink().run();
       this.close();
+      return;
+    }
+
+    // An address links don't allow (javascript:, data: and the like) is not
+    // saved: the field is marked and the dialog stays open until it is fixed.
+    // Checked here because inserting linked text at the caret goes through
+    // insertContent, which never runs the Link mark's own check.
+    if (!isAllowedLinkHref(url)) {
+      this.urlInput?.setAttribute('aria-invalid', 'true');
+      this.urlInput?.focus();
       return;
     }
 
@@ -197,6 +219,7 @@ export class LinkEditor {
     this.urlInput = document.createElement('input');
     this.urlInput.type = 'text';
     this.urlInput.className = 'md-link-editor-input';
+    this.urlInput.addEventListener('input', () => this.urlInput?.removeAttribute('aria-invalid'));
     urlRow.appendChild(this.urlInput);
 
     // Text to display field

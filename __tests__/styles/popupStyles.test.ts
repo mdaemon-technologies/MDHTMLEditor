@@ -116,6 +116,21 @@ describe('Popup styles', () => {
     });
   });
 
+  describe('link dialog', () => {
+    it("marks an address that can't be saved", () => {
+      expect(declarations('.md-link-editor-input[aria-invalid=true]')).toMatch(/border-color:/);
+      expect(after('.md-link-editor-input[aria-invalid=true]', '.md-link-editor-input')).toBe(true);
+    });
+  });
+
+  describe.each(['oxide-dark', 'confab', 'confab-dark'])('the link dialog in the %s skin', (skin) => {
+    it("keeps an address that can't be saved marked, after the skin's own field border", () => {
+      const invalid = `.md-editor-${skin} .md-link-editor-input[aria-invalid=true]`;
+      expect(declarations(invalid)).toMatch(/border-color:/);
+      expect(after(invalid, `.md-editor-${skin} .md-link-editor-input`)).toBe(true);
+    });
+  });
+
   describe.each(['oxide-dark', 'confab', 'confab-dark'])('the image dialog in the %s skin', (skin) => {
     it("keeps a field that can't be saved marked, after the skin's own field border", () => {
       const invalid = `.md-editor-${skin} .md-image-dialog-input[aria-invalid=true]`;

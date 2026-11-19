@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.0] - 2026-11-19
+
+### Fixed
+
+- **A link to an application's own URL scheme keeps its link.** Desktop applications register schemes of their own (`notes:`, `outlook:`, `zoommtg:`, or one with a dot, such as `example.dms:`), and a link to one lost its link and was kept as plain text: in `setContent()`, pasted HTML, the Source view, the Link dialog (`setLink` returned `false`, and a link inserted at the caret was written out with `href=""`), the image dialog's Link tab and an image map's `<area href>`. TipTap allows only `http`, `https`, `ftp`, `ftps`, `mailto`, `tel`, `callto`, `sms`, `cid` and `xmpp`. The schemes differ from one site to the next, so no list can name them all. Like TinyMCE, the editor now allows any other scheme too. It refuses only `javascript:`, `vbscript:`, `mhtml:` and `data:`, as TinyMCE does, plus `file:`, `blob:` and `filesystem:`, which never work for the reader of saved content. The scheme is checked after whitespace and control characters are removed, so `java&#9;script:` is still refused. Links in the editor still don't open on click. Addresses without a scheme (`#anchor`, `/path`) and the schemes TipTap allowed behave as before, and no option is needed.
+- **The Link dialog no longer saves an address links don't allow.** A `javascript:` or `data:` address typed with the caret in text was inserted as linked text whose link held that address (written out as `href=""`), and with text selected the dialog closed without linking it. Now the URL field is marked and the dialog stays open until the address is fixed, as in the image dialog's Link tab.
+- **A host and port typed in the Link dialog or the image dialog's Link tab gets `http://`.** `www.example.com:8080/page` and `localhost:3000` read as a scheme (`www.example.com:`), so they were refused, and `127.0.0.1:3000` was saved as a relative path. Now a host with a dot, or `localhost`, followed by a port and then a path, query, fragment or nothing gets `http://`, as a bare domain does. An application's own scheme is left as typed: `example.dms:1|ABC` has more than a port after the colon, and `x-example-app:12345` has no dot. A dotted scheme followed by digits alone (`example.dms:12345`) can't be told from a host and port, so typed in a dialog it gets `http://`.
+- **Saving the Link dialog without changing the URL keeps the link's address as it is.** The stored address was put through the typed-address rules again, so a bare `example.com` link gained `http://` when only its title was changed. The Link dialog now also removes control characters from a typed URL, as the image dialog's Link tab does.
+
 ## [1.20.0] - 2026-11-17
 
 ### Added
@@ -573,6 +582,7 @@ Font-size defaults are applied to paragraphs only — headings keep their level-
 - Updated all dependencies to latest versions
 - Updated license
 
+[1.21.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.21.0
 [1.20.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.20.0
 [1.19.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.19.0
 [1.18.0]: https://www.npmjs.com/package/@mdaemon/html-editor/v/1.18.0

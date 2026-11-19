@@ -1479,6 +1479,10 @@ $md-visualblocks-labels: (
   }
 }
 
+.md-link-editor-input[aria-invalid="true"] {
+  border-color: #cc0000;
+}
+
 .md-link-editor-select {
   appearance: auto;
 }
@@ -1951,7 +1955,8 @@ $md-visualblocks-labels: (
   }
 
   // Restated after the field rule above, which sets its own border color.
-  .md-image-dialog-input[aria-invalid="true"] {
+  .md-image-dialog-input[aria-invalid="true"],
+  .md-link-editor-input[aria-invalid="true"] {
     border-color: #ff6b6b;
   }
 
@@ -2247,6 +2252,11 @@ $md-visualblocks-labels: (
       border-color: var(--theme-primary, #0066cc);
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
     }
+  }
+
+  // Restated after the field rule above, which sets its own border color.
+  .md-link-editor-input[aria-invalid="true"] {
+    border-color: #cc0000;
   }
 }
 
@@ -2606,6 +2616,11 @@ $md-visualblocks-labels: (
       border-color: var(--theme-primary, #0066cc);
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
     }
+  }
+
+  // Restated after the field rule above, which sets its own border color.
+  .md-link-editor-input[aria-invalid="true"] {
+    border-color: #ff6b6b;
   }
 
   .md-link-editor-row label,

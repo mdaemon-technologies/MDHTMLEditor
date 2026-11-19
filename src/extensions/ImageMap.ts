@@ -12,11 +12,11 @@
 
 import { Node, getRenderedAttributes, mergeAttributes } from '@tiptap/core';
 import type { Editor, ExtensionAttribute } from '@tiptap/core';
-import { isAllowedUri } from '@tiptap/extension-link';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import type { NodeView } from '@tiptap/pm/view';
 import { liftMapContent, mapAreas } from '../utils/liftMapContent';
+import { isAllowedLinkHref } from '../utils/linkScheme';
 
 /** One <area> of a map. Only these attributes are kept, each checked. */
 export interface ImageMapArea {
@@ -89,10 +89,10 @@ function cleanArea(get: (name: string) => unknown): ImageMapArea {
   if (shape && SHAPES.has(shape)) result.shape = shape;
   const coords = text('coords')?.trim();
   if (coords && COORDS.test(coords)) result.coords = coords;
-  // The check a link's href gets: the editor's Link uses TipTap's default
-  // protocols, so javascript:, data: and the like are dropped.
+  // The check a link's href gets: an application scheme is kept, while
+  // javascript:, data: and the like are dropped.
   const href = text('href');
-  if (href !== null && isAllowedUri(href)) result.href = href;
+  if (href !== null && isAllowedLinkHref(href)) result.href = href;
   const alt = text('alt');
   if (alt !== null) result.alt = alt;
   const target = text('target')?.trim().toLowerCase();

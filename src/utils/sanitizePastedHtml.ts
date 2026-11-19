@@ -43,7 +43,7 @@ const URL_ATTRS = new Set([
  * C0/C1 control characters anywhere in the scheme, so `java&#9;script:` navigates
  * exactly like `javascript:` while reading as harmless to a naive check.
  */
-function normalizeUrl(value: string): string {
+export function normalizeUrl(value: string): string {
   // eslint-disable-next-line no-control-regex
   return value.replace(/[\u0000- \u007F-\u009F]/g, '');
 }

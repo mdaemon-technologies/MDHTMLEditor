@@ -341,6 +341,16 @@ Raw HTML such as &lt;u&gt;this&lt;/u&gt; pastes as visible text, and \*escaped\*
       </div>
 
       <div class="card">
+        <div class="card-header">Application links</div>
+        <div class="card-body">
+          <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads links to applications' own URL schemes (<code>example.dms:</code>, <code>notes:</code>, <code>outlook:</code>, <code>x-example-app:</code>) and a <code>javascript:</code>, <code>data:</code> and <code>file:</code> link. The HTML Output panel shows the application links kept and the other three as plain text. Use the Link button to link selected text to <code>example.dms:1|ABC</code>, or open Source code, add one and save.</p>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-load-app-links">Load application links</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header">Image properties</div>
         <div class="card-body">
           <p style="font-size:11px;color:#888;margin:0 0 8px;">Loads a floated, spaced, bordered and linked image, and one written with the older <code>align</code>, <code>hspace</code>, <code>vspace</code> and <code>border</code> attributes. Double-click an image, or select it and use the image button or <em>Image dialog</em>, to edit its size, alignment, link, spacing, border, direction and language.</p>

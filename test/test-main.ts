@@ -561,6 +561,23 @@ $('#btn-load-image-links').addEventListener('click', () => {
   log('info', 'loaded linked images — check the links in the HTML Output panel');
 });
 
+// ── Application links ────────────────────────────────
+// Links to an application's own URL scheme are kept, a dot in the scheme
+// included; javascript:, vbscript:, mhtml:, data:, file: and blob: links lose
+// their link and keep their text.
+$('#btn-load-app-links').addEventListener('click', () => {
+  editor.setContent(
+    '<p>Document: <a href="example.dms:1|&lt;ABC&gt;">125</a></p>' +
+    '<p>Database: <a href="notes://server.example.com/db">Notes database</a></p>' +
+    '<p>Mail item: <a href="outlook:00000000ABC">Open in the mail app</a></p>' +
+    '<p>App: <a href="x-example-app:open?id=42">Open record 42</a></p>' +
+    '<p>Rejected (stay plain text): <a href="javascript:alert(1)">script</a>, ' +
+    '<a href="data:text/html,x">data</a>, <a href="file:///c:/x">file</a></p>'
+  );
+  refreshHtml();
+  log('info', 'loaded application links — four kept, three plain text in the HTML Output panel');
+});
+
 // ── Image properties ─────────────────────────────────
 // Images whose float, spacing, border and link the image dialog edits:
 // double-click one (or select it and use the image button) to open it. The

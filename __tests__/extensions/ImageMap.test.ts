@@ -200,6 +200,18 @@ describe('what is dropped', () => {
     expect(areas().map((a) => attrs(a).href)).toEqual(['mailto:info@example.com', '#top', '/contact']);
   });
 
+  it('keeps an area link to an application scheme, as links keep it', () => {
+    make().setContent(
+      `${IMG}<map name="workmap">` +
+      '<area shape="rect" coords="0,0,1,1" href="example.dms:1">' +
+      '<area shape="rect" coords="0,0,1,1" href="notes://server/db">' +
+      '<area shape="rect" coords="0,0,1,1" href="blob:https://example.com/1">' +
+      '<area shape="rect" coords="0,0,1,1" href="mhtml:file://x!y">' +
+      '</map>'
+    );
+    expect(areas().map((a) => attrs(a).href)).toEqual(['example.dms:1', 'notes://server/db', undefined, undefined]);
+  });
+
   it.each([
     ['javascript:x'],
     ['workmap'],

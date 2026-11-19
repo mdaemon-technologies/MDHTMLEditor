@@ -77,6 +77,7 @@ import type { TableDialogKind } from '../extensions/TableDialog';
 import { fillEmptyBlocks, stripEmptyLineBreaks } from '../utils/fillEmptyBlocks';
 import { unescapeTagSlashes } from '../utils/unescapeTagSlashes';
 import { flattenWrapperBlocks } from '../utils/flattenWrapperBlocks';
+import { isAllowedLinkHref } from '../utils/linkScheme';
 import { liftMapContent } from '../utils/liftMapContent';
 import { normalizeQuoteMarkerClass } from '../utils/markedQuote';
 import { ImageUpload } from '../extensions/ImageUpload';
@@ -790,7 +791,8 @@ export class HTMLEditor implements IMDHTMLEditor {
          * Only the empty-string case is added. `href` genuinely absent still
          * fails (that is a named anchor, see the Anchor node), and every
          * non-empty href is still put through `isAllowedUri`, so
-         * `javascript:`/`data:` targets are rejected exactly as before.
+         * `javascript:`/`data:` targets are rejected exactly as before
+         * (see the `isAllowedUri` option below for the schemes allowed).
          */
         parseHTML() {
           return [
@@ -828,6 +830,13 @@ export class HTMLEditor implements IMDHTMLEditor {
         HTMLAttributes: {
           rel: 'noopener noreferrer',
         },
+        // TipTap's check keeps only its own short list of schemes, so a link to
+        // an application (notes:, outlook:, example.dms:) lost its link. Any other
+        // scheme is allowed too, as in TinyMCE, except the script, document and
+        // local ones (see linkScheme.ts). One check covers parsing, setLink/toggleLink and
+        // renderHTML. Not through `protocols`: linkify throws on a scheme with a
+        // dot in it, and registers its schemes for every editor on the page.
+        isAllowedUri: (url, ctx) => isAllowedLinkHref(url, ctx.defaultValidate),
       }),
       // Moves the caret out of a link a paste or the Link dialog has just left
       // it at the end of, so the next words typed are not added to the link.

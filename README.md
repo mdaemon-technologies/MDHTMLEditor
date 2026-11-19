@@ -383,7 +383,7 @@ Blocks that own their nesting are never dissolved: a `<blockquote>`, `<li>` or t
 
 ### Placeholder links
 
-An `<a href="">` — a link whose target the author has not filled in yet, or that an upstream sanitizer has blanked — is preserved as a link on import, matching TinyMCE and CKEditor. URI validation is otherwise unchanged: a `javascript:` or `data:` target is still rejected and its anchor unwrapped to plain text.
+An `<a href="">` — a link whose target the author has not filled in yet, or that an upstream sanitizer has blanked — is preserved as a link on import, matching TinyMCE and CKEditor. URI validation is otherwise unchanged: a `javascript:` or `data:` target is still rejected and its anchor unwrapped to plain text (see [Link addresses](#link-addresses)).
 
 ### Links on images
 
@@ -399,7 +399,7 @@ In the full editor, an image map survives loading, `insertContent()`, paste and 
 
 A map written in the same line as its image stays in that line; one written after the image's paragraph gets a line of its own, which adds no blank line to the saved HTML. Content a `<map>` holds besides its areas (text links repeating the hotspots, say) is kept, just after the map. Each `<area>` keeps `shape`, `coords`, `href`, `alt`, `target`, `title` and `rel`, and each value is checked:
 
-- `href` gets the same check as a link's, so a `javascript:` or `data:` target is dropped and the area kept.
+- `href` gets the same check as a link's (see [Link addresses](#link-addresses)), so an application scheme such as `notes:` is kept, while a `javascript:` or `data:` target is dropped and the area kept.
 - `target` must be `_blank`, `_self`, `_parent` or `_top`. An area with `target="_blank"` gets `rel="noopener noreferrer"` added, as the editor's links do. `shape` must be one HTML defines, and `coords` must be numbers.
 - `usemap` must be `#` followed by a name. A `<map>` with only an `id` (the older XHTML form, which browsers also match) keeps it, written out as `name`. A `<map>` with neither usable is dropped with its areas.
 - The values are checked again when the content is written out, so an area added through a command or JSON content gets the same checks.
@@ -536,7 +536,7 @@ The `image` toolbar button, `execCommand('mceImage')` and a double-click on an i
   - **Width** and **Height** (`image_dimensions`): pixels, or a percentage such as `50%` (not zero). **Constrain proportions** (on at first) keeps the image's ratio as you change one side, and **Reset size** fills in the image's own size.
   - **Alignment**: None, Left or Right, saved as `float` (CKEditor's field; TinyMCE has none).
   - A preview of the image in sample text, at its size and with its float, spacing and border.
-- **Link**: a **URL** and **Open link in...** (current or new window). A bare domain gets `http://`, and an address links don't allow (`javascript:`, `data:`) can't be saved. On a linked image the link changes or goes as a whole, even when it also holds text.
+- **Link**: a **URL** and **Open link in...** (current or new window). A bare domain gets `http://`, and an address links don't allow (`javascript:`, `data:`; see [Link addresses](#link-addresses)) can't be saved. On a linked image the link changes or goes as a whole, even when it also holds text.
 - **Upload** (`image_uploadtab`): drop or browse for a file. It uploads straight away, then fills in Source and shows the General tab. See [Uploading images](#uploading-images).
 - **Advanced** (`image_advtab`): **Style**, **Vertical space**, **Horizontal space**, **Border width**, **Border style**, **Text direction** and **Language**, and Title when `image_title` is off. A border width with no border style draws a solid border. The Style field and the others follow each other as you type.
 - A field whose value can't be saved (a Source that isn't an image address, a link links don't allow, a size, spacing or language an image can't keep) is marked (`aria-invalid`), and Save waits until it is fixed or emptied. The arrow keys, Home and End move between the tabs.
@@ -694,7 +694,16 @@ When editing an existing link, all fields are pre-populated from the current lin
 
 **Clicking a link** in the editor places the caret; it does not open the link.
 
-**URL normalization:** a URL entered without a scheme that looks like a bare domain (e.g. `www.example.com` or `example.com/path`) is saved with `http://` prepended, so it resolves as an external link instead of a broken relative path. URLs that already carry a scheme (`https:`, `mailto:`, `tel:`, `ftp:`, …), anchors (`#section`), absolute/relative paths (`/`, `./`, `../`), and protocol-relative URLs (`//host`) are left exactly as typed.
+**URL normalization:** a URL entered without a scheme that looks like a bare domain (e.g. `www.example.com` or `example.com/path`) is saved with `http://` prepended, so it resolves as an external link instead of a broken relative path. So is a host with a dot, or `localhost`, followed by a port and then a path or nothing (`example.com:8080/page`, `127.0.0.1:3000`, `localhost:3000`), which would otherwise read as a scheme. An application's own scheme is left as typed: `example.dms:1|ABC` has more than a port after the colon, and `x-example-app:12345` has no dot. A dotted scheme followed by digits alone, such as `example.dms:12345`, can't be told from a host and port, so typed in a dialog it gets `http://`; load it with `setContent()` or the Source view instead. Saving a link without changing its URL keeps the address it had, as is. Control characters (a pasted tab, say) are removed from a typed URL. URLs that already carry a scheme (`https:`, `mailto:`, `tel:`, `ftp:`, …), anchors (`#section`), absolute/relative paths (`/`, `./`, `../`), and protocol-relative URLs (`//host`) are left exactly as typed.
+
+### Link addresses
+
+A link may use any URL scheme, including an application's own: `notes://server/db`, `outlook:00000000ABC`, `zoommtg:`, or one with a dot, such as `example.dms:1|ABC`. This applies to every way a link gets in: `setContent()`, pasted HTML, the Source view, the Link dialog, the image dialog's Link tab and an image map's `<area href>`. Only these schemes are refused:
+
+- `javascript:`, `vbscript:` and `mhtml:`, which run script, and `data:`, which holds a whole document. TinyMCE refuses these too.
+- `file:`, `blob:` and `filesystem:`, which point at local files or the page's own objects. TinyMCE keeps these, but they never work for the reader of saved content.
+
+A refused link becomes plain text with its text kept. The Link dialog and the image dialog's Link tab won't save one: the URL field is marked, and the dialog stays open until it is fixed. The scheme is checked after whitespace and control characters are removed, so `java&#9;script:` is refused too. Addresses without a scheme (`#section`, `/path`, `page.html`) are always allowed.
 
 ## Named Anchors
 
@@ -881,7 +890,7 @@ With the mode **off**, pasting is unchanged. Note that TipTap's own paste rules 
 
 ### Security
 
-Pasted Markdown cannot run script in the editor: raw HTML is escaped to text, the converted HTML is parsed and sanitized in an inert document (never through `innerHTML` on the live page) and links are limited to the schemes TipTap allows, so `javascript:` targets lose the link and keep their text. Images do load from their URLs when pasted, exactly as they do for an HTML paste, so a remote image reveals the reader's IP to that server. There is deliberately no public "Markdown to HTML string" helper, because that invites host code to write it back into a page with `innerHTML`; hosts that need to insert Markdown use `pasteMarkdownText(view, text)`, which inserts through the editor.
+Pasted Markdown cannot run script in the editor: raw HTML is escaped to text, the converted HTML is parsed and sanitized in an inert document (never through `innerHTML` on the live page) and links get the same check as any other link (see [Link addresses](#link-addresses)), so `javascript:` targets lose the link and keep their text. Images do load from their URLs when pasted, exactly as they do for an HTML paste, so a remote image reveals the reader's IP to that server. There is deliberately no public "Markdown to HTML string" helper, because that invites host code to write it back into a page with `innerHTML`; hosts that need to insert Markdown use `pasteMarkdownText(view, text)`, which inserts through the editor.
 
 ## Block & Style Formats
 

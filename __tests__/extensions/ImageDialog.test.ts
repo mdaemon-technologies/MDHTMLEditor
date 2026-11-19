@@ -803,6 +803,18 @@ describe('the Link tab', () => {
     expect(links()).toEqual([['https://example.com/page', '_blank', 'img']]);
   });
 
+  it.each([
+    ['www.example.com:8080/page', 'http://www.example.com:8080/page'],
+    ['localhost:3000', 'http://localhost:3000'],
+  ])('adds http:// to %j, a host and port, as the link dialog does', (value, expected) => {
+    make();
+    dialog.open();
+    type('src', SRC);
+    type('href', value);
+    saveButton().click();
+    expect(links()[0][0]).toBe(expected);
+  });
+
   it('adds http:// to a bare domain, as the link dialog does', () => {
     make();
     dialog.open();
@@ -812,7 +824,19 @@ describe('the Link tab', () => {
     expect(links()[0][0]).toBe('http://www.example.com/page');
   });
 
-  it.each(['javascript:alert(1)', 'data:text/html,<b>x</b>', 'vbscript:x'])('refuses %j as a link', (value) => {
+  it.each(['example.dms:1|x', 'notes://server/db'])('links to the application scheme %j, as the link dialog does', (value) => {
+    make();
+    dialog.open();
+    type('src', SRC);
+    type('href', value);
+    expect(saveButton().disabled).toBe(false);
+    saveButton().click();
+    expect(links()[0][0]).toBe(value);
+  });
+
+  it.each([
+    'javascript:alert(1)', 'data:text/html,<b>x</b>', 'vbscript:x', 'mhtml:file://x!y', 'file:///c:/x', 'blob:https://example.com/1',
+  ])('refuses %j as a link', (value) => {
     make();
     dialog.open();
     type('src', SRC);

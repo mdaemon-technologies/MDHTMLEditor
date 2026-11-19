@@ -210,6 +210,106 @@ describe('LinkEditor', () => {
     it('leaves protocol-relative URLs untouched', () => {
       expect(insertLink('//cdn.example.com/a.js')).toContain('href="//cdn.example.com/a.js"');
     });
+
+    it.each([
+      ['www.example.com:8080/page', 'http://www.example.com:8080/page'],
+      ['www.example.com:8080', 'http://www.example.com:8080'],
+      ['localhost:3000', 'http://localhost:3000'],
+      ['localhost:3000/app?x=1', 'http://localhost:3000/app?x=1'],
+      ['example.com:8080/page', 'http://example.com:8080/page'],
+      ['mail.example.com:8443', 'http://mail.example.com:8443'],
+      ['example.com:8080?q=1', 'http://example.com:8080?q=1'],
+      ['127.0.0.1:3000', 'http://127.0.0.1:3000'],
+      ['192.168.1.10:8080/app', 'http://192.168.1.10:8080/app'],
+    ])('prepends http:// to %j, a host and port, not a scheme', (value, expected) => {
+      expect(insertLink(value)).toContain(`href="${expected}"`);
+    });
+
+    it.each(['example.dms:1|x', 'example.dms:1x', 'notes://server/db', 'x-example-app:open', 'x-example-app:12345'])(
+      'leaves the application scheme in %j untouched',
+      (value) => {
+        expect(insertLink(value)).toContain(`href="${value}"`);
+      }
+    );
+  });
+
+  describe('Saving an existing link without changing its URL', () => {
+    it.each(['example.dms:12345', 'localhost:3000', 'example.com'])(
+      'keeps the stored address %j as it is, though a typed one would get http://',
+      (href) => {
+        editor.setContent(`<p><a href="${href}">doc</a></p>`);
+        editor.getTipTap()!.commands.setTextSelection(2);
+        linkEditor.open();
+        const [, , titleInput] = Array.from(document.querySelectorAll<HTMLInputElement>('.md-link-editor-input'));
+        titleInput.value = 'A title';
+        (document.querySelector('.md-link-editor-save') as HTMLElement).click();
+        const link = editor.getTipTap()!.getAttributes('link');
+        expect(link.href).toBe(href);
+        expect(link.title).toBe('A title');
+      }
+    );
+  });
+
+  describe('Control characters in the URL', () => {
+    it('removes them, as the image dialog does', () => {
+      linkEditor.open();
+      (document.querySelector('.md-link-editor-input') as HTMLInputElement).value = 'notes://server/d\tb\u0001';
+      (document.querySelector('.md-link-editor-save') as HTMLElement).click();
+      expect(editor.getContent()).toContain('href="notes://server/db"');
+    });
+  });
+
+  describe('An address links do not allow', () => {
+    const urlInput = () => document.querySelector('.md-link-editor-input') as HTMLInputElement;
+    const overlay = () => document.querySelector('.md-dialog-overlay') as HTMLElement;
+    const save = () => (document.querySelector('.md-link-editor-save') as HTMLElement).click();
+
+    it.each(['javascript:alert(1)', 'data:text/html,x', 'file:///c:/x'])(
+      'is not inserted at the caret, and the dialog stays open with the field marked: %j',
+      (value) => {
+        editor.setContent('<p>a</p>');
+        const before = editor.getTipTap()!.getJSON();
+        linkEditor.open();
+        urlInput().value = value;
+        save();
+        expect(editor.getTipTap()!.getJSON()).toEqual(before);
+        expect(overlay().style.display).not.toBe('none');
+        expect(urlInput().getAttribute('aria-invalid')).toBe('true');
+      }
+    );
+
+    it('does not link the selected text', () => {
+      editor.setContent('<p>text</p>');
+      editor.getTipTap()!.commands.setTextSelection({ from: 1, to: 5 });
+      linkEditor.open();
+      urlInput().value = 'javascript:alert(1)';
+      save();
+      expect(editor.getContent()).not.toContain('<a');
+      expect(overlay().style.display).not.toBe('none');
+    });
+
+    it('clears the mark when the address is changed, and saves a valid one', () => {
+      editor.setContent('<p>text</p>');
+      editor.getTipTap()!.commands.setTextSelection({ from: 1, to: 5 });
+      linkEditor.open();
+      urlInput().value = 'javascript:alert(1)';
+      save();
+      urlInput().value = 'https://example.com/';
+      urlInput().dispatchEvent(new Event('input'));
+      expect(urlInput().hasAttribute('aria-invalid')).toBe(false);
+      save();
+      expect(editor.getContent()).toContain('href="https://example.com/"');
+      expect(overlay().style.display).toBe('none');
+    });
+
+    it('is no longer marked when the dialog is opened again', () => {
+      linkEditor.open();
+      urlInput().value = 'javascript:alert(1)';
+      save();
+      linkEditor.close();
+      linkEditor.open();
+      expect(urlInput().hasAttribute('aria-invalid')).toBe(false);
+    });
   });
 
   describe('Editing a link with nothing selected', () => {
